@@ -23,12 +23,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
-  );
+  <html lang="en">
+    <body
+      className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#141312] text-stone-100`}
+    >
+      <div className="flex min-h-screen flex-col">
+        <main className="flex-1">
+          {children}
+        </main>
+
+        <footer className="border-t border-white/10 px-6 py-6 text-sm text-stone-500">
+          <div className="mx-auto flex max-w-6xl flex-wrap gap-6">
+            <a href="/impressum" className="hover:text-white transition">
+              Impressum
+            </a>
+            <a href="/datenschutz" className="hover:text-white transition">
+              Datenschutz
+            </a>
+            <a href="/kontakt" className="hover:text-white transition">
+              Kontakt
+            </a>
+          </div>
+        </footer>
+      </div>
+    </body>
+  </html>
+);
 }
