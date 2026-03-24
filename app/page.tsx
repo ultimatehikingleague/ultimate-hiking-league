@@ -253,7 +253,7 @@ export default async function Home() {
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Top Rankings LIVE TEST</h2>
+              <h2 className="text-2xl font-bold text-white">Top Rankings</h2>
               <p className="mt-1 text-sm text-stone-400">
                 Erste Sicht auf Europa und die drei Kern-Divisionen.
               </p>
