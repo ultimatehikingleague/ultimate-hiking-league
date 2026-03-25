@@ -1,6 +1,22 @@
 import Link from 'next/link'
 import Nav from '../components/Nav'
 
+export const dynamic = 'force-dynamic'
+
+async function getEvents() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/events_master?select=*,event_distances(*)&order=event_date.asc`,
+    {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      cache: 'no-store',
+    }
+  )
+
+  return res.json()
+}
+
 type EventItem = {
   slug: string
   city: string
@@ -217,7 +233,8 @@ function BrandList({
   )
 }
 
-export default function EventsPage() {
+export default async function EventsPage() {
+  const events = await getEvents()
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
       <section className="relative overflow-hidden">
@@ -289,12 +306,29 @@ export default function EventsPage() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            {upcomingEvents.map((event) => (
-              <EventCard
-                key={`${event.brand}-${event.city}-${event.date}`}
-                event={event}
-              />
-            ))}
+            {events.map((event: any) => (
+             <EventCard
+               key={event.id}
+               event={{
+                 slug: event.slug,
+                 city: event.city ?? '—',
+                 country: event.country ?? '—',
+                 countryCode: event.country_code ?? '',
+                 date: event.event_date
+                   ? new Date(event.event_date).toLocaleDateString('de-DE')
+                   : '—',
+                 distances:
+                   event.event_distances && event.event_distances.length > 0
+                    ? event.event_distances
+                        .map((d: any) => d.label ?? `${d.distance_km} km`)
+                        .join(' / ')
+                    : '—',
+                 brand: event.brand ?? 'Event',
+                 special: event.country_code && event.country_code !== 'DE' ? 'International' : undefined,
+               }}
+            />
+          ))}
+          
           </div>
         </section>
 
