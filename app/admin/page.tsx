@@ -57,6 +57,158 @@ type SubmissionDraft = {
   notes: string
   admin_note: string
 }
+type EventMasterMatch = {
+  id: number
+  slug: string
+  title: string | null
+  city: string | null
+  country: string | null
+  country_code: string | null
+  event_date: string | null
+}
+
+type EventDistanceMatch = {
+  id: number
+  event_id: number
+  distance_km: number
+  label: string | null
+}
+
+function normalizeText(value: string | null | undefined) {
+  return (value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function isSameDate(a: string | null | undefined, b: string | null | undefined) {
+  if (!a || !b) return false
+  return a.slice(0, 10) === b.slice(0, 10)
+}
+async function findOrCreateEventMaster(
+  draft: SubmissionDraft
+): Promise<{ eventMasterId: number; matched: boolean }> {
+  const normalizedName = normalizeText(draft.activity_name)
+  const normalizedLocation = normalizeText(draft.location)
+  const normalizedCountry = normalizeText(draft.country)
+
+  const { data: existingEvents, error: existingEventsError } = await supabase
+    .from('events_master')
+    .select('id, slug, title, city, country, country_code, event_date')
+    .order('event_date', { ascending: true })
+
+  if (existingEventsError) {
+    throw new Error(
+      `Fehler beim Laden vorhandener Events: ${existingEventsError.message}`
+    )
+  }
+
+
+  const matchedEvent = (existingEvents as EventMasterMatch[]).find((event) => {
+    const eventTitle = normalizeText(event.title)
+    const eventCity = normalizeText(event.city)
+    const eventCountry = normalizeText(event.country)
+    const eventCountryCode = normalizeText(event.country_code)
+
+    const sameDate = isSameDate(event.event_date, draft.activity_date)
+    const sameName =
+      eventTitle.includes(normalizedName) || normalizedName.includes(eventTitle)
+    const sameLocation =
+      !normalizedLocation ||
+      eventCity.includes(normalizedLocation) ||
+      normalizedLocation.includes(eventCity)
+    const sameCountry =
+      !normalizedCountry ||
+      eventCountry.includes(normalizedCountry) ||
+      normalizedCountry.includes(eventCountry) ||
+      eventCountryCode === normalizedCountry
+
+    return sameDate && sameName && sameLocation && sameCountry
+  })
+
+  if (matchedEvent) {
+    return { eventMasterId: matchedEvent.id, matched: true }
+  }
+
+  const slugBase = normalizeText(draft.activity_name)
+    .replace(/\s+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  const slug = `${slugBase || 'event'}-${draft.activity_date}`
+
+  const { data: createdEvent, error: createEventError } = await supabase
+    .from('events_master')
+    .insert({
+      slug,
+      title: draft.activity_name.trim(),
+      city: draft.location.trim() || null,
+      country: draft.country.trim() || null,
+      country_code: draft.country.trim().toUpperCase() || null,
+      event_date: draft.activity_date,
+      brand: null,
+      description: null,
+      deadline_text: null,
+      surface: null,
+      format: null,
+    })
+    .select('id')
+    .single()
+
+  if (createEventError || !createdEvent) {
+    throw new Error(
+      `Fehler beim Erstellen von events_master: ${createEventError?.message ?? 'Unbekannt'}`
+    )
+  }
+
+  return { eventMasterId: createdEvent.id, matched: false }
+}
+async function findOrCreateEventDistance(
+  eventMasterId: number,
+  parsedDistance: number
+): Promise<number> {
+  const { data: existingDistances, error: existingDistancesError } = await supabase
+    .from('event_distances')
+    .select('id, event_id, distance_km, label')
+    .eq('event_id', eventMasterId)
+
+  if (existingDistancesError) {
+    throw new Error(
+      `Fehler beim Laden vorhandener Distanzen: ${existingDistancesError.message}`
+    )
+  }
+
+  const matchedDistance = (existingDistances as EventDistanceMatch[]).find(
+    (distance) => isSameDistance(distance.distance_km, parsedDistance)
+  )
+
+  if (matchedDistance) {
+    return matchedDistance.id
+  }
+
+  const { data: createdDistance, error: createDistanceError } = await supabase
+    .from('event_distances')
+    .insert({
+      event_id: eventMasterId,
+      distance_km: parsedDistance,
+      label: `${parsedDistance} km`,
+    })
+    .select('id')
+    .single()
+
+  if (createDistanceError || !createdDistance) {
+    throw new Error(
+      `Fehler beim Erstellen von event_distances: ${createDistanceError?.message ?? 'Unbekannt'}`
+    )
+  }
+
+  return createdDistance.id
+}
+
+function isSameDistance(a: number, b: number) {
+  return Math.abs(a - b) < 0.2
+}
 
 function formatDate(dateText: string | null) {
   if (!dateText) return '—'
@@ -378,43 +530,39 @@ export default function AdminPage() {
 
       const avgSpeed = Number((parsedDistance / timeHours).toFixed(2))
 
-      const { data: createdEvent, error: eventError } = await supabase
-        .from('events')
-        .insert({
-          event_name: draft.activity_name.trim(),
-          event_date: draft.activity_date,
-          location: draft.location.trim() || null,
-          country: draft.country.trim().toUpperCase() || null,
-          official_distance_km: parsedDistance,
-        })
-        .select('id')
-        .single()
+      // 1. Event finden oder erstellen
+const { eventMasterId } = await findOrCreateEventMaster(draft)
 
-      if (eventError || !createdEvent) {
-        setPageMessage(
-          `Fehler beim Anlegen des Event-Eintrags: ${eventError?.message ?? 'Unbekannt'}`
-        )
-        return
-      }
+// 2. Distanz finden oder erstellen
+const eventDistanceId = await findOrCreateEventDistance(
+  eventMasterId,
+  parsedDistance
+)
 
-      const { error: recordError } = await supabase.from('records').insert({
-        hiker_id: submission.hiker_id,
-        event_id: createdEvent.id,
-        distance_km: parsedDistance,
-        time_hours: timeHours,
-        avg_speed: avgSpeed,
-        activity_date: draft.activity_date,
-        division: null,
-        record_status: 'verified_admin_submission',
-        verified: true,
-        time_text: draft.elapsed_time_text.trim(),
-        record_source: draft.record_source.trim() || 'user_submission',
-        is_corrected: false,
-        elevation_gain:
-          parsedElevation !== null && !Number.isNaN(parsedElevation)
-            ? parsedElevation
-            : null,
-      })
+// 3. Record schreiben (JETZT MIT RICHTIGER ZUORDNUNG)
+const { error: recordError } = await supabase.from('records').insert({
+  hiker_id: submission.hiker_id,
+  event_master_id: eventMasterId,
+  event_distance_id: eventDistanceId,
+  distance_km: parsedDistance,
+  time_hours: timeHours,
+  avg_speed: avgSpeed,
+  activity_date: draft.activity_date,
+  division: null,
+  record_status: 'verified_admin_submission',
+  verified: true,
+  time_text: draft.elapsed_time_text.trim(),
+  record_source: draft.record_source.trim() || 'user_submission',
+  is_corrected: false,
+  elevation_gain:
+    parsedElevation !== null && !Number.isNaN(parsedElevation)
+      ? parsedElevation
+      : null,
+})
+
+      
+
+     
 
       if (recordError) {
         setPageMessage(
