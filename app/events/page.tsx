@@ -233,7 +233,7 @@ export default function EventsPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%)]" />
         <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent to-[#141312]" />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-6 pt-10 pb-14 md:px-10 md:pt-14 md:pb-20">
+        <div className="relative z-10 mx-auto max-w-7xl px-6 pb-14 pt-10 md:px-10 md:pb-20 md:pt-14">
           <header>
             <div className="mb-0 flex justify-center">
               <img
@@ -255,6 +255,15 @@ export default function EventsPage() {
               <p className="mx-auto mt-5 max-w-3xl text-lg font-medium text-stone-200">
                 Die nächsten Märsche, Highlights und Liga-Termine auf einen Blick.
               </p>
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <Link
+                href="/"
+                className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
+              >
+                ← Zurück zur Startseite
+              </Link>
             </div>
 
             <div className="mx-auto mt-8 max-w-7xl">
@@ -281,7 +290,10 @@ export default function EventsPage() {
 
           <div className="grid gap-4 xl:grid-cols-2">
             {upcomingEvents.map((event) => (
-              <EventCard key={`${event.brand}-${event.city}-${event.date}`} event={event} />
+              <EventCard
+                key={`${event.brand}-${event.city}-${event.date}`}
+                event={event}
+              />
             ))}
           </div>
         </section>
