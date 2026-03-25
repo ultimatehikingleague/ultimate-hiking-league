@@ -328,23 +328,11 @@ export default async function EventsPage() {
                }}
             />
           ))}
-          
+
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <BrandList
-            title="Mammutmarsch 2026"
-            subtitle="Preview-Liste im Liga-Look."
-            items={mammutmarschEvents}
-          />
-
-          <BrandList
-            title="Megamarsch 2026"
-            subtitle="Erste starke Events für den Kalender."
-            items={megamarschEvents}
-          />
-        </section>
+        
       </div>
     </main>
   )
