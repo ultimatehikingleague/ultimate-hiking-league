@@ -91,7 +91,7 @@ async function findOrCreateEventMaster(
   draft: SubmissionDraft
 ): Promise<{ eventMasterId: number; matched: boolean }> {
   const normalizedName = normalizeText(draft.activity_name)
-  const normalizedLocation = normalizeText(draft.location)
+  const normalizedLocation = getCanonicalLocation(draft.location)
   const normalizedCountry = normalizeText(draft.country)
 
   const { data: existingEvents, error: existingEventsError } = await supabase
@@ -107,26 +107,35 @@ async function findOrCreateEventMaster(
 
 
   const matchedEvent = (existingEvents as EventMasterMatch[]).find((event) => {
-    const eventTitle = normalizeText(event.title)
-    const eventCity = normalizeText(event.city)
-    const eventCountry = normalizeText(event.country)
-    const eventCountryCode = normalizeText(event.country_code)
+  const eventTitle = normalizeText(event.title)
+  const eventCity = getCanonicalLocation(event.city)
+  const eventCountry = normalizeText(event.country)
+  const eventCountryCode = normalizeText(event.country_code)
 
-    const sameDate = isSameDate(event.event_date, draft.activity_date)
-    const sameName =
-      eventTitle.includes(normalizedName) || normalizedName.includes(eventTitle)
-    const sameLocation =
-      !normalizedLocation ||
-      eventCity.includes(normalizedLocation) ||
-      normalizedLocation.includes(eventCity)
-    const sameCountry =
-      !normalizedCountry ||
-      eventCountry.includes(normalizedCountry) ||
-      normalizedCountry.includes(eventCountry) ||
-      eventCountryCode === normalizedCountry
+  const sameDate = isSameDate(event.event_date, draft.activity_date)
 
-    return sameDate && sameName && sameLocation && sameCountry
-  })
+  const sameName =
+    !!eventTitle &&
+    !!normalizedName &&
+    (eventTitle.includes(normalizedName) ||
+      normalizedName.includes(eventTitle) ||
+      eventTitle.split(' ').some((part) => normalizedName.includes(part)))
+
+  const sameCountry =
+    !normalizedCountry ||
+    !eventCountry ||
+    eventCountry.includes(normalizedCountry) ||
+    normalizedCountry.includes(eventCountry) ||
+    eventCountryCode === normalizedCountry
+
+  const locationCompatible =
+    !normalizedLocation ||
+    !eventCity ||
+    eventCity.includes(normalizedLocation) ||
+    normalizedLocation.includes(eventCity)
+
+  return sameDate && sameName && sameCountry && locationCompatible
+})
 
   if (matchedEvent) {
     return { eventMasterId: matchedEvent.id, matched: true }
@@ -208,6 +217,21 @@ async function findOrCreateEventDistance(
 
 function isSameDistance(a: number, b: number) {
   return Math.abs(a - b) < 0.2
+}
+function getCanonicalLocation(value: string | null | undefined) {
+  const normalized = normalizeText(value)
+
+  if (!normalized) return ''
+
+  if (['alcudia', 'palma', 'mallorca'].includes(normalized)) {
+    return 'mallorca'
+  }
+
+  if (['weserbergland b n', 'weserbergland'].includes(normalized)) {
+    return 'weserbergland'
+  }
+
+  return normalized
 }
 
 function formatDate(dateText: string | null) {
