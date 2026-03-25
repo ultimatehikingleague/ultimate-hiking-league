@@ -37,7 +37,7 @@ type RecordRow = {
   id: number
   hiker_id: number | null
   event_distance_id: number | null
-  finish_time_text: string | null
+  time_text: string | null
   finish_time_minutes: number | null
   verified: boolean | null
   record_status: string | null
@@ -107,7 +107,7 @@ async function getEventBySlug(slug: string): Promise<EventDetail | null> {
 
 async function getEventRecords(eventMasterId: number): Promise<RecordRow[]> {
   return fetchFromSupabase(
-    `records?select=id,hiker_id,event_distance_id,finish_time_text,finish_time_minutes,verified,record_status,country_code,hikers(display_name)&event_master_id=eq.${eventMasterId}&order=finish_time_minutes.asc.nullslast`
+    `records?select=id,hiker_id,event_distance_id,time_text,finish_time_minutes,verified,record_status,country_code,hikers(display_name)&event_master_id=eq.${eventMasterId}&order=finish_time_minutes.asc.nullslast`
   )
 }
 
@@ -165,7 +165,7 @@ export default async function EventDetailPage({
           (record) =>
             record.verified === true &&
             record.finish_time_minutes !== null &&
-            record.finish_time_text
+            record.time_text
         )
         .sort((a, b) => {
           const aValue = a.finish_time_minutes ?? Number.MAX_SAFE_INTEGER
@@ -179,7 +179,7 @@ export default async function EventDetailPage({
             !(
               record.verified === true &&
               record.finish_time_minutes !== null &&
-              record.finish_time_text
+              record.time_text
             )
         )
         .sort((a, b) =>
@@ -403,7 +403,7 @@ export default async function EventDetailPage({
 
                             <div className="flex flex-wrap items-center gap-3 md:justify-end">
                               <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-sm text-stone-200">
-                                Zeit {entry.finish_time_text}
+                                Zeit {entry.time_text}
                               </div>
                             </div>
                           </div>
