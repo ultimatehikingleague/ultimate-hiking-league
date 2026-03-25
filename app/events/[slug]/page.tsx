@@ -24,15 +24,6 @@ type EventDetail = {
   event_distances: EventDistance[]
 }
 
-type HikerRelation =
-  | {
-      display_name?: string | null
-    }
-  | Array<{
-      display_name?: string | null
-    }>
-  | null
-
 type RecordRow = {
   id: number
   hiker_id: number | null
@@ -41,8 +32,12 @@ type RecordRow = {
   time_hours: number | null
   verified: boolean | null
   record_status: string | null
-  country_code?: string | null
-  hikers?: HikerRelation
+}
+
+type HikerRow = {
+  id: number
+  display_name: string | null
+  country: string | null
 }
 
 function countryToFlag(countryCode?: string | null) {
@@ -59,16 +54,14 @@ function formatDate(dateString?: string | null) {
   return new Date(dateString).toLocaleDateString('de-DE')
 }
 
-function getDisplayName(hikers?: HikerRelation, hikerId?: number | null) {
-  if (Array.isArray(hikers)) {
-    return hikers[0]?.display_name || `Hiker ${hikerId ?? ''}`.trim()
-  }
+function getHikerName(hikerId: number | null, hikersMap: Map<number, HikerRow>) {
+  if (hikerId === null) return 'Unbekannter Hiker'
+  return hikersMap.get(hikerId)?.display_name || `Hiker ${hikerId}`
+}
 
-  if (hikers && typeof hikers === 'object') {
-    return hikers.display_name || `Hiker ${hikerId ?? ''}`.trim()
-  }
-
-  return `Hiker ${hikerId ?? ''}`.trim()
+function getHikerCountry(hikerId: number | null, hikersMap: Map<number, HikerRow>) {
+  if (hikerId === null) return null
+  return hikersMap.get(hikerId)?.country || null
 }
 
 async function fetchFromSupabase(path: string) {
@@ -107,8 +100,21 @@ async function getEventBySlug(slug: string): Promise<EventDetail | null> {
 
 async function getEventRecords(eventMasterId: number): Promise<RecordRow[]> {
   return fetchFromSupabase(
-    `records?select=id,hiker_id,event_distance_id,time_text,time_hours,verified,record_status,country_code,hikers(display_name)&event_master_id=eq.${eventMasterId}&order=time_hours.asc.nullslast`
+    `records?select=id,hiker_id,event_distance_id,time_text,time_hours,verified,record_status&event_master_id=eq.${eventMasterId}&order=time_hours.asc.nullslast`
   )
+}
+
+async function getHikersMap(hikerIds: number[]): Promise<Map<number, HikerRow>> {
+  if (hikerIds.length === 0) {
+    return new Map()
+  }
+
+  const uniqueIds = Array.from(new Set(hikerIds))
+  const rows: HikerRow[] = await fetchFromSupabase(
+    `hikers?select=id,display_name,country&id=in.(${uniqueIds.join(',')})`
+  )
+
+  return new Map(rows.map((row) => [row.id, row]))
 }
 
 export default async function EventDetailPage({
@@ -151,6 +157,11 @@ export default async function EventDetailPage({
   }
 
   const records = await getEventRecords(event.id)
+  const hikerIds = records
+    .map((record) => record.hiker_id)
+    .filter((id): id is number => typeof id === 'number')
+
+  const hikersMap = await getHikersMap(hikerIds)
 
   const groupedByDistance = (event.event_distances ?? [])
     .slice()
@@ -165,7 +176,7 @@ export default async function EventDetailPage({
           (record) =>
             record.verified === true &&
             record.time_hours !== null &&
-            record.time_text
+            !!record.time_text
         )
         .sort((a, b) => {
           const aValue = a.time_hours ?? Number.MAX_SAFE_INTEGER
@@ -179,15 +190,14 @@ export default async function EventDetailPage({
             !(
               record.verified === true &&
               record.time_hours !== null &&
-              record.time_text
+              !!record.time_text
             )
         )
-        .sort((a, b) =>
-          getDisplayName(a.hikers, a.hiker_id).localeCompare(
-            getDisplayName(b.hikers, b.hiker_id),
-            'de'
-          )
-        )
+        .sort((a, b) => {
+          const nameA = getHikerName(a.hiker_id, hikersMap)
+          const nameB = getHikerName(b.hiker_id, hikersMap)
+          return nameA.localeCompare(nameB, 'de')
+        })
 
       return {
         distance: distance.label || `${distance.distance_km} km`,
@@ -210,7 +220,7 @@ export default async function EventDetailPage({
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,14,0.30)_0%,rgba(10,12,16,0.55)_30%,rgba(12,12,12,0.78)_68%,#141312_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent to-[#141312]" />
 
-        <div className="relative z-10 mx-auto max-w-6xl px-6 pt-12 pb-16 md:px-10 md:pt-16 md:pb-24">
+        <div className="relative z-10 mx-auto max-w-6xl px-6 pb-16 pt-12 md:px-10 md:pb-24 md:pt-16">
           <div className="flex flex-wrap gap-4">
             <Link
               href="/"
@@ -229,9 +239,7 @@ export default async function EventDetailPage({
 
           <div className="mt-10 max-w-4xl">
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <span className="text-2xl">
-                {countryToFlag(event.country_code)}
-              </span>
+              <span className="text-2xl">{countryToFlag(event.country_code)}</span>
               <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs uppercase tracking-[0.18em] text-stone-300">
                 {event.brand ?? 'Event'}
               </span>
@@ -391,12 +399,12 @@ export default async function EventDetailPage({
                               </div>
 
                               <div className="text-lg">
-                                {countryToFlag(entry.country_code)}
+                                {countryToFlag(getHikerCountry(entry.hiker_id, hikersMap))}
                               </div>
 
                               <div className="min-w-0">
                                 <div className="truncate font-semibold text-white">
-                                  {getDisplayName(entry.hikers, entry.hiker_id)}
+                                  {getHikerName(entry.hiker_id, hikersMap)}
                                 </div>
                               </div>
                             </div>
@@ -430,12 +438,12 @@ export default async function EventDetailPage({
                           >
                             <div className="flex min-w-0 items-center gap-4">
                               <div className="text-lg">
-                                {countryToFlag(entry.country_code)}
+                                {countryToFlag(getHikerCountry(entry.hiker_id, hikersMap))}
                               </div>
 
                               <div className="min-w-0">
                                 <div className="truncate font-semibold text-white">
-                                  {getDisplayName(entry.hikers, entry.hiker_id)}
+                                  {getHikerName(entry.hiker_id, hikersMap)}
                                 </div>
                               </div>
                             </div>
