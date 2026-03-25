@@ -1,29 +1,52 @@
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
+type EventDistance = {
+  id: number
+  distance_km: number
+  label: string | null
+}
+
 type EventDetail = {
+  id: number
   slug: string
   title: string
-  city: string
-  country: string
-  countryCode: string
-  date: string
-  distances: string[]
-  brand: string
-  description: string
-  deadline: string
-  surface: string
-  format: string
+  city: string | null
+  country: string | null
+  country_code: string | null
+  event_date: string | null
+  brand: string | null
+  description: string | null
+  deadline_text: string | null
+  surface: string | null
+  format: string | null
+  event_distances: EventDistance[]
 }
 
-type EventRankingEntry = {
-  name: string
-  countryCode: string
-  distance: string
-  time?: string | null
-  division: 'platinum' | 'gold' | 'silver'
+type HikerRelation =
+  | {
+      display_name?: string | null
+    }
+  | Array<{
+      display_name?: string | null
+    }>
+  | null
+
+type RecordRow = {
+  id: number
+  hiker_id: number | null
+  event_distance_id: number | null
+  finish_time_text: string | null
+  finish_time_minutes: number | null
+  verified: boolean | null
+  record_status: string | null
+  country_code?: string | null
+  hikers?: HikerRelation
 }
 
-function countryToFlag(countryCode: string) {
+function countryToFlag(countryCode?: string | null) {
+  if (!countryCode) return ''
   const code = countryCode.trim().toUpperCase()
   if (code.length !== 2) return ''
   return String.fromCodePoint(
@@ -31,244 +54,61 @@ function countryToFlag(countryCode: string) {
   )
 }
 
-function getDivisionBadgeClass(division: 'platinum' | 'gold' | 'silver') {
-  switch (division) {
-    case 'platinum':
-      return 'border border-fuchsia-400/30 bg-fuchsia-400/10 text-fuchsia-200'
-    case 'gold':
-      return 'border border-yellow-400/30 bg-yellow-400/10 text-yellow-200'
-    case 'silver':
-      return 'border border-slate-300/30 bg-slate-300/10 text-slate-200'
+function formatDate(dateString?: string | null) {
+  if (!dateString) return 'Noch offen'
+  return new Date(dateString).toLocaleDateString('de-DE')
+}
+
+function getDisplayName(hikers?: HikerRelation, hikerId?: number | null) {
+  if (Array.isArray(hikers)) {
+    return hikers[0]?.display_name || `Hiker ${hikerId ?? ''}`.trim()
   }
+
+  if (hikers && typeof hikers === 'object') {
+    return hikers.display_name || `Hiker ${hikerId ?? ''}`.trim()
+  }
+
+  return `Hiker ${hikerId ?? ''}`.trim()
 }
 
-const eventDetails: EventDetail[] = [
-  {
-    slug: 'mammutmarsch-madrid-2026',
-    title: 'Mammutmarsch Madrid 2026',
-    city: 'Madrid',
-    country: 'Spanien',
-    countryCode: 'ES',
-    date: '21.02.2026',
-    distances: ['30 km', '50 km', '100 km'],
-    brand: 'Mammutmarsch',
-    description:
-      'Großer internationaler Saisonstart mit mehreren Distanzen und starkem Liga-Potenzial.',
-    deadline: 'Noch offen',
-    surface: 'Asphalt / Parkwege / Urban Trail',
-    format: 'Tagesevent',
-  },
-  {
-    slug: 'mammutmarsch-leipzig-2026',
-    title: 'Mammutmarsch Leipzig 2026',
-    city: 'Leipzig',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '07.03.2026',
-    distances: ['30 km', '42 km', '55 km'],
-    brand: 'Mammutmarsch',
-    description:
-      'Starker Frühjahrs-Marsch in Deutschland mit mehreren Wertungsdistanzen.',
-    deadline: 'Noch offen',
-    surface: 'Urban / Mischterrain',
-    format: 'Tagesevent',
-  },
-  {
-    slug: 'megamarsch-mallorca-2026',
-    title: 'Megamarsch Mallorca 2026',
-    city: 'Mallorca',
-    country: 'Spanien',
-    countryCode: 'ES',
-    date: '21.02.2026',
-    distances: ['50 km'],
-    brand: 'Megamarsch',
-    description:
-      'Internationales Insel-Event mit starkem Community-Faktor und hohem Reiz für die Liga.',
-    deadline: 'Noch offen',
-    surface: 'Straße / Promenade / Inselterrain',
-    format: 'Tagesevent',
-  },
-  {
-    slug: 'megamarsch-dresden-2026',
-    title: 'Megamarsch Dresden 2026',
-    city: 'Dresden',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '07.03.2026',
-    distances: ['25 km', '50 km'],
-    brand: 'Megamarsch',
-    description:
-      'Frühes Saison-Event mit guter Einsteiger- und Liga-Relevanz.',
-    deadline: 'Noch offen',
-    surface: 'Urban / Asphalt / Umland',
-    format: 'Tagesevent',
-  },
-  {
-    slug: 'mammutmarsch-muenchen-2026',
-    title: 'Mammutmarsch München 2026',
-    city: 'München',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '14.03.2026',
-    distances: ['30 km', '55 km'],
-    brand: 'Mammutmarsch',
-    description:
-      'Beliebter deutscher Mammutmarsch mit solider Liga-Relevanz.',
-    deadline: 'Noch offen',
-    surface: 'Urban / Park / Asphalt',
-    format: 'Tagesevent',
-  },
-  {
-    slug: 'megamarsch-hamburg-2026',
-    title: 'Megamarsch Hamburg 2026',
-    city: 'Hamburg',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '11.04.2026',
-    distances: ['100 km'],
-    brand: 'Megamarsch',
-    description:
-      'Klassischer 100-km-Fokus, stark für die Gesamtwertung und die Top Divisionen.',
-    deadline: 'Noch offen',
-    surface: 'Urban / Asphalt',
-    format: '24-Stunden-Challenge',
-  },
-  {
-    slug: 'mammutmarsch-berlin-2026',
-    title: 'Mammutmarsch Berlin 2026',
-    city: 'Berlin',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '16.05.2026',
-    distances: ['75 km', '100 km'],
-    brand: 'Mammutmarsch',
-    description:
-      'Eines der großen Liga-Highlights mit mehreren schweren Distanzen.',
-    deadline: 'Noch offen',
-    surface: 'Urban / Langdistanz',
-    format: 'Tagesevent',
-  },
-  {
-    slug: 'megamarsch-weserbergland-2026',
-    title: 'Megamarsch Weserbergland 2026',
-    city: 'Weserbergland',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '13.06.2026',
-    distances: ['100 km'],
-    brand: 'Megamarsch',
-    description:
-      'Landschaftlich starkes Event mit echtem Abenteuer-Faktor.',
-    deadline: 'Noch offen',
-    surface: 'Mischterrain / Höhenmeter',
-    format: '24-Stunden-Challenge',
-  },
-  {
-    slug: 'mammutmarsch-kopenhagen-2026',
-    title: 'Mammutmarsch Kopenhagen 2026',
-    city: 'Kopenhagen',
-    country: 'Dänemark',
-    countryCode: 'DK',
-    date: '15.08.2026',
-    distances: ['75 km', '100 km'],
-    brand: 'Mammutmarsch',
-    description:
-      'Internationales Event und spannend für die spätere Nationen-Wertung.',
-    deadline: 'Noch offen',
-    surface: 'Urban / Küstennah',
-    format: 'Tagesevent',
-  },
-  {
-    slug: 'megamarsch-ruegen-2026',
-    title: 'Megamarsch Rügen 2026',
-    city: 'Rügen',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '17.10.2026',
-    distances: ['100 km'],
-    brand: 'Megamarsch',
-    description:
-      'Küsten- und Insel-Charakter, großes Potenzial für starke 100-km-Leistungen.',
-    deadline: 'Noch offen',
-    surface: 'Asphalt / Inselprofil',
-    format: '24-Stunden-Challenge',
-  },
-]
+async function fetchFromSupabase(path: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-const eventRankings: Record<string, EventRankingEntry[]> = {
-  'mammutmarsch-madrid-2026': [
-    { name: 'Thomas Bias', countryCode: 'DE', distance: '100 km', time: '15:42', division: 'platinum' },
-    { name: 'Jore Schlag', countryCode: 'DE', distance: '100 km', time: '16:18', division: 'platinum' },
-    { name: 'Dirk Albers', countryCode: 'DE', distance: '100 km', time: null, division: 'gold' },
-    { name: 'Jure Vranjkovic', countryCode: 'HR', distance: '50 km', time: '07:11', division: 'gold' },
-    { name: 'Nicole Labonde', countryCode: 'DE', distance: '50 km', time: '07:54', division: 'gold' },
-    { name: 'Kamil Lukas', countryCode: 'PL', distance: '50 km', time: null, division: 'silver' },
-    { name: 'Stefan Seebach', countryCode: 'DE', distance: '30 km', time: '04:58', division: 'silver' },
-    { name: 'Markus Birke', countryCode: 'DE', distance: '30 km', time: null, division: 'silver' },
-  ],
-  'mammutmarsch-leipzig-2026': [
-    { name: 'Thomas Gossen', countryCode: 'DE', distance: '55 km', time: '08:01', division: 'platinum' },
-    { name: 'Arnim Bolte', countryCode: 'DE', distance: '55 km', time: '08:20', division: 'platinum' },
-    { name: 'Dennis Kühnert', countryCode: 'DE', distance: '55 km', time: null, division: 'gold' },
-    { name: 'Claudia Gösche', countryCode: 'DE', distance: '42 km', time: '06:49', division: 'gold' },
-    { name: 'Bianca Dörr', countryCode: 'DE', distance: '42 km', time: '07:05', division: 'gold' },
-    { name: 'Mara Wenzel', countryCode: 'DE', distance: '42 km', time: null, division: 'silver' },
-    { name: 'Markus Birke', countryCode: 'DE', distance: '30 km', time: '04:36', division: 'silver' },
-  ],
-  'megamarsch-mallorca-2026': [
-    { name: 'Jan Dreilich', countryCode: 'DE', distance: '50 km', time: '08:14', division: 'gold' },
-    { name: 'Dominik Großkinsky', countryCode: 'DE', distance: '50 km', time: '08:31', division: 'silver' },
-    { name: 'Kamil Lukas', countryCode: 'PL', distance: '50 km', time: null, division: 'silver' },
-    { name: 'Mila Roca', countryCode: 'ES', distance: '50 km', time: null, division: 'silver' },
-  ],
-  'megamarsch-dresden-2026': [
-    { name: 'Marcel Parin', countryCode: 'DE', distance: '50 km', time: '08:03', division: 'platinum' },
-    { name: 'Davor Bendin', countryCode: 'HR', distance: '50 km', time: '08:22', division: 'platinum' },
-    { name: 'Janine Krüger', countryCode: 'DE', distance: '50 km', time: null, division: 'gold' },
-    { name: 'Manuela Schöne', countryCode: 'DE', distance: '25 km', time: '03:45', division: 'silver' },
-  ],
-  'mammutmarsch-muenchen-2026': [
-    { name: 'Claudia Gösche', countryCode: 'DE', distance: '55 km', time: '08:10', division: 'platinum' },
-    { name: 'Dennis Kühnert', countryCode: 'DE', distance: '55 km', time: '08:41', division: 'gold' },
-    { name: 'Thomas Weber', countryCode: 'DE', distance: '55 km', time: null, division: 'gold' },
-    { name: 'Norbert Posselt', countryCode: 'DE', distance: '30 km', time: '04:22', division: 'silver' },
-  ],
-  'megamarsch-hamburg-2026': [
-    { name: 'Thomas Bias', countryCode: 'DE', distance: '100 km', time: '14:58', division: 'platinum' },
-    { name: 'Thomas Gossen', countryCode: 'DE', distance: '100 km', time: '15:21', division: 'platinum' },
-    { name: 'Jore Schlag', countryCode: 'DE', distance: '100 km', time: '15:46', division: 'platinum' },
-    { name: 'Arnim Bolte', countryCode: 'DE', distance: '100 km', time: null, division: 'gold' },
-    { name: 'Stefan Seebach', countryCode: 'DE', distance: '100 km', time: null, division: 'silver' },
-  ],
-  'mammutmarsch-berlin-2026': [
-    { name: 'Jan Dreilich', countryCode: 'DE', distance: '100 km', time: '15:03', division: 'platinum' },
-    { name: 'Jure Vranjkovic', countryCode: 'HR', distance: '100 km', time: '15:48', division: 'platinum' },
-    { name: 'Dirk Nielsen', countryCode: 'DK', distance: '100 km', time: null, division: 'gold' },
-    { name: 'Bianca Dörr', countryCode: 'DE', distance: '75 km', time: '11:28', division: 'gold' },
-    { name: 'Marek Hoff', countryCode: 'DE', distance: '75 km', time: null, division: 'silver' },
-  ],
-  'megamarsch-weserbergland-2026': [
-    { name: 'Nicole Labonde', countryCode: 'DE', distance: '100 km', time: '16:40', division: 'gold' },
-    { name: 'Ivonne Konrad', countryCode: 'DE', distance: '100 km', time: '17:15', division: 'gold' },
-    { name: 'Swantje Möller', countryCode: 'DE', distance: '100 km', time: null, division: 'silver' },
-  ],
-  'mammutmarsch-kopenhagen-2026': [
-    { name: 'Edgar Wendt', countryCode: 'DE', distance: '100 km', time: '15:58', division: 'gold' },
-    { name: 'Lars Holm', countryCode: 'DK', distance: '100 km', time: null, division: 'gold' },
-    { name: 'Marc Fischer', countryCode: 'DE', distance: '75 km', time: '11:51', division: 'silver' },
-    { name: 'Jakob Lang', countryCode: 'DK', distance: '75 km', time: '12:06', division: 'silver' },
-  ],
-  'megamarsch-ruegen-2026': [
-    { name: 'Michael Marx', countryCode: 'DE', distance: '100 km', time: '16:09', division: 'silver' },
-    { name: 'Laszlo Peiml', countryCode: 'DE', distance: '100 km', time: '16:41', division: 'silver' },
-    { name: 'Jens Greblan', countryCode: 'DE', distance: '100 km', time: null, division: 'silver' },
-  ],
+  if (!url || !anonKey) {
+    throw new Error('Supabase environment variables are missing.')
+  }
+
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    },
+    cache: 'no-store',
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(errorText)
+  }
+
+  return response.json()
 }
 
-export async function generateStaticParams() {
-  return eventDetails.map((event) => ({
-    slug: event.slug,
-  }))
+async function getEventBySlug(slug: string): Promise<EventDetail | null> {
+  const rows = await fetchFromSupabase(
+    `events_master?select=id,slug,title,city,country,country_code,event_date,brand,description,deadline_text,surface,format,event_distances(id,distance_km,label)&slug=eq.${encodeURIComponent(
+      slug
+    )}`
+  )
+
+  return rows[0] ?? null
+}
+
+async function getEventRecords(eventMasterId: number): Promise<RecordRow[]> {
+  return fetchFromSupabase(
+    `records?select=id,hiker_id,event_distance_id,finish_time_text,finish_time_minutes,verified,record_status,country_code,hikers(display_name)&event_master_id=eq.${eventMasterId}&order=finish_time_minutes.asc.nullslast`
+  )
 }
 
 export default async function EventDetailPage({
@@ -277,8 +117,7 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const event = eventDetails.find((item) => item.slug === slug)
-  const ranking = eventRankings[slug] ?? []
+  const event = await getEventBySlug(slug)
 
   if (!event) {
     return (
@@ -311,19 +150,51 @@ export default async function EventDetailPage({
     )
   }
 
-  const groupedByDistance = event.distances.map((distance) => {
-    const entries = ranking.filter((entry) => entry.distance === distance)
-    const timed = entries.filter((entry) => entry.time)
-    const finishers = entries
-      .filter((entry) => !entry.time)
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+  const records = await getEventRecords(event.id)
 
-    return {
-      distance,
-      timed,
-      finishers,
-    }
-  })
+  const groupedByDistance = (event.event_distances ?? [])
+    .slice()
+    .sort((a, b) => a.distance_km - b.distance_km)
+    .map((distance) => {
+      const entries = records.filter(
+        (record) => record.event_distance_id === distance.id
+      )
+
+      const timed = entries
+        .filter(
+          (record) =>
+            record.verified === true &&
+            record.finish_time_minutes !== null &&
+            record.finish_time_text
+        )
+        .sort((a, b) => {
+          const aValue = a.finish_time_minutes ?? Number.MAX_SAFE_INTEGER
+          const bValue = b.finish_time_minutes ?? Number.MAX_SAFE_INTEGER
+          return aValue - bValue
+        })
+
+      const finishers = entries
+        .filter(
+          (record) =>
+            !(
+              record.verified === true &&
+              record.finish_time_minutes !== null &&
+              record.finish_time_text
+            )
+        )
+        .sort((a, b) =>
+          getDisplayName(a.hikers, a.hiker_id).localeCompare(
+            getDisplayName(b.hikers, b.hiker_id),
+            'de'
+          )
+        )
+
+      return {
+        distance: distance.label || `${distance.distance_km} km`,
+        timed,
+        finishers,
+      }
+    })
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
@@ -358,9 +229,11 @@ export default async function EventDetailPage({
 
           <div className="mt-10 max-w-4xl">
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <span className="text-2xl">{countryToFlag(event.countryCode)}</span>
+              <span className="text-2xl">
+                {countryToFlag(event.country_code)}
+              </span>
               <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs uppercase tracking-[0.18em] text-stone-300">
-                {event.brand}
+                {event.brand ?? 'Event'}
               </span>
             </div>
 
@@ -369,7 +242,7 @@ export default async function EventDetailPage({
             </h1>
 
             <p className="mt-4 max-w-2xl text-lg text-stone-200">
-              {event.description}
+              {event.description ?? 'Für dieses Event folgen bald weitere Details.'}
             </p>
           </div>
         </div>
@@ -390,42 +263,54 @@ export default async function EventDetailPage({
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
                   Stadt
                 </div>
-                <div className="mt-2 font-semibold text-white">{event.city}</div>
+                <div className="mt-2 font-semibold text-white">
+                  {event.city ?? 'Noch offen'}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
                   Land
                 </div>
-                <div className="mt-2 font-semibold text-white">{event.country}</div>
+                <div className="mt-2 font-semibold text-white">
+                  {event.country ?? 'Noch offen'}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
                   Datum
                 </div>
-                <div className="mt-2 font-semibold text-white">{event.date}</div>
+                <div className="mt-2 font-semibold text-white">
+                  {formatDate(event.event_date)}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
                   Format
                 </div>
-                <div className="mt-2 font-semibold text-white">{event.format}</div>
+                <div className="mt-2 font-semibold text-white">
+                  {event.format ?? 'Noch offen'}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
                   Untergrund
                 </div>
-                <div className="mt-2 font-semibold text-white">{event.surface}</div>
+                <div className="mt-2 font-semibold text-white">
+                  {event.surface ?? 'Noch offen'}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
                   Meldeschluss
                 </div>
-                <div className="mt-2 font-semibold text-white">{event.deadline}</div>
+                <div className="mt-2 font-semibold text-white">
+                  {event.deadline_text ?? 'Noch offen'}
+                </div>
               </div>
             </div>
           </div>
@@ -439,12 +324,14 @@ export default async function EventDetailPage({
             </div>
 
             <div className="space-y-3">
-              {event.distances.map((distance) => (
+              {groupedByDistance.map((group) => (
                 <div
-                  key={distance}
+                  key={group.distance}
                   className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 transition hover:border-white/15 hover:bg-white/[0.05]"
                 >
-                  <div className="text-lg font-semibold text-white">{distance}</div>
+                  <div className="text-lg font-semibold text-white">
+                    {group.distance}
+                  </div>
                 </div>
               ))}
             </div>
@@ -465,7 +352,8 @@ export default async function EventDetailPage({
             <div>
               <h2 className="text-2xl font-bold text-white">Event-Ranking</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Ranking mit Zeit und zusätzliche Finisher ohne Zeitwertung.
+                Nur verifizierte Zeiten erscheinen im Ranking. Weitere Finisher
+                werden separat aufgeführt.
               </p>
             </div>
 
@@ -491,60 +379,39 @@ export default async function EventDetailPage({
                     </div>
 
                     {group.timed.length > 0 ? (
-                      <>
-                        <div className="space-y-3">
-                          {group.timed.slice(0, 10).map((entry, index) => (
-                            <div
-                              key={`${entry.name}-${entry.distance}-${entry.time}`}
-                              className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 transition-all duration-300 hover:border-white/15 hover:bg-white/[0.06] md:flex-row md:items-center md:justify-between"
-                            >
-                              <div className="flex min-w-0 items-center gap-4">
-                                <div className="w-8 text-lg font-semibold text-white">
-                                  {index + 1}.
-                                </div>
-
-                                <div className="text-lg">
-                                  {countryToFlag(entry.countryCode)}
-                                </div>
-
-                                <div className="min-w-0">
-                                  <div className="truncate font-semibold text-white">
-                                    {entry.name}
-                                  </div>
-                                </div>
+                      <div className="space-y-3">
+                        {group.timed.slice(0, 10).map((entry, index) => (
+                          <div
+                            key={`timed-${entry.id}`}
+                            className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 transition-all duration-300 hover:border-white/15 hover:bg-white/[0.06] md:flex-row md:items-center md:justify-between"
+                          >
+                            <div className="flex min-w-0 items-center gap-4">
+                              <div className="w-8 text-lg font-semibold text-white">
+                                {index + 1}.
                               </div>
 
-                              <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                                <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-sm text-stone-200">
-                                  Zeit {entry.time}
-                                </div>
+                              <div className="text-lg">
+                                {countryToFlag(entry.country_code)}
+                              </div>
 
-                                <div
-                                  className={`rounded-full px-3 py-1 text-xs ${getDivisionBadgeClass(
-                                    entry.division
-                                  )}`}
-                                >
-                                  {entry.division}
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold text-white">
+                                  {getDisplayName(entry.hikers, entry.hiker_id)}
                                 </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
 
-                        {group.timed.length > 10 && (
-                          <div className="pt-3">
-                            <Link
-                              href={`/events/${slug}/ranking?distance=${encodeURIComponent(group.distance)}`}
-                              className="text-sm text-stone-300 underline transition hover:text-white"
-                            >
-                              Gesamte Rangliste anzeigen →
-                            </Link>
+                            <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                              <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-sm text-stone-200">
+                                Zeit {entry.finish_time_text}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </>
+                        ))}
+                      </div>
                     ) : (
                       <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">
-                        Noch keine Zeitwertungen für diese Distanz hinterlegt.
+                        Noch keine verifizierten Zeiten für diese Distanz hinterlegt.
                       </div>
                     )}
                   </div>
@@ -555,50 +422,33 @@ export default async function EventDetailPage({
                     </div>
 
                     {group.finishers.length > 0 ? (
-                      <>
-                        <div className="space-y-3">
-                          {group.finishers.slice(0, 10).map((entry) => (
-                            <div
-                              key={`${entry.name}-${entry.distance}-finisher`}
-                              className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 transition-all duration-300 hover:border-white/15 hover:bg-white/[0.06] md:flex-row md:items-center md:justify-between"
-                            >
-                              <div className="flex min-w-0 items-center gap-4">
-                                <div className="text-lg">
-                                  {countryToFlag(entry.countryCode)}
-                                </div>
-
-                                <div className="min-w-0">
-                                  <div className="truncate font-semibold text-white">
-                                    {entry.name}
-                                  </div>
-                                </div>
+                      <div className="space-y-3">
+                        {group.finishers.slice(0, 10).map((entry) => (
+                          <div
+                            key={`finisher-${entry.id}`}
+                            className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 transition-all duration-300 hover:border-white/15 hover:bg-white/[0.06] md:flex-row md:items-center md:justify-between"
+                          >
+                            <div className="flex min-w-0 items-center gap-4">
+                              <div className="text-lg">
+                                {countryToFlag(entry.country_code)}
                               </div>
 
-                              <div
-                                className={`rounded-full px-3 py-1 text-xs ${getDivisionBadgeClass(
-                                  entry.division
-                                )}`}
-                              >
-                                {entry.division}
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold text-white">
+                                  {getDisplayName(entry.hikers, entry.hiker_id)}
+                                </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
 
-                        {group.finishers.length > 10 && (
-                          <div className="pt-3">
-                            <Link
-                              href={`/events/${slug}/finishers?distance=${encodeURIComponent(group.distance)}`}
-                              className="text-sm text-stone-300 underline transition hover:text-white"
-                            >
-                              Alle Finisher anzeigen →
-                            </Link>
+                            <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-xs text-stone-300">
+                              Finisher
+                            </div>
                           </div>
-                        )}
-                      </>
+                        ))}
+                      </div>
                     ) : (
                       <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">
-                        Keine weiteren Finisher ohne Zeit für diese Distanz.
+                        Keine weiteren Finisher für diese Distanz.
                       </div>
                     )}
                   </div>
