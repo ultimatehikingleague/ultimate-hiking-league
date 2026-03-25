@@ -38,7 +38,7 @@ type RecordRow = {
   hiker_id: number | null
   event_distance_id: number | null
   time_text: string | null
-  finish_time_minutes: number | null
+  time_hours: number | null
   verified: boolean | null
   record_status: string | null
   country_code?: string | null
@@ -107,7 +107,7 @@ async function getEventBySlug(slug: string): Promise<EventDetail | null> {
 
 async function getEventRecords(eventMasterId: number): Promise<RecordRow[]> {
   return fetchFromSupabase(
-    `records?select=id,hiker_id,event_distance_id,time_text,finish_time_minutes,verified,record_status,country_code,hikers(display_name)&event_master_id=eq.${eventMasterId}&order=finish_time_minutes.asc.nullslast`
+    `records?select=id,hiker_id,event_distance_id,time_text,time_hours,verified,record_status,country_code,hikers(display_name)&event_master_id=eq.${eventMasterId}&order=time_hours.asc.nullslast`
   )
 }
 
@@ -164,12 +164,12 @@ export default async function EventDetailPage({
         .filter(
           (record) =>
             record.verified === true &&
-            record.finish_time_minutes !== null &&
+            record.time_hours !== null &&
             record.time_text
         )
         .sort((a, b) => {
-          const aValue = a.finish_time_minutes ?? Number.MAX_SAFE_INTEGER
-          const bValue = b.finish_time_minutes ?? Number.MAX_SAFE_INTEGER
+          const aValue = a.time_hours ?? Number.MAX_SAFE_INTEGER
+          const bValue = b.time_hours ?? Number.MAX_SAFE_INTEGER
           return aValue - bValue
         })
 
@@ -178,7 +178,7 @@ export default async function EventDetailPage({
           (record) =>
             !(
               record.verified === true &&
-              record.finish_time_minutes !== null &&
+              record.time_hours !== null &&
               record.time_text
             )
         )
