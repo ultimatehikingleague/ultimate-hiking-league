@@ -30,8 +30,12 @@ type RecordSubmission = {
   user_id: string
   hiker_id: number | null
   activity_name: string
+  description: string | null
+  submission_type: string | null
   activity_date: string
   distance_km: number | null
+  official_distance_km: number | null
+  actual_distance_km: number | null
   elapsed_time_text: string | null
   elevation_gain: number | null
   country: string | null
@@ -47,8 +51,12 @@ type RecordSubmission = {
 
 type SubmissionDraft = {
   activity_name: string
+  description: string
+  submission_type: string
   activity_date: string
   distance_km: string
+  official_distance_km: string
+  actual_distance_km: string
   elapsed_time_text: string
   elevation_gain: string
   country: string
@@ -276,10 +284,20 @@ function createSubmissionDraft(
 ): SubmissionDraft {
   return {
     activity_name: submission.activity_name ?? '',
+    description: submission.description ?? '',
+    submission_type: submission.submission_type ?? '',
     activity_date: submission.activity_date ?? '',
     distance_km:
       typeof submission.distance_km === 'number'
         ? String(submission.distance_km)
+        : '',
+    official_distance_km:
+      typeof submission.official_distance_km === 'number'
+        ? String(submission.official_distance_km)
+        : '',
+    actual_distance_km:
+      typeof submission.actual_distance_km === 'number'
+        ? String(submission.actual_distance_km)
         : '',
     elapsed_time_text: submission.elapsed_time_text ?? '',
     elevation_gain:
@@ -351,7 +369,7 @@ export default function AdminPage() {
           supabase
             .from('record_submissions')
             .select(
-              'id, user_id, hiker_id, activity_name, activity_date, distance_km, elapsed_time_text, elevation_gain, country, location, record_source, proof_image_url, notes, status, admin_note, created_at, reviewed_at'
+              'id, user_id, hiker_id, activity_name, description, submission_type, activity_date, distance_km, official_distance_km, actual_distance_km, elapsed_time_text, elevation_gain, country, location, record_source, proof_image_url, notes, status, admin_note, created_at, reviewed_at'
             )
             .order('created_at', { ascending: false }),
         ])
@@ -526,7 +544,20 @@ export default function AdminPage() {
         return
       }
 
-      const parsedDistance = Number(draft.distance_km.replace(',', '.'))
+      const parsedDistance = Number(
+        (draft.actual_distance_km || draft.distance_km).replace(',', '.')
+      )
+      let officialDistance: number | null = null
+
+      if (draft.submission_type === 'official_event') {
+        const parsedOfficial = Number(
+          draft.official_distance_km.replace(',', '.')
+        )
+
+        if (!Number.isNaN(parsedOfficial) && parsedOfficial > 0) {
+          officialDistance = parsedOfficial
+        }
+      }
       if (Number.isNaN(parsedDistance) || parsedDistance <= 0) {
         setPageMessage('Distanz ist ungültig.')
         return
@@ -598,8 +629,18 @@ const { error: recordError } = await supabase.from('records').insert({
       const { error: submissionError } = await supabase
         .from('record_submissions')
         .update({
-          activity_name: draft.activity_name.trim(),
+          activity_name:
+            draft.submission_type === 'official_event'
+              ? draft.activity_name.trim()
+              : 'Private Wanderung',
+          description:
+            draft.submission_type === 'private'
+              ? draft.description.trim() || null
+              : null,
+          submission_type: draft.submission_type || 'private',
           activity_date: draft.activity_date,
+          official_distance_km: officialDistance,
+          actual_distance_km: parsedDistance,
           distance_km: parsedDistance,
           elapsed_time_text: draft.elapsed_time_text.trim(),
           elevation_gain:
@@ -1030,7 +1071,17 @@ const { error: recordError } = await supabase.from('records').insert({
                         </div>
 
                         <div className="mt-1 text-xl font-semibold text-white">
-                          {submission.activity_name}
+                          {submission.submission_type === 'official_event'
+                            ? submission.activity_name
+                            : submission.description || 'Private Wanderung'}
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-400">
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1">
+                            {submission.submission_type === 'official_event'
+                              ? 'Offizielles Event'
+                              : 'Private Wanderung'}
+                          </span>
                         </div>
 
                         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-400">
@@ -1056,23 +1107,43 @@ const { error: recordError } = await supabase.from('records').insert({
                         </div>
 
                         <div className="space-y-3">
-                          <div>
-                            <label className="mb-2 block text-sm text-stone-300">
-                              Name der Wanderung / Veranstaltung
-                            </label>
-                            <input
-                              type="text"
-                              value={draft.activity_name}
-                              onChange={(e) =>
-                                updateSubmissionDraft(
-                                  submission.id,
-                                  'activity_name',
-                                  e.target.value
-                                )
-                              }
-                              className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-                            />
-                          </div>
+                          {submission.submission_type === 'official_event' ? (
+                            <div>
+                              <label className="mb-2 block text-sm text-stone-300">
+                                Name des offiziellen Events
+                              </label>
+                              <input
+                                type="text"
+                                value={draft.activity_name}
+                                onChange={(e) =>
+                                  updateSubmissionDraft(
+                                    submission.id,
+                                    'activity_name',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="mb-2 block text-sm text-stone-300">
+                                Beschreibung
+                              </label>
+                              <input
+                                type="text"
+                                value={draft.description}
+                                onChange={(e) =>
+                                  updateSubmissionDraft(
+                                    submission.id,
+                                    'description',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                              />
+                            </div>
+                          )}
 
                           <div className="grid gap-3 md:grid-cols-2">
                             <div>
@@ -1093,23 +1164,63 @@ const { error: recordError } = await supabase.from('records').insert({
                               />
                             </div>
 
-                            <div>
-                              <label className="mb-2 block text-sm text-stone-300">
-                                Distanz in km
-                              </label>
-                              <input
-                                type="text"
-                                value={draft.distance_km}
-                                onChange={(e) =>
-                                  updateSubmissionDraft(
-                                    submission.id,
-                                    'distance_km',
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-                              />
-                            </div>
+                            {submission.submission_type === 'official_event' ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div>
+                                  <label className="mb-2 block text-sm text-stone-300">
+                                    Offizielle Distanz
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={draft.official_distance_km}
+                                    onChange={(e) =>
+                                      updateSubmissionDraft(
+                                        submission.id,
+                                        'official_distance_km',
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="mb-2 block text-sm text-stone-300">
+                                    Gelaufene Distanz
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={draft.actual_distance_km}
+                                    onChange={(e) =>
+                                      updateSubmissionDraft(
+                                        submission.id,
+                                        'actual_distance_km',
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="mb-2 block text-sm text-stone-300">
+                                  Distanz
+                                </label>
+                                <input
+                                  type="text"
+                                  value={draft.actual_distance_km}
+                                  onChange={(e) =>
+                                    updateSubmissionDraft(
+                                      submission.id,
+                                      'actual_distance_km',
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                                />
+                              </div>
+                            )}
                           </div>
 
                           <div className="grid gap-3 md:grid-cols-2">
