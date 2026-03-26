@@ -14,14 +14,18 @@ export default function RecordSubmissionForm({
   onSuccess,
   onCancel,
 }: RecordSubmissionFormProps) {
+  const [isOfficialEvent, setIsOfficialEvent] = useState(true)
   const [activityName, setActivityName] = useState('')
+  const [description, setDescription] = useState('')
+  const [officialDistanceKm, setOfficialDistanceKm] = useState('')
+  const [actualDistanceKm, setActualDistanceKm] = useState('')
   const [activityDate, setActivityDate] = useState('')
   const [distanceKm, setDistanceKm] = useState('')
   const [elapsedTimeText, setElapsedTimeText] = useState('')
   const [elevationGain, setElevationGain] = useState('')
   const [country, setCountry] = useState('')
   const [location, setLocation] = useState('')
-  const [recordSource, setRecordSource] = useState('')
+  
   const [notes, setNotes] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
 
@@ -46,17 +50,29 @@ export default function RecordSubmissionForm({
         return
       }
 
-      if (
-        !activityName.trim() ||
-        !activityDate.trim() ||
-        !distanceKm.trim() ||
-        !elapsedTimeText.trim() ||
-        !proofFile
-      ) {
-        setErrorMessage('Bitte fülle alle Pflichtfelder aus.')
-        setSubmitting(false)
-        return
-      }
+      if (!activityDate.trim() || !elapsedTimeText.trim() || !proofFile) {
+  setErrorMessage('Bitte fülle alle Pflichtfelder aus.')
+  setSubmitting(false)
+  return
+}
+
+if (isOfficialEvent && !activityName.trim()) {
+  setErrorMessage('Bitte wähle bzw. benenne ein offizielles Event.')
+  setSubmitting(false)
+  return
+}
+
+if (isOfficialEvent && (!officialDistanceKm.trim() || !actualDistanceKm.trim())) {
+  setErrorMessage('Bitte fülle beide Distanzfelder aus.')
+  setSubmitting(false)
+  return
+}
+
+if (!isOfficialEvent && !actualDistanceKm.trim()) {
+  setErrorMessage('Bitte gib deine gelaufene Distanz an.')
+  setSubmitting(false)
+  return
+}
 
       const fileExt = proofFile.name.split('.').pop()?.toLowerCase() ?? 'file'
       const safeExt = fileExt.replace(/[^a-z0-9]/g, '') || 'file'
@@ -80,8 +96,41 @@ export default function RecordSubmissionForm({
 
       const proofImageUrl = publicUrlData.publicUrl
 
-      const parsedDistance =
-        distanceKm.trim() === '' ? null : Number(distanceKm.replace(',', '.'))
+      let parsedDistance: number | null = null
+
+if (isOfficialEvent) {
+  const official = Number(officialDistanceKm.replace(',', '.'))
+  const actual = Number(actualDistanceKm.replace(',', '.'))
+
+  if (
+    Number.isNaN(official) ||
+    Number.isNaN(actual) ||
+    official <= 0 ||
+    actual <= 0
+  ) {
+    setErrorMessage('Bitte gib gültige Distanzen ein.')
+    setSubmitting(false)
+    return
+  }
+
+  if (actual < official * 0.97) {
+    setErrorMessage('Du musst mindestens 97% der offiziellen Distanz erreichen.')
+    setSubmitting(false)
+    return
+  }
+
+  parsedDistance = actual
+} else {
+  const actual = Number(actualDistanceKm.replace(',', '.'))
+
+  if (Number.isNaN(actual) || actual <= 0) {
+    setErrorMessage('Distanz ist ungültig.')
+    setSubmitting(false)
+    return
+  }
+
+  parsedDistance = actual
+}
       const parsedElevation =
         elevationGain.trim() === '' ? null : Number(elevationGain.replace(',', '.'))
 
@@ -90,14 +139,22 @@ export default function RecordSubmissionForm({
         .insert({
           user_id: session.user.id,
           hiker_id: hikerId,
-          activity_name: activityName.trim(),
+          submission_type: isOfficialEvent ? 'official_event' : 'private',
+          activity_name: isOfficialEvent
+            ? activityName.trim()
+            : 'Private Wanderung',
+          description: !isOfficialEvent ? description.trim() || null : null,
           activity_date: activityDate,
+          official_distance_km: isOfficialEvent
+            ? Number(officialDistanceKm.replace(',', '.'))
+            : null,
+          actual_distance_km: Number.isNaN(parsedDistance as number) ? null : parsedDistance,
           distance_km: Number.isNaN(parsedDistance as number) ? null : parsedDistance,
           elapsed_time_text: elapsedTimeText.trim(),
           elevation_gain: Number.isNaN(parsedElevation as number) ? null : parsedElevation,
           country: country.trim() || null,
           location: location.trim() || null,
-          record_source: recordSource.trim() || null,
+          record_source: isOfficialEvent ? 'official_event' : 'private',
           proof_image_url: proofImageUrl,
           notes: notes.trim() || null,
           status: 'pending',
@@ -109,14 +166,16 @@ export default function RecordSubmissionForm({
         return
       }
 
+      setIsOfficialEvent(true)
       setActivityName('')
+      setDescription('')
+      setOfficialDistanceKm('')
+      setActualDistanceKm('')
       setActivityDate('')
-      setDistanceKm('')
       setElapsedTimeText('')
       setElevationGain('')
       setCountry('')
       setLocation('')
-      setRecordSource('')
       setNotes('')
       setProofFile(null)
       setSuccessMessage('Deine Wanderung wurde erfolgreich eingereicht.')
@@ -142,18 +201,58 @@ export default function RecordSubmissionForm({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-stone-200">
-            Name der Wanderung / Veranstaltung *
-          </label>
-          <input
-            type="text"
-            value={activityName}
-            onChange={(e) => setActivityName(e.target.value)}
-            placeholder="z. B. Ultimatemarsch 50 km oder Privater Trainingshike"
-            className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
-          />
-        </div>
+      <div className="flex gap-3 mb-4">
+  <button
+    type="button"
+    onClick={() => setIsOfficialEvent(true)}
+    className={`rounded-xl px-4 py-2 text-sm ${
+      isOfficialEvent
+        ? 'bg-white text-black'
+        : 'bg-white/10 text-white'
+    }`}
+  >
+    Offizielles Event
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setIsOfficialEvent(false)}
+    className={`rounded-xl px-4 py-2 text-sm ${
+      !isOfficialEvent
+        ? 'bg-white text-black'
+        : 'bg-white/10 text-white'
+    }`}
+  >
+    Private Wanderung
+  </button>
+</div>
+        {isOfficialEvent ? (
+  <div>
+    <label className="mb-2 block text-sm font-medium text-stone-200">
+      Name des offiziellen Events * <span className="text-stone-500">Pflichtangabe</span>
+    </label>
+    <input
+      type="text"
+      value={activityName}
+      onChange={(e) => setActivityName(e.target.value)}
+      placeholder="z. B. Ultimatemarsch Mallorca"
+      className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
+    />
+  </div>
+) : (
+  <div>
+    <label className="mb-2 block text-sm font-medium text-stone-200">
+      Beschreibung <span className="text-stone-500">optional</span>
+    </label>
+    <input
+      type="text"
+      value={description}
+      onChange={(e) => setDescription(e.target.value)}
+      placeholder="z. B. Chiemsee-Umrundung oder Zugspitzbesteigung"
+      className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
+    />
+  </div>
+)}
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
@@ -168,18 +267,48 @@ export default function RecordSubmissionForm({
             />
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-stone-200">
-              Distanz in km *
-            </label>
-            <input
-              type="text"
-              value={distanceKm}
-              onChange={(e) => setDistanceKm(e.target.value)}
-              placeholder="z. B. 50 oder 42,2"
-              className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
-            />
-          </div>
+          {isOfficialEvent ? (
+  <div className="grid gap-4 md:grid-cols-2">
+    <div>
+      <label className="mb-2 block text-sm font-medium text-stone-200">
+        Offizielle Distanz (km) <span className="text-stone-500">*</span>
+      </label>
+      <input
+        type="text"
+        value={officialDistanceKm}
+        onChange={(e) => setOfficialDistanceKm(e.target.value)}
+        placeholder="z. B. 50"
+        className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+      />
+    </div>
+
+    <div>
+      <label className="mb-2 block text-sm font-medium text-stone-200">
+        Tatsächlich gelaufen (km)  <span className="text-stone-500">*</span>
+      </label>
+      <input
+        type="text"
+        value={actualDistanceKm}
+        onChange={(e) => setActualDistanceKm(e.target.value)}
+        placeholder="z. B. 48.7"
+        className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+      />
+    </div>
+  </div>
+) : (
+  <div>
+    <label className="mb-2 block text-sm font-medium text-stone-200">
+      Distanz (km) * <span className="text-stone-500">Pflichtangabe</span>
+    </label>
+    <input
+      type="text"
+      value={actualDistanceKm}
+      onChange={(e) => setActualDistanceKm(e.target.value)}
+      placeholder="z. B. 12.5"
+      className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+    />
+  </div>
+)}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -237,18 +366,7 @@ export default function RecordSubmissionForm({
             />
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-stone-200">
-              Quelle
-            </label>
-            <input
-              type="text"
-              value={recordSource}
-              onChange={(e) => setRecordSource(e.target.value)}
-              placeholder="z. B. Privat oder Offizielles Event"
-              className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
-            />
-          </div>
+          
         </div>
 
         <div>
