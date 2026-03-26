@@ -40,6 +40,7 @@ type EventItem = {
   title: string | null
   city: string | null
   country: string | null
+  country_code: string | null
 }
 
 type RecordItem = {
@@ -58,6 +59,7 @@ type RecordItem = {
   event_name: string
   location: string
   country: string
+  country_code: string | null
 }
 
 type RankedHiker = {
@@ -362,7 +364,7 @@ let eventsMap = new Map<number, EventItem>()
 if (eventMasterIds.length > 0) {
   const { data: eventRows } = await supabase
     .from('events_master')
-    .select('id, title, city, country')
+    .select('id, title, city, country, country_code')
     .in('id', eventMasterIds)
 
   if (eventRows) {
@@ -378,11 +380,12 @@ const mergedRecords: RecordItem[] = rawRecords.map((record) => {
     : null
 
   return {
-    ...record,
-    event_name: event?.title ?? 'Unbekanntes Event',
-    location: event?.city ?? '—',
-    country: event?.country ?? '—',
-  }
+  ...record,
+  event_name: event?.title ?? 'Unbekanntes Event',
+  location: event?.city ?? '—',
+  country: event?.country ?? '—',
+  country_code: event?.country_code ?? null,
+}
 })
 
         setRecords(mergedRecords)
@@ -763,7 +766,7 @@ async function handleProfileImageUpload(file: File) {
                       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-400">
                         <span className="inline-flex items-center gap-2">
                           <span className="text-base">
-                            {countryToFlag(record.country)}
+                            {countryToFlag(record.country_code)}
                           </span>
                           <span>{record.country}</span>
                         </span>
