@@ -20,6 +20,8 @@ type Hiker = {
 type RawRecord = {
   id: number
   event_id: number | null
+  event_master_id: number | null
+  event_distance_id: number | null
   distance_km: number | null
   time_hours: number | null
   avg_speed: number | null
@@ -35,8 +37,8 @@ type RawRecord = {
 
 type EventItem = {
   id: number
-  event_name: string | null
-  location: string | null
+  title: string | null
+  city: string | null
   country: string | null
 }
 
@@ -319,7 +321,7 @@ export default function AccountPage() {
         const { data: recordRows, error: recordsError } = await supabase
           .from('records')
           .select(
-            'id, event_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain'
+            'id, event_id, event_master_id, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain'
           )
           .eq('hiker_id', currentHiker.id)
           .order('activity_date', { ascending: false })
@@ -346,39 +348,42 @@ export default function AccountPage() {
         setTotalElevation(totalElevationValue)
         setHasSkyscraper(totalElevationValue >= SKYSCRAPER_THRESHOLD)
 
-        const eventIds = Array.from(
-          new Set(
-            rawRecords
-              .map((record) => record.event_id)
-              .filter((eventId): eventId is number => typeof eventId === 'number')
-          )
-        )
+        
+      const eventMasterIds = Array.from(
+  new Set(
+    rawRecords
+      .map((record) => record.event_master_id)
+      .filter((eventId): eventId is number => typeof eventId === 'number')
+  )
+)
 
-        let eventsMap = new Map<number, EventItem>()
+let eventsMap = new Map<number, EventItem>()
 
-        if (eventIds.length > 0) {
-          const { data: eventRows } = await supabase
-            .from('events')
-            .select('id, event_name, location, country')
-            .in('id', eventIds)
+if (eventMasterIds.length > 0) {
+  const { data: eventRows } = await supabase
+    .from('events_master')
+    .select('id, title, city, country')
+    .in('id', eventMasterIds)
 
-          if (eventRows) {
-            eventsMap = new Map(
-              (eventRows as EventItem[]).map((event) => [event.id, event])
-            )
-          }
-        }
+  if (eventRows) {
+    eventsMap = new Map(
+      (eventRows as EventItem[]).map((event) => [event.id, event])
+    )
+  }
+}
 
-        const mergedRecords: RecordItem[] = rawRecords.map((record) => {
-          const event = record.event_id ? eventsMap.get(record.event_id) : null
+const mergedRecords: RecordItem[] = rawRecords.map((record) => {
+  const event = record.event_master_id
+    ? eventsMap.get(record.event_master_id)
+    : null
 
-          return {
-            ...record,
-            event_name: event?.event_name ?? 'Unbekanntes Event',
-            location: event?.location ?? '—',
-            country: event?.country ?? '—',
-          }
-        })
+  return {
+    ...record,
+    event_name: event?.title ?? 'Unbekanntes Event',
+    location: event?.city ?? '—',
+    country: event?.country ?? '—',
+  }
+})
 
         setRecords(mergedRecords)
       } catch (error) {
