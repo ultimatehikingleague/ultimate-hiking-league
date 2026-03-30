@@ -25,6 +25,7 @@ export default function RecordSubmissionForm({
   const [elevationGain, setElevationGain] = useState('')
   const [country, setCountry] = useState('')
   const [location, setLocation] = useState('')
+  const [organizer, setOrganizer] = useState('')
   
   const [notes, setNotes] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
@@ -154,7 +155,9 @@ if (isOfficialEvent) {
           elevation_gain: Number.isNaN(parsedElevation as number) ? null : parsedElevation,
           country: country.trim() || null,
           location: location.trim() || null,
-          record_source: isOfficialEvent ? 'official_event' : 'private',
+          record_source: isOfficialEvent
+            ? organizer.trim() || null
+            : 'private',
           proof_image_url: proofImageUrl,
           notes: notes.trim() || null,
           status: 'pending',
@@ -368,6 +371,21 @@ if (isOfficialEvent) {
 
           
         </div>
+
+        {isOfficialEvent ? (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-stone-200">
+              Veranstalter <span className="text-stone-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={organizer}
+              onChange={(e) => setOrganizer(e.target.value)}
+              placeholder="z. B. Ultimatemarsch"
+              className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
+            />
+          </div>
+        ) : null}
 
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">

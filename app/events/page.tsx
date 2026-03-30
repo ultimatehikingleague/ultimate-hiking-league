@@ -1,20 +1,20 @@
 import Link from 'next/link'
 import Nav from '../components/Nav'
+import { supabase } from '../lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
 async function getEvents() {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/events_master?select=*,event_distances(*)&order=event_date.asc`,
-    {
-      headers: {
-        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      },
-      cache: 'no-store',
-    }
-  )
+  const { data, error } = await supabase
+    .from('events_master')
+    .select('*, event_distances(*)')
+    .order('event_date', { ascending: true })
 
-  return res.json()
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data ?? []
 }
 
 type EventItem = {
@@ -294,9 +294,9 @@ export default async function EventsPage() {
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Kommende Highlights</h2>
+              <h2 className="text-2xl font-bold text-white">Events 2026</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Erste Vorschau auf starke Märsche und Event-Daten.
+                Neueste Ergebnisse & kommende Events.
               </p>
             </div>
 
@@ -323,7 +323,15 @@ export default async function EventsPage() {
                         .map((d: any) => d.label ?? `${d.distance_km} km`)
                         .join(' / ')
                     : '—',
-                 brand: event.brand ?? 'Event',
+                 brand:
+                   event.brand ||
+                   (event.title?.toLowerCase().includes('ultramarsch')
+                     ? 'Ultramarsch'
+                     : event.title?.toLowerCase().includes('mammutmarsch')
+                     ? 'Mammutmarsch'
+                     : event.title?.toLowerCase().includes('megamarsch')
+                     ? 'Megamarsch'
+                     : 'Event'),
                  special: event.country_code && event.country_code !== 'DE' ? 'International' : undefined,
                }}
             />

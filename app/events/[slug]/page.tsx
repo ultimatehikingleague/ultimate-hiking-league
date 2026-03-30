@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { supabase } from '../../lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,9 +19,7 @@ type EventDetail = {
   event_date: string | null
   brand: string | null
   description: string | null
-  deadline_text: string | null
-  surface: string | null
-  format: string | null
+  official_url: string | null
   event_distances: EventDistance[]
 }
 
@@ -64,44 +63,36 @@ function getHikerCountry(hikerId: number | null, hikersMap: Map<number, HikerRow
   return hikersMap.get(hikerId)?.country || null
 }
 
-async function fetchFromSupabase(path: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!url || !anonKey) {
-    throw new Error('Supabase environment variables are missing.')
-  }
-
-  const response = await fetch(`${url}/rest/v1/${path}`, {
-    headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-    },
-    cache: 'no-store',
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(errorText)
-  }
-
-  return response.json()
-}
 
 async function getEventBySlug(slug: string): Promise<EventDetail | null> {
-  const rows = await fetchFromSupabase(
-    `events_master?select=id,slug,title,city,country,country_code,event_date,brand,description,deadline_text,surface,format,event_distances(id,distance_km,label)&slug=eq.${encodeURIComponent(
-      slug
-    )}`
-  )
+  const { data, error } = await supabase
+    .from('events_master')
+    .select(
+      'id,slug,title,city,country,country_code,event_date,brand,description,official_url,event_distances(id,distance_km,label)'
+    )
+    .eq('slug', slug)
+    .limit(1)
 
-  return rows[0] ?? null
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data?.[0] as EventDetail) ?? null
 }
 
 async function getEventRecords(eventMasterId: number): Promise<RecordRow[]> {
-  return fetchFromSupabase(
-    `records?select=id,hiker_id,event_distance_id,time_text,time_hours,verified,record_status&event_master_id=eq.${eventMasterId}&order=time_hours.asc.nullslast`
-  )
+  const { data, error } = await supabase
+    .from('records')
+    .select('id,hiker_id,event_distance_id,time_text,time_hours,verified,record_status')
+    .eq('event_master_id', eventMasterId)
+    .order('time_hours', { ascending: true })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data as RecordRow[]) ?? []
 }
 
 async function getHikersMap(hikerIds: number[]): Promise<Map<number, HikerRow>> {
@@ -110,10 +101,17 @@ async function getHikersMap(hikerIds: number[]): Promise<Map<number, HikerRow>> 
   }
 
   const uniqueIds = Array.from(new Set(hikerIds))
-  const rows: HikerRow[] = await fetchFromSupabase(
-    `hikers?select=id,display_name,country&id=in.(${uniqueIds.join(',')})`
-  )
 
+  const { data, error } = await supabase
+    .from('hikers')
+    .select('id,display_name,country')
+    .in('id', uniqueIds)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const rows = (data as HikerRow[]) ?? []
   return new Map(rows.map((row) => [row.id, row]))
 }
 
@@ -294,32 +292,32 @@ export default async function EventDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                  Format
-                </div>
-                <div className="mt-2 font-semibold text-white">
-                  {event.format ?? 'Noch offen'}
-                </div>
-              </div>
+             {event.description ? (
+               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 sm:col-span-2">
+                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                   Beschreibung
+                 </div>
+                 <div className="mt-2 text-sm text-stone-200">
+                   {event.description}
+                 </div>
+               </div>
+             ) : null}
 
-              <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                  Untergrund
-                </div>
-                <div className="mt-2 font-semibold text-white">
-                  {event.surface ?? 'Noch offen'}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
-                <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                  Meldeschluss
-                </div>
-                <div className="mt-2 font-semibold text-white">
-                  {event.deadline_text ?? 'Noch offen'}
-                </div>
-              </div>
+             {event.official_url ? (
+               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 sm:col-span-2">
+                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                   Offizielle Eventseite
+                 </div>
+                 <a
+                   href={event.official_url}
+                   target="_blank"
+                   rel="noreferrer"
+                   className="mt-3 inline-block rounded-xl bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-stone-200"
+                 >
+                   Zur Anmeldung / Eventseite
+                 </a>
+               </div>
+             ) : null}
             </div>
           </div>
 

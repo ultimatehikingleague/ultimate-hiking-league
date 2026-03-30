@@ -164,7 +164,10 @@ async function findOrCreateEventMaster(
       country: draft.country.trim() || null,
       country_code: draft.country.trim().toUpperCase() || null,
       event_date: draft.activity_date,
-      brand: null,
+      brand:
+        draft.submission_type === 'official_event'
+          ? draft.record_source.trim() || null
+          : null,
       description: null,
       deadline_text: null,
       surface: null,
@@ -534,15 +537,30 @@ export default function AdminPage() {
     setPageMessage('')
 
     try {
-      if (
-        !draft.activity_name.trim() ||
-        !draft.activity_date.trim() ||
-        !draft.distance_km.trim() ||
-        !draft.elapsed_time_text.trim()
-      ) {
-        setPageMessage('Bitte fülle vor der Freigabe alle Pflichtfelder aus.')
-        return
-      }
+      if (!draft.activity_date.trim() || !draft.elapsed_time_text.trim()) {
+  setPageMessage('Bitte fülle vor der Freigabe alle Pflichtfelder aus.')
+  return
+}
+
+if (draft.submission_type === 'official_event') {
+  if (
+    !draft.activity_name.trim() ||
+    !draft.official_distance_km.trim() ||
+    !draft.actual_distance_km.trim()
+  ) {
+    setPageMessage(
+      'Bei offiziellen Events müssen Eventname, offizielle Distanz und gelaufene Distanz ausgefüllt sein.'
+    )
+    return
+  }
+}
+
+if (draft.submission_type !== 'official_event') {
+  if (!(draft.actual_distance_km || draft.distance_km).trim()) {
+    setPageMessage('Bitte gib eine Distanz an.')
+    return
+  }
+}
 
       const parsedDistance = Number(
         (draft.actual_distance_km || draft.distance_km).replace(',', '.')
@@ -591,7 +609,7 @@ const { eventMasterId } = await findOrCreateEventMaster(draft)
 // 2. Distanz finden oder erstellen
 const eventDistanceId = await findOrCreateEventDistance(
   eventMasterId,
-  parsedDistance
+  officialDistance ?? parsedDistance
 )
 
 // 3. Record schreiben (JETZT MIT RICHTIGER ZUORDNUNG)
@@ -669,8 +687,18 @@ const { error: recordError } = await supabase.from('records').insert({
           item.id === submission.id
             ? {
                 ...item,
-                activity_name: draft.activity_name.trim(),
+                activity_name:
+                  draft.submission_type === 'official_event'
+                    ? draft.activity_name.trim()
+                    : 'Private Wanderung',
+                description:
+                  draft.submission_type === 'private'
+                    ? draft.description.trim() || null
+                    : null,
+                submission_type: draft.submission_type || 'private',
                 activity_date: draft.activity_date,
+                official_distance_km: officialDistance,
+                actual_distance_km: parsedDistance,
                 distance_km: parsedDistance,
                 elapsed_time_text: draft.elapsed_time_text.trim(),
                 elevation_gain:
@@ -1300,7 +1328,7 @@ const { error: recordError } = await supabase.from('records').insert({
 
                             <div>
                               <label className="mb-2 block text-sm text-stone-300">
-                                Quelle
+                                Veranstalter
                               </label>
                               <input
                                 type="text"
@@ -1312,6 +1340,7 @@ const { error: recordError } = await supabase.from('records').insert({
                                     e.target.value
                                   )
                                 }
+                                placeholder="z. B. Ultramarsch"
                                 className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
                               />
                             </div>
