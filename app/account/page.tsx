@@ -247,6 +247,9 @@ export default function AccountPage() {
   const [divisionRank, setDivisionRank] = useState<number | null>(null)
   const [totalElevation, setTotalElevation] = useState<number>(0)
   const [hasSkyscraper, setHasSkyscraper] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
 
   useEffect(() => {
     async function loadData() {
@@ -352,12 +355,14 @@ export default function AccountPage() {
 
         
       const eventMasterIds = Array.from(
-  new Set(
-    rawRecords
+      new Set(
+      rawRecords
       .map((record) => record.event_master_id)
       .filter((eventId): eventId is number => typeof eventId === 'number')
   )
 )
+
+
 
 let eventsMap = new Map<number, EventItem>()
 
@@ -454,6 +459,41 @@ async function handleProfileImageUpload(file: File) {
     window.location.href = '/'
   }
 
+  async function handleCreateHiker() {
+    if (!newName.trim()) return
+
+    setCreating(true)
+    setCreateError('')
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user) {
+        setCreateError('Keine aktive Session gefunden.')
+        return
+      }
+
+      const { error } = await supabase.from('hikers').insert({
+        display_name: newName.trim(),
+        claimed_profile: true,
+        claimed_by_user_id: session.user.id,
+      })
+
+      if (error) {
+        setCreateError(error.message)
+        return
+      }
+
+      window.location.reload()
+    } catch (error: any) {
+      setCreateError(error?.message ?? 'Unbekannter Fehler')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
@@ -468,84 +508,62 @@ async function handleProfileImageUpload(file: File) {
   }
 
   if (!hiker) {
-    return (
-      <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
-        <div className="mx-auto max-w-6xl">
-          <Link
-            href="/"
-            className="text-sm text-stone-400 transition hover:text-white"
-          >
-            ← Zurück zur Startseite
-          </Link>
+  return (
+    <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+      <div className="mx-auto max-w-xl">
+        <Link
+          href="/"
+          className="text-sm text-stone-400 transition hover:text-white"
+        >
+          ← Zurück zur Startseite
+        </Link>
 
-          <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
-            <h1 className="text-2xl font-bold text-white">
-              Kein verknüpftes Profil gefunden
-            </h1>
-            <p className="mt-3 text-stone-400">
-              Für diesen Login ist aktuell noch kein Hiker-Profil hinterlegt.
-            </p>
+        <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
+          <h1 className="text-2xl font-bold text-white">Profil erstellen</h1>
+          <p className="mt-3 text-stone-400">
+            Bitte gib deinen bürgerlichen Namen ein, um dein Profil anzulegen.
+          </p>
+
+          <div className="mt-6">
+            <label className="mb-2 block text-sm font-medium text-stone-300">
+              Bürgerlicher Name
+            </label>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Dein Name"
+              className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-white/25"
+            />
           </div>
 
-          {claimRequests.length > 0 ? (
-            <section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10 backdrop-blur-sm">
-              <h2 className="text-2xl font-bold text-white">
-                Meine Claim-Anfragen
-              </h2>
-              <p className="mt-1 text-sm text-stone-400">
-                Hier siehst du den Stand deiner bisherigen Profil-Anfragen.
-              </p>
-
-              <div className="mt-5 space-y-4">
-                {claimRequests.map((claim) => (
-                  <div
-                    key={claim.id}
-                    className="rounded-[1.5rem] border border-white/10 bg-black/10 p-4"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <div className="text-sm text-stone-500">
-                          Anfrage vom {formatDateTime(claim.created_at)}
-                        </div>
-                        <div className="mt-1 text-lg font-semibold text-white">
-                          {claim.profile_name ?? `Hiker-ID ${claim.hiker_id}`}
-                        </div>
-                      </div>
-
-                      <div
-                        className={`inline-flex rounded-full px-3 py-1 text-xs ${getClaimStatusClass(
-                          claim.status
-                        )}`}
-                      >
-                        {formatClaimStatus(claim.status)}
-                      </div>
-                    </div>
-
-                    {claim.admin_note ? (
-                      <div className="mt-4 rounded-2xl border border-white/8 bg-black/10 p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                          Admin-Vermerk
-                        </div>
-                        <div className="mt-2 text-sm text-stone-200">
-                          {claim.admin_note}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {claim.reviewed_at ? (
-                      <div className="mt-3 text-xs text-stone-500">
-                        Geprüft am {formatDateTime(claim.reviewed_at)}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
+          <button
+            type="button"
+            onClick={handleCreateHiker}
+            disabled={creating}
+            className="mt-4 w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
+          >
+            {createError && (
+              <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                {createError}
               </div>
-            </section>
-          ) : null}
+            )}
+            
+            {creating ? 'Wird erstellt…' : 'Profil erstellen'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
+          >
+            Abmelden
+          </button>
         </div>
-      </main>
-    )
-  }
+      </div>
+    </main>
+  )
+}
 
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">

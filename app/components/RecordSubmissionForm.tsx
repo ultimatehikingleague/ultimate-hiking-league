@@ -168,6 +168,7 @@ if (isOfficialEvent) {
         setSubmitting(false)
         return
       }
+      
 
       setIsOfficialEvent(true)
       setActivityName('')

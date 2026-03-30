@@ -25,6 +25,18 @@ export default function LoginPage() {
       if (error) {
         setMessage(`Fehler: ${error.message}`)
       } else {
+        // 👉 Welcome-Mail triggern
+        await fetch('/api/send-submission-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            type: 'welcome',
+          }),
+        })
+
         setMessage('Registrierung erfolgreich. Du kannst dich jetzt einloggen.')
         setMode('login')
       }
