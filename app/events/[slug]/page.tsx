@@ -247,9 +247,7 @@ export default async function EventDetailPage({
               {event.title}
             </h1>
 
-            <p className="mt-4 max-w-2xl text-lg text-stone-200">
-              {event.description ?? 'Für dieses Event folgen bald weitere Details.'}
-            </p>
+            
           </div>
         </div>
       </section>

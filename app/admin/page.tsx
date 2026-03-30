@@ -330,6 +330,16 @@ export default function AdminPage() {
   const [pageMessage, setPageMessage] = useState('')
   const [showResolvedClaims, setShowResolvedClaims] = useState(false)
   const [showResolvedSubmissions, setShowResolvedSubmissions] = useState(false)
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [eventCity, setEventCity] = useState('')
+  const [eventCountry, setEventCountry] = useState('')
+  const [eventBrand, setEventBrand] = useState('')
+  const [eventDistances, setEventDistances] = useState('')
+  const [eventDescription, setEventDescription] = useState('')
+  const [eventOfficialUrl, setEventOfficialUrl] = useState('')
+  const [eventCreateLoading, setEventCreateLoading] = useState(false)
+  const [eventCreateMessage, setEventCreateMessage] = useState('')
 
   useEffect(() => {
     async function loadAdminPage() {
@@ -772,6 +782,113 @@ const { error: recordError } = await supabase.from('records').insert({
     }
   }
 
+  async function handleCreateEvent() {
+  setEventCreateLoading(true)
+  setEventCreateMessage('')
+
+  try {
+    if (!eventTitle.trim() || !eventDate.trim()) {
+      setEventCreateMessage('Bitte Name und Datum angeben.')
+      return
+    }
+
+    const slugBase = eventTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
+    const slug = `${slugBase}-${eventDate}`
+    function normalizeCountry(input: string) {
+      const value = input.trim().toLowerCase()
+
+      if (!value) return { name: null, code: null }
+
+      if (['de', 'deutschland', 'germany'].includes(value))
+        return { name: 'Deutschland', code: 'DE' }
+
+      if (['es', 'spanien', 'spain'].includes(value))
+        return { name: 'Spanien', code: 'ES' }
+
+      if (['fr', 'frankreich', 'france'].includes(value))
+        return { name: 'Frankreich', code: 'FR' }
+
+      if (['it', 'italien', 'italy'].includes(value))
+        return { name: 'Italien', code: 'IT' }
+
+      if (['at', 'österreich', 'austria'].includes(value))
+        return { name: 'Österreich', code: 'AT' }
+
+      if (['ch', 'schweiz', 'switzerland'].includes(value))
+        return { name: 'Schweiz', code: 'CH' }
+
+      // fallback
+      return {
+        name: input.trim(),
+        code: input.trim().toUpperCase(),
+      }
+    }
+
+    const { name: normalizedCountry, code: normalizedCountryCode } =
+      normalizeCountry(eventCountry)
+
+    // 1. Event erstellen
+    const { data: createdEvent, error: eventError } = await supabase
+      .from('events_master')
+      .insert({
+        slug,
+        title: eventTitle.trim(),
+        city: eventCity.trim() || null,
+        country: normalizedCountry,
+        country_code: normalizedCountryCode,
+        event_date: eventDate,
+        brand: eventBrand.trim() || null,
+        description: eventDescription.trim() || null,
+        official_url: eventOfficialUrl.trim() || null,
+      })
+      .select('id')
+      .single()
+
+    if (eventError || !createdEvent) {
+      setEventCreateMessage(`Fehler: ${eventError?.message}`)
+      return
+    }
+
+    const eventId = createdEvent.id
+
+    // 2. Distanzen erstellen
+    if (eventDistances.trim()) {
+      const distances = eventDistances
+        .split(',')
+        .map((d) => Number(d.trim()))
+        .filter((d) => !Number.isNaN(d) && d > 0)
+
+      for (const dist of distances) {
+        await supabase.from('event_distances').insert({
+          event_id: eventId,
+          distance_km: dist,
+          label: `${dist} km`,
+        })
+      }
+    }
+
+    // Reset
+    setEventTitle('')
+    setEventDate('')
+    setEventCity('')
+    setEventCountry('')
+    setEventBrand('')
+    setEventDistances('')
+    setEventDescription('')
+    setEventOfficialUrl('')
+
+    setEventCreateMessage('Event erfolgreich erstellt.')
+  } catch (err: any) {
+    setEventCreateMessage(err.message ?? 'Unbekannter Fehler')
+  } finally {
+    setEventCreateLoading(false)
+  }
+}
+
   const pendingClaims = useMemo(
     () => claims.filter((claim) => claim.status === 'pending'),
     [claims]
@@ -1057,6 +1174,144 @@ const { error: recordError } = await supabase.from('records').insert({
                 </div>
               ))
             )}
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold text-white">Event manuell anlegen</h2>
+            <p className="mt-1 text-sm text-stone-400">
+              Für zukünftige offizielle Events mit Veranstalter, Distanzen, Beschreibung und Buchungslink.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-200">
+                Eventname *
+              </label>
+              <input
+                type="text"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                placeholder="z. B. Ultramarsch Potsdam"
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-200">
+                Datum *
+              </label>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-200">
+                Ort / Stadt
+              </label>
+              <input
+                type="text"
+                value={eventCity}
+                onChange={(e) => setEventCity(e.target.value)}
+                placeholder="z. B. Potsdam"
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-200">
+                Land
+              </label>
+              <input
+                type="text"
+                value={eventCountry}
+                onChange={(e) => setEventCountry(e.target.value)}
+                placeholder="z. B. DE"
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-200">
+                Veranstalter
+              </label>
+              <input
+                type="text"
+                value={eventBrand}
+                onChange={(e) => setEventBrand(e.target.value)}
+                placeholder="z. B. Ultramarsch"
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-200">
+                Distanzen
+              </label>
+              <input
+                type="text"
+                value={eventDistances}
+                onChange={(e) => setEventDistances(e.target.value)}
+                placeholder="z. B. 50,75,120"
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+              <p className="mt-1 text-xs text-stone-500">
+                Mehrere Distanzen mit Komma trennen.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-medium text-stone-200">
+              Beschreibung
+            </label>
+            <textarea
+              value={eventDescription}
+              onChange={(e) => setEventDescription(e.target.value)}
+              rows={4}
+              placeholder="Kurzbeschreibung des Events"
+              className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+            />
+          </div>
+
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-medium text-stone-200">
+              Offizielle Eventseite / Buchungslink
+            </label>
+            <input
+              type="text"
+              value={eventOfficialUrl}
+              onChange={(e) => setEventOfficialUrl(e.target.value)}
+              placeholder="https://..."
+              className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+            />
+          </div>
+
+          {eventCreateMessage ? (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-stone-200">
+              {eventCreateMessage}
+            </div>
+          ) : null}
+
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={handleCreateEvent}
+              disabled={eventCreateLoading}
+              className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {eventCreateLoading ? 'Wird erstellt…' : 'Event anlegen'}
+            </button>
           </div>
         </section>
 
