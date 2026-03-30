@@ -678,7 +678,7 @@ async function handleProfileImageUpload(file: File) {
               division={hiker.division}
             />
             <StatCard
-              label="Ø Geschwindigkeit"
+              label="Ø Speed"
               value={`${hiker.avg_speed ?? '—'} km/h`}
               division={hiker.division}
             />

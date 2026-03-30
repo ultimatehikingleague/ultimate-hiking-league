@@ -155,18 +155,25 @@ const megamarschEvents = [
 function EventCard({ event }: { event: EventItem }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-5 shadow-xl shadow-black/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <span className="text-xl">{countryToFlag(event.countryCode)}</span>
-            <h3 className="text-xl font-bold text-white">{event.city}</h3>
+            <span className="shrink-0 text-xl">
+              {countryToFlag(event.countryCode)}
+            </span>
+            <h3 className="min-w-0 break-words text-xl font-bold text-white">
+              {event.city}
+            </h3>
           </div>
+
           <div className="mt-1 text-sm text-stone-400">{event.country}</div>
         </div>
 
-        <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs uppercase tracking-[0.18em] text-stone-300">
-          {event.brand}
-        </span>
+        {event.brand && (
+          <span className="inline-flex w-fit self-start rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs uppercase tracking-wide text-stone-200">
+            {event.brand}
+          </span>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -181,7 +188,9 @@ function EventCard({ event }: { event: EventItem }) {
           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
             Distanzen
           </div>
-          <div className="mt-1 font-semibold text-white">{event.distances}</div>
+          <div className="mt-1 break-words font-semibold text-white">
+            {event.distances}
+          </div>
         </div>
       </div>
 
