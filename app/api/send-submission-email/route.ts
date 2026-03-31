@@ -33,7 +33,7 @@ const resend = new Resend(apiKey)
     }
 
     const { error } = await resend.emails.send({
-      from: 'Ultimate Hiking League <onboarding@resend.dev>',
+      from: 'Ultimate Hiking League <welcome@mail.ultimatehikingleague.com>',
       to: email,
       subject: 'Willkommen bei der Ultimate European Hiking League',
       html: `
