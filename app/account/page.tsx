@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import ProfileBrandBar from '../components/ProfileBrandBar'
 import RecordSubmissionPanel from '../components/RecordSubmissionPanel'
+import BackToHomeButton from '../components/BackToHomeButton'
 
 type Hiker = {
   id: number
@@ -514,12 +515,7 @@ async function handleProfileImageUpload(file: File) {
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
       <div className="mx-auto max-w-xl">
-        <Link
-          href="/"
-          className="text-sm text-stone-400 transition hover:text-white"
-        >
-          ← Zurück zur Startseite
-        </Link>
+        <BackToHomeButton />
 
         <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
           <h1 className="text-2xl font-bold text-white">Profil erstellen</h1>

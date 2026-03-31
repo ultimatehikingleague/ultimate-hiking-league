@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import BrandHeader from '../../components/BrandHeader'
 import LeaderboardSubnav from '../../components/LeaderboardSubnav'
+import BackToHomeButton from '../../components/BackToHomeButton'
 
 type RankedUser = {
   id: number
@@ -285,6 +286,7 @@ export default function CountryLeaderboardPage() {
       >
         <div className="mx-auto max-w-6xl px-6 py-12 md:px-10 md:py-16">
           <BrandHeader />
+          
 
           <Link
             href="/leaderboard"
@@ -292,6 +294,11 @@ export default function CountryLeaderboardPage() {
           >
             ← Zurück zu Ranglisten
           </Link>
+
+          <div className="mt-4">
+            <BackToHomeButton />
+          </div>
+
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
             <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">
@@ -309,7 +316,9 @@ export default function CountryLeaderboardPage() {
 
           <LeaderboardSubnav />
         </div>
+        
       </section>
+      
 
       <section className="px-6 py-10 md:px-10 md:py-12">
         <div className="mx-auto max-w-5xl">

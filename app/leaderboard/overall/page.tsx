@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import BrandHeader from '../../components/BrandHeader'
 import LeaderboardSubnav from '../../components/LeaderboardSubnav'
+import BackToHomeButton from '../../components/BackToHomeButton'
 
 type RankedUser = {
   id: number
@@ -191,6 +192,10 @@ export default function OverallLeaderboardPage() {
           >
             ← Zurück zu Ranglisten
           </Link>
+
+          <div className="mt-2">
+            <BackToHomeButton />
+          </div>
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
             <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">

@@ -2,6 +2,32 @@ import Link from 'next/link'
 import { supabase } from './lib/supabase'
 import Nav from './components/Nav'
 
+type HomeEventItem = {
+  id: number
+  slug: string
+  title: string | null
+  country: string | null
+  event_date: string | null
+  is_featured?: boolean | null
+}
+
+async function fetchUpcomingHomeEvents(): Promise<HomeEventItem[]> {
+  const today = new Date().toISOString().slice(0, 10)
+
+  const { data, error } = await supabase
+    .from('events_master')
+    .select('id, slug, title, country, event_date, is_featured')
+    .gte('event_date', today)
+    .order('event_date', { ascending: true })
+    .limit(5)
+
+  if (error || !data) {
+    return []
+  }
+
+  return data as HomeEventItem[]
+}
+
 export const dynamic = 'force-dynamic'
 
 function countryToFlag(country: string | null) {
@@ -167,6 +193,8 @@ export default async function Home() {
     .eq('division', 'silver')
     .order('total_km', { ascending: false })
     .limit(10)
+
+  const homeEvents = await fetchUpcomingHomeEvents()
 
   const { data: recentRecords } = await supabase
     .from('records')
@@ -384,32 +412,44 @@ export default async function Home() {
             </div>
 
             <div className="space-y-3">
-              <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 transition hover:border-white/15 hover:bg-white/[0.05]">
-                <div className="text-sm font-semibold text-white">
-                  Megamarsch München
-                </div>
-                <div className="text-xs text-stone-400">
-                  12. April · Deutschland
-                </div>
-              </div>
+              {homeEvents.length > 0 ? (
+                homeEvents.map((event) => (
+                  <Link
+                    key={event.id}
+                    href={`/events/${event.slug}`}
+                    className={`block rounded-2xl px-4 py-4 transition ${
+                      event.is_featured
+                        ? 'border border-amber-400/25 bg-amber-400/10 hover:border-amber-300/40 hover:bg-amber-400/15'
+                        : 'border border-white/8 bg-black/10 hover:border-white/15 hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold text-white">
+                        {event.title ?? 'Unbenanntes Event'}
+                      </div>
 
-              <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 transition hover:border-white/15 hover:bg-white/[0.05]">
-                <div className="text-sm font-semibold text-white">
-                  100km Berlin
+                      {event.is_featured && (
+                        <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+                          Featured
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-stone-400">
+                      {event.event_date
+                        ? new Date(event.event_date).toLocaleDateString('de-DE', {
+                            day: '2-digit',
+                            month: 'long',
+                          })
+                        : 'Datum offen'}
+                      {event.country ? ` · ${event.country}` : ''}
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
+                  Aktuell sind keine kommenden Events hinterlegt.
                 </div>
-                <div className="text-xs text-stone-400">
-                  03. Mai · Deutschland
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 transition hover:border-white/15 hover:bg-white/[0.05]">
-                <div className="text-sm font-semibold text-white">
-                  Alpine Ultra Trail
-                </div>
-                <div className="text-xs text-stone-400">
-                  21. Juni · Österreich
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="mt-6">

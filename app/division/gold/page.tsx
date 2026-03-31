@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import BrandHeader from '../../components/BrandHeader'
+import BackToHomeButton from '../../components/BackToHomeButton'
 
 type RankedUser = {
   id: number
@@ -178,6 +179,10 @@ export default function GoldPage() {
           >
             ← Zurück zu Divisionen
           </Link>
+
+          <div className="mt-2">
+            <BackToHomeButton />
+          </div>
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
             <div className="inline-flex rounded-full border border-yellow-400/30 bg-yellow-400/12 px-3 py-1.5 text-sm text-yellow-200">
