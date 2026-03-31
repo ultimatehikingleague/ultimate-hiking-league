@@ -479,6 +479,9 @@ async function handleProfileImageUpload(file: File) {
         display_name: newName.trim(),
         claimed_profile: true,
         claimed_by_user_id: session.user.id,
+        division: 'silver',
+        total_km: 0,
+        avg_speed: null,
       })
 
       if (error) {
@@ -543,14 +546,14 @@ async function handleProfileImageUpload(file: File) {
             disabled={creating}
             className="mt-4 w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
           >
-            {createError && (
-              <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                {createError}
-              </div>
-            )}
-            
             {creating ? 'Wird erstellt…' : 'Profil erstellen'}
           </button>
+
+          {createError && (
+            <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+              {createError}
+            </div>
+          )}
 
           <button
             type="button"
