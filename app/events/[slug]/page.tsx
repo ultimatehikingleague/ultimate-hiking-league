@@ -398,11 +398,20 @@ export default async function EventDetailPage({
                                 {countryToFlag(getHikerCountry(entry.hiker_id, hikersMap))}
                               </div>
 
-                              <div className="min-w-0">
-                                <div className="truncate font-semibold text-white">
-                                  {getHikerName(entry.hiker_id, hikersMap)}
-                                </div>
-                              </div>
+                             <div className="min-w-0">
+                               {entry.hiker_id ? (
+                                 <Link
+                                   href={`/${entry.hiker_id}`}
+                                   className="truncate font-semibold text-white transition hover:text-stone-300"
+                                 >
+                                   {getHikerName(entry.hiker_id, hikersMap)}
+                                 </Link>
+                               ) : (
+                                 <div className="truncate font-semibold text-white">
+                                   {getHikerName(entry.hiker_id, hikersMap)}
+                                 </div>
+                               )}
+                             </div> 
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 md:justify-end">
