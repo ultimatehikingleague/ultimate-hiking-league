@@ -352,7 +352,7 @@ if (isOfficialEvent) {
               type="text"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="z. B. DE"
+              placeholder="z. B. Deutschland"
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
           </div>

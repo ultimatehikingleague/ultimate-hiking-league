@@ -91,6 +91,46 @@ function normalizeText(value: string | null | undefined) {
     .trim()
 }
 
+function normalizeCountryInput(input: string | null | undefined) {
+  const value = normalizeText(input)
+
+  if (!value) {
+    return {
+      name: '',
+      code: '',
+    }
+  }
+
+  if (['de', 'deutschland', 'germany'].includes(value)) {
+    return { name: 'deutschland', code: 'de' }
+  }
+
+  if (['ch', 'schweiz', 'switzerland', 'suisse'].includes(value)) {
+    return { name: 'schweiz', code: 'ch' }
+  }
+
+  if (['at', 'osterreich', 'österreich', 'austria'].includes(value)) {
+    return { name: 'osterreich', code: 'at' }
+  }
+
+  if (['es', 'spanien', 'spain'].includes(value)) {
+    return { name: 'spanien', code: 'es' }
+  }
+
+  if (['fr', 'frankreich', 'france'].includes(value)) {
+    return { name: 'frankreich', code: 'fr' }
+  }
+
+  if (['it', 'italien', 'italy'].includes(value)) {
+    return { name: 'italien', code: 'it' }
+  }
+
+  return {
+    name: value,
+    code: value,
+  }
+}
+
 function isSameDate(a: string | null | undefined, b: string | null | undefined) {
   if (!a || !b) return false
   return a.slice(0, 10) === b.slice(0, 10)
@@ -100,7 +140,7 @@ async function findOrCreateEventMaster(
 ): Promise<{ eventMasterId: number; matched: boolean }> {
   const normalizedName = normalizeText(draft.activity_name)
   const normalizedLocation = getCanonicalLocation(draft.location)
-  const normalizedCountry = normalizeText(draft.country)
+  const normalizedCountry = normalizeCountryInput(draft.country)
 
   const { data: existingEvents, error: existingEventsError } = await supabase
     .from('events_master')
@@ -117,7 +157,7 @@ async function findOrCreateEventMaster(
   const matchedEvent = (existingEvents as EventMasterMatch[]).find((event) => {
   const eventTitle = normalizeText(event.title)
   const eventCity = getCanonicalLocation(event.city)
-  const eventCountry = normalizeText(event.country)
+  const eventCountry = normalizeCountryInput(event.country)
   const eventCountryCode = normalizeText(event.country_code)
 
   const sameDate = isSameDate(event.event_date, draft.activity_date)
@@ -130,11 +170,11 @@ async function findOrCreateEventMaster(
       eventTitle.split(' ').some((part) => normalizedName.includes(part)))
 
   const sameCountry =
-    !normalizedCountry ||
-    !eventCountry ||
-    eventCountry.includes(normalizedCountry) ||
-    normalizedCountry.includes(eventCountry) ||
-    eventCountryCode === normalizedCountry
+  !normalizedCountry.name ||
+  !eventCountry.name ||
+  eventCountry.name === normalizedCountry.name ||
+  eventCountry.code === normalizedCountry.code ||
+  eventCountryCode === normalizedCountry.code
 
   const locationCompatible =
     !normalizedLocation ||
