@@ -96,7 +96,12 @@ export default function Nav() {
         active={pathname === '/events'}
       />
 
-      <NavItem href="/" title="FAQ" subtitle="Fragen & Antworten" />
+      <NavItem
+        href="/faq"
+        title="FAQ"
+        subtitle="Fragen & Antworten"
+        active={pathname === '/faq'}
+      />
 
       {isLoggedIn ? (
         <NavItem
