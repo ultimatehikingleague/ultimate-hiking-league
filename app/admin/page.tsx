@@ -613,14 +613,18 @@ if (draft.submission_type !== 'official_event') {
 
       const avgSpeed = Number((parsedDistance / timeHours).toFixed(2))
 
-      // 1. Event finden oder erstellen
-const { eventMasterId } = await findOrCreateEventMaster(draft)
+      let eventMasterId: number | null = null
+      let eventDistanceId: number | null = null
 
-// 2. Distanz finden oder erstellen
-const eventDistanceId = await findOrCreateEventDistance(
-  eventMasterId,
-  officialDistance ?? parsedDistance
-)
+      if (draft.submission_type === 'official_event') {
+        const eventResult = await findOrCreateEventMaster(draft)
+        eventMasterId = eventResult.eventMasterId
+
+        eventDistanceId = await findOrCreateEventDistance(
+          eventMasterId,
+          officialDistance ?? parsedDistance
+        )
+      }
 
 // 3. Record schreiben (JETZT MIT RICHTIGER ZUORDNUNG)
 const { error: recordError } = await supabase.from('records').insert({
@@ -640,6 +644,18 @@ const { error: recordError } = await supabase.from('records').insert({
   elevation_gain:
     parsedElevation !== null && !Number.isNaN(parsedElevation)
       ? parsedElevation
+      : null,
+  custom_title:
+    draft.submission_type === 'private'
+      ? draft.description.trim() || 'Private Wanderung'
+      : null,
+  custom_location:
+    draft.submission_type === 'private'
+      ? draft.location.trim() || null
+      : null,
+  custom_country:
+    draft.submission_type === 'private'
+      ? draft.country.trim() || null
       : null,
 })
 

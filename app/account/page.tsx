@@ -327,7 +327,7 @@ export default function AccountPage() {
         const { data: recordRows, error: recordsError } = await supabase
           .from('records')
           .select(
-            'id, event_id, event_master_id, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain'
+            'id, event_id, event_master_id, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain, custom_title, custom_location, custom_country'
           )
           .eq('hiker_id', currentHiker.id)
           .order('activity_date', { ascending: false })
@@ -386,12 +386,24 @@ const mergedRecords: RecordItem[] = rawRecords.map((record) => {
     : null
 
   return {
-  ...record,
-  event_name: event?.title ?? 'Unbekanntes Event',
-  location: event?.city ?? '—',
-  country: event?.country ?? '—',
-  country_code: event?.country_code ?? null,
-}
+    ...record,
+    event_name:
+      event?.title ??
+      (record as any).custom_title ??
+      'Private Wanderung',
+
+    location:
+      event?.city ??
+      (record as any).custom_location ??
+      '—',
+
+    country:
+      event?.country ??
+      (record as any).custom_country ??
+      '—',
+
+    country_code: event?.country_code ?? null,
+  }
 })
 
         setRecords(mergedRecords)

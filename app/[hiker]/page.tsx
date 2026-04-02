@@ -54,10 +54,20 @@ function countryToFlag(country: string | null) {
   )
 }
 
-function getEventDisplayName(event: any) {
-  if (event?.event_name && event.event_name.trim() !== '') {
-    return event.event_name
+function getEventDisplayName(
+  event: any,
+  record: {
+    custom_title?: string | null
   }
+) {
+  if (event?.title && event.title.trim() !== '') {
+    return event.title
+  }
+
+  if (record?.custom_title && record.custom_title.trim() !== '') {
+    return record.custom_title
+  }
+
   return 'Privater Eintrag'
 }
 
@@ -120,9 +130,9 @@ export default async function HikerPage({
       : null
 
   const { data: recordsData, error: recordsError } = await supabase
-    .from('records')
-    .select(
-      `
+  .from('records')
+  .select(
+    `
         id,
         distance_km,
         avg_speed,
@@ -130,23 +140,26 @@ export default async function HikerPage({
         time_text,
         activity_date,
         record_status,
-        event_id,
+        event_master_id,
         is_corrected,
-        elevation_gain
+        elevation_gain,
+        custom_title,
+        custom_location,
+        custom_country
       `
-    )
-    .eq('hiker_id', hiker)
-    .order('activity_date', { ascending: false })
+  )
+  .eq('hiker_id', hiker)
+  .order('activity_date', { ascending: false })
 
   const eventIds =
-    recordsData?.map((record) => record.event_id).filter(Boolean) ?? []
+    recordsData?.map((record) => record.event_master_id).filter(Boolean) ?? []
 
   const { data: eventsData } =
     eventIds.length > 0
       ? await supabase
-          .from('events')
+          .from('events_master')
           .select(
-            'id, event_name, event_date, location, country, organizer, event_type, official_distance_km, is_walking_backyard'
+            'id, title, event_date, city, country, brand'
           )
           .in('id', eventIds)
       : { data: [] as any[] }
@@ -323,7 +336,7 @@ export default async function HikerPage({
           ) : (
             <div className="space-y-3">
               {recordsData.map((record) => {
-                const event = eventsMap.get(record.event_id)
+                const event = eventsMap.get(record.event_master_id)
 
                 return (
                   <div
@@ -337,7 +350,7 @@ export default async function HikerPage({
                         </div>
 
                         <div className="text-lg font-semibold text-white">
-                          {getEventDisplayName(event)}
+                          {getEventDisplayName(event, record)}
                         </div>
 
                         <div className="mt-1 text-sm text-stone-400">
@@ -351,25 +364,25 @@ export default async function HikerPage({
                                 )}
                                 <span>{event?.country ?? '—'}</span>
                               </span>{' '}
-                              · {event?.location ?? '—'} · {event?.organizer ?? '—'}
+                              · {event?.city ?? '—'} · {event?.brand ?? '—'}
                             </>
                           ) : (
-                            <span>Ohne offizielles Event</span>
+                            <>
+                              <span className="inline-flex items-center gap-1">
+                                {countryToFlag(record.custom_country ?? null) && (
+                                  <span className="text-base">
+                                    {countryToFlag(record.custom_country ?? null)}
+                                  </span>
+                                )}
+                                <span>{record.custom_country ?? '—'}</span>
+                              </span>{' '}
+                              · {record.custom_location ?? '—'}
+                            </>
                           )}
                         </div>
 
                         <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                          {event?.event_type && (
-                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-stone-300">
-                              {event.event_type}
-                            </span>
-                          )}
-
-                          {event?.is_walking_backyard && (
-                            <span className="rounded-full border border-sky-400/20 bg-sky-400/10 px-2 py-1 text-sky-200">
-                              Backyard
-                            </span>
-                          )}
+                          
 
                           {record.record_status && (
                             <span
