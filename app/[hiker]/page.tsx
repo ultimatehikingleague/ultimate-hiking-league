@@ -109,25 +109,30 @@ export default async function HikerPage({
     )
   }
 
-  const { data: allHikers } = await supabase
-    .from('hikers')
-    .select('id, total_km, display_name, division')
-    .order('total_km', { ascending: false })
-    .order('display_name', { ascending: true })
+  const allHikers = await fetchAllRankedHikers()
 
-  const overallRank =
-    allHikers?.findIndex((entry) => entry.id === hikerData.id) !== undefined &&
-    allHikers?.findIndex((entry) => entry.id === hikerData.id) !== -1
-      ? (allHikers?.findIndex((entry) => entry.id === hikerData.id) ?? 0) + 1
-      : null
+  const rankedHikers = allHikers.filter(
+    (entry) =>
+      typeof entry.id === 'number' &&
+      typeof entry.total_km === 'number' &&
+      entry.total_km > 0
+  )
 
-  const sameDivision =
-    allHikers?.filter((entry) => entry.division === hikerData.division) ?? []
+  const overallIndex = rankedHikers.findIndex(
+    (entry) => entry.id === hikerData.id
+  )
 
-  const divisionRank =
-    sameDivision.findIndex((entry) => entry.id === hikerData.id) !== -1
-      ? sameDivision.findIndex((entry) => entry.id === hikerData.id) + 1
-      : null
+  const overallRank = overallIndex >= 0 ? overallIndex + 1 : null
+
+  const sameDivision = rankedHikers.filter(
+    (entry) => entry.division === hikerData.division
+  )
+
+  const divisionIndex = sameDivision.findIndex(
+    (entry) => entry.id === hikerData.id
+  )
+
+  const divisionRank = divisionIndex >= 0 ? divisionIndex + 1 : null
 
   const { data: recordsData, error: recordsError } = await supabase
   .from('records')
@@ -172,6 +177,42 @@ export default async function HikerPage({
     }, 0) ?? 0
 
   const hasSkyscraper = totalElevation >= SKYSCRAPER_THRESHOLD
+
+  type RankedHiker = {
+  id: number
+  total_km: number | null
+  division: string | null
+  display_name: string | null
+}
+
+async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
+  const pageSize = 1000
+  let from = 0
+  let allRows: RankedHiker[] = []
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('hikers')
+      .select('id, total_km, division, display_name')
+      .order('total_km', { ascending: false })
+      .order('display_name', { ascending: true })
+      .range(from, from + pageSize - 1)
+
+    if (error || !data || data.length === 0) {
+      break
+    }
+
+    allRows = allRows.concat(data as RankedHiker[])
+
+    if (data.length < pageSize) {
+      break
+    }
+
+    from += pageSize
+  }
+
+  return allRows
+}
 
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
