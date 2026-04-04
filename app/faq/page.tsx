@@ -1,7 +1,19 @@
+import Link from 'next/link'
+
 export default function FAQPage() {
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
       <div className="mx-auto max-w-3xl">
+
+        {/* Zurück Button */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
+          >
+            ← Zurück zur Startseite
+          </Link>
+        </div>
 
         <h1 className="text-3xl font-bold mb-6">FAQ</h1>
 

@@ -92,7 +92,7 @@ export default function Nav() {
       <NavItem
         href="/events"
         title="Events"
-        subtitle="Kalender & Ergebnisse"
+        subtitle="Kalender"
         active={pathname === '/events'}
       />
 

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Nav from '../components/Nav'
 import { supabase } from '../lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -219,9 +218,7 @@ export default async function EventsPage() {
               </Link>
             </div>
 
-            <div className="mx-auto mt-8 max-w-7xl">
-              <Nav />
-            </div>
+            
           </header>
         </div>
       </section>
