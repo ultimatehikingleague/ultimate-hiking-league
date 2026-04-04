@@ -4,20 +4,26 @@ import { supabase } from '../lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-async function getEvents() {
-  const { data, error } = await supabase
-    .from('events_master')
-    .select('*, event_distances(*)')
-    .order('event_date', { ascending: true })
+type EventDistanceRow = {
+  id: number
+  label: string | null
+  distance_km: number | null
+}
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  return data ?? []
+type EventRow = {
+  id: number
+  slug: string
+  title: string | null
+  city: string | null
+  country: string | null
+  country_code: string | null
+  event_date: string | null
+  brand: string | null
+  event_distances: EventDistanceRow[] | null
 }
 
 type EventItem = {
+  id: number
   slug: string
   city: string
   country: string
@@ -28,6 +34,30 @@ type EventItem = {
   special?: string
 }
 
+function getTodayStart() {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+function isUpcomingOrToday(eventDate?: string | null) {
+  if (!eventDate) return false
+  const date = new Date(eventDate)
+  return date >= getTodayStart()
+}
+
+async function getEvents() {
+  const { data, error } = await supabase
+    .from('events_master')
+    .select('id, slug, title, city, country, country_code, event_date, brand, event_distances(id, label, distance_km)')
+    .order('event_date', { ascending: true })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data as EventRow[]) ?? []
+}
+
 function countryToFlag(countryCode: string) {
   const code = countryCode.trim().toUpperCase()
   if (code.length !== 2) return ''
@@ -36,121 +66,43 @@ function countryToFlag(countryCode: string) {
   )
 }
 
-const upcomingEvents: EventItem[] = [
-  {
-    slug: 'mammutmarsch-madrid-2026',
-    city: 'Madrid',
-    country: 'Spanien',
-    countryCode: 'ES',
-    date: '21.02.2026',
-    distances: '30 / 50 / 100 km',
-    brand: 'Mammutmarsch',
-  },
-  {
-    slug: 'mammutmarsch-leipzig-2026',
-    city: 'Leipzig',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '07.03.2026',
-    distances: '30 / 42 / 55 km',
-    brand: 'Mammutmarsch',
-  },
-  {
-    slug: 'megamarsch-mallorca-2026',
-    city: 'Mallorca',
-    country: 'Spanien',
-    countryCode: 'ES',
-    date: '21.02.2026',
-    distances: '50 km',
-    brand: 'Megamarsch',
-  },
-  {
-    slug: 'megamarsch-dresden-2026',
-    city: 'Dresden',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '07.03.2026',
-    distances: '25 / 50 km',
-    brand: 'Megamarsch',
-  },
-  {
-    slug: 'mammutmarsch-muenchen-2026',
-    city: 'München',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '14.03.2026',
-    distances: '30 / 55 km',
-    brand: 'Mammutmarsch',
-  },
-  {
-    slug: 'megamarsch-hamburg-2026',
-    city: 'Hamburg',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '11.04.2026',
-    distances: '100 km',
-    brand: 'Megamarsch',
-  },
-  {
-    slug: 'mammutmarsch-berlin-2026',
-    city: 'Berlin',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '16.05.2026',
-    distances: '75 / 100 km',
-    brand: 'Mammutmarsch',
-  },
-  {
-    slug: 'megamarsch-weserbergland-2026',
-    city: 'Weserbergland',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '13.06.2026',
-    distances: '100 km',
-    brand: 'Megamarsch',
-  },
-  {
-    slug: 'mammutmarsch-kopenhagen-2026',
-    city: 'Kopenhagen',
-    country: 'Dänemark',
-    countryCode: 'DK',
-    date: '15.08.2026',
-    distances: '75 / 100 km',
-    brand: 'Mammutmarsch',
-    special: 'International',
-  },
-  {
-    slug: 'megamarsch-ruegen-2026',
-    city: 'Rügen',
-    country: 'Deutschland',
-    countryCode: 'DE',
-    date: '17.10.2026',
-    distances: '100 km',
-    brand: 'Megamarsch',
-  },
-]
+function getBrand(event: EventRow) {
+  if (event.brand) return event.brand
 
-const mammutmarschEvents = [
-  'Madrid · 21.02.2026 · 30 / 50 / 100 km',
-  'Leipzig · 07.03.2026 · 30 / 42 / 55 km',
-  'München · 14.03.2026 · 30 / 55 km',
-  'Hamburg · 28.03.2026 · 30 / 50 km',
-  'Wien · 11.04.2026 · 30 / 50 km',
-  'Kopenhagen · 02.05.2026 · 30 / 42 / 55 km',
-  'Berlin · 16.05.2026 · 75 / 100 km',
-  'Dresden · 06.06.2026 · 30 / 50 km',
-]
+  const title = event.title?.toLowerCase() ?? ''
 
-const megamarschEvents = [
-  'Mallorca · 21.02.2026 · 50 km',
-  'Dresden · 07.03.2026 · 25 / 50 km',
-  'Mönchengladbach · 21.03.2026 · 50 km',
-  'Luzern · 28.03.2026 · 50 km',
-  'Ostsee · 25.04.2026 · 50 km',
-  'Hannover · 02.05.2026 · 50 km',
-  'München · 16.05.2026 · 100 km',
-  'Rügen · 17.10.2026 · 100 km',
-]
+  if (title.includes('ultramarsch')) return 'Ultramarsch'
+  if (title.includes('mammutmarsch')) return 'Mammutmarsch'
+  if (title.includes('megamarsch')) return 'Megamarsch'
+
+  return 'Event'
+}
+
+function mapEventToCard(event: EventRow): EventItem {
+  return {
+    id: event.id,
+    slug: event.slug,
+    city: event.city ?? '—',
+    country: event.country ?? '—',
+    countryCode: event.country_code ?? '',
+    date: event.event_date
+      ? new Date(event.event_date).toLocaleDateString('de-DE')
+      : '—',
+    distances:
+      event.event_distances && event.event_distances.length > 0
+        ? event.event_distances
+            .slice()
+            .sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0))
+            .map((d) => d.label ?? `${d.distance_km} km`)
+            .join(' / ')
+        : '—',
+    brand: getBrand(event),
+    special:
+      event.country_code && event.country_code !== 'DE'
+        ? 'International'
+        : undefined,
+  }
+}
 
 function EventCard({ event }: { event: EventItem }) {
   return (
@@ -212,38 +164,13 @@ function EventCard({ event }: { event: EventItem }) {
   )
 }
 
-function BrandList({
-  title,
-  subtitle,
-  items,
-}: {
-  title: string
-  subtitle: string
-  items: string[]
-}) {
-  return (
-    <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10 backdrop-blur-sm">
-      <div className="mb-5">
-        <h2 className="text-2xl font-bold text-white">{title}</h2>
-        <p className="mt-1 text-sm text-stone-400">{subtitle}</p>
-      </div>
-
-      <div className="space-y-3">
-        {items.map((item) => (
-          <div
-            key={item}
-            className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3 text-sm text-stone-200 transition hover:border-white/15 hover:bg-white/[0.05]"
-          >
-            {item}
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 export default async function EventsPage() {
   const events = await getEvents()
+
+  const upcomingEvents = events
+    .filter((event) => isUpcomingOrToday(event.event_date))
+    .map(mapEventToCard)
+
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
       <section className="relative overflow-hidden">
@@ -303,9 +230,9 @@ export default async function EventsPage() {
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Events 2026</h2>
+              <h2 className="text-2xl font-bold text-white">Kommende Events</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Neueste Ergebnisse & kommende Events.
+                Nur aktuelle und zukünftige Events werden hier angezeigt.
               </p>
             </div>
 
@@ -314,42 +241,18 @@ export default async function EventsPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            {events.map((event: any) => (
-             <EventCard
-               key={event.id}
-               event={{
-                 slug: event.slug,
-                 city: event.city ?? '—',
-                 country: event.country ?? '—',
-                 countryCode: event.country_code ?? '',
-                 date: event.event_date
-                   ? new Date(event.event_date).toLocaleDateString('de-DE')
-                   : '—',
-                 distances:
-                   event.event_distances && event.event_distances.length > 0
-                    ? event.event_distances
-                        .map((d: any) => d.label ?? `${d.distance_km} km`)
-                        .join(' / ')
-                    : '—',
-                 brand:
-                   event.brand ||
-                   (event.title?.toLowerCase().includes('ultramarsch')
-                     ? 'Ultramarsch'
-                     : event.title?.toLowerCase().includes('mammutmarsch')
-                     ? 'Mammutmarsch'
-                     : event.title?.toLowerCase().includes('megamarsch')
-                     ? 'Megamarsch'
-                     : 'Event'),
-                 special: event.country_code && event.country_code !== 'DE' ? 'International' : undefined,
-               }}
-            />
-          ))}
-
-          </div>
+          {upcomingEvents.length > 0 ? (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {upcomingEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
+              Aktuell sind keine kommenden Events hinterlegt.
+            </div>
+          )}
         </section>
-
-        
       </div>
     </main>
   )
