@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import Papa from 'papaparse'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import ProfileBrandBar from '../components/ProfileBrandBar'
 
@@ -65,6 +66,7 @@ type SubmissionDraft = {
   notes: string
   admin_note: string
 }
+
 type EventMasterMatch = {
   id: number
   slug: string
@@ -80,6 +82,38 @@ type EventDistanceMatch = {
   event_id: number
   distance_km: number
   label: string | null
+}
+
+type ExistingEventRow = {
+  id: number
+  slug: string
+  title: string | null
+  city: string | null
+  country: string | null
+  country_code: string | null
+  event_date: string | null
+}
+
+type EventCsvImportRow = {
+  rowNumber: number
+  title: string
+  event_date: string
+  city: string
+  country: string
+  brand: string
+  distancesRaw: string
+  description: string
+  official_url: string
+  distances: number[]
+  normalizedCountry: string | null
+  normalizedCountryCode: string | null
+  errors: string[]
+}
+
+type EventCsvImportResult = {
+  created: number
+  skipped: number
+  failed: number
 }
 
 function normalizeText(value: string | null | undefined) {
@@ -131,10 +165,156 @@ function normalizeCountryInput(input: string | null | undefined) {
   }
 }
 
+function normalizeCountryForEvent(input: string | null | undefined) {
+  const value = normalizeText(input)
+
+  if (!value) {
+    return {
+      name: null,
+      code: null,
+    }
+  }
+
+  if (['de', 'deutschland', 'germany'].includes(value)) {
+    return { name: 'Deutschland', code: 'DE' }
+  }
+
+  if (['ch', 'schweiz', 'switzerland', 'suisse'].includes(value)) {
+    return { name: 'Schweiz', code: 'CH' }
+  }
+
+  if (['at', 'osterreich', 'österreich', 'austria'].includes(value)) {
+    return { name: 'Österreich', code: 'AT' }
+  }
+
+  if (['es', 'spanien', 'spain'].includes(value)) {
+    return { name: 'Spanien', code: 'ES' }
+  }
+
+  if (['fr', 'frankreich', 'france'].includes(value)) {
+    return { name: 'Frankreich', code: 'FR' }
+  }
+
+  if (['it', 'italien', 'italy'].includes(value)) {
+    return { name: 'Italien', code: 'IT' }
+  }
+
+  return {
+    name: input?.trim() || null,
+    code: input?.trim().toUpperCase() || null,
+  }
+}
+
+function buildSlugPart(value: string) {
+  return normalizeText(value)
+    .replace(/\s+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function buildEventSlug(title: string, city: string, eventDate: string) {
+  const titlePart = buildSlugPart(title)
+  const cityPart = buildSlugPart(city)
+  const datePart = eventDate.trim()
+
+  return [titlePart, cityPart, datePart].filter(Boolean).join('-')
+}
+
+function isValidIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(value)
+  return !Number.isNaN(date.getTime())
+}
+
+function isValidHttpUrl(value: string) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function parseDistanceList(input: string) {
+  return input
+    .split(/[;,/|]+/g)
+    .map((part) => part.trim().replace(',', '.'))
+    .filter(Boolean)
+    .map((part) => Number(part))
+    .filter((value) => !Number.isNaN(value) && value > 0)
+}
+
+function formatDistanceLabel(distance: number) {
+  return Number.isInteger(distance)
+    ? String(distance)
+    : distance.toFixed(1).replace(/\.0$/, '')
+}
+
+function ensureUniqueSlug(baseSlug: string, usedSlugs: Set<string>) {
+  let nextSlug = baseSlug || `event-${Date.now()}`
+  let counter = 2
+
+  while (usedSlugs.has(nextSlug)) {
+    nextSlug = `${baseSlug}-${counter}`
+    counter += 1
+  }
+
+  usedSlugs.add(nextSlug)
+  return nextSlug
+}
+
 function isSameDate(a: string | null | undefined, b: string | null | undefined) {
   if (!a || !b) return false
   return a.slice(0, 10) === b.slice(0, 10)
 }
+
+function findMatchingExistingEvent(
+  events: ExistingEventRow[],
+  row: EventCsvImportRow
+) {
+  const normalizedImportTitle = normalizeText(row.title)
+  const normalizedImportCity = normalizeText(row.city)
+  const normalizedImportCountry = normalizeCountryInput(row.country)
+
+  return events.find((event) => {
+    const sameDate = isSameDate(event.event_date, row.event_date)
+    const sameTitle = normalizeText(event.title) === normalizedImportTitle
+    const sameCity = normalizeText(event.city) === normalizedImportCity
+
+    const eventCountry = normalizeCountryInput(event.country)
+    const eventCountryCode = normalizeText(event.country_code)
+
+    const sameCountry =
+      (!!normalizedImportCountry.name &&
+        normalizedImportCountry.name === eventCountry.name) ||
+      (!!normalizedImportCountry.code &&
+        normalizedImportCountry.code === eventCountry.code) ||
+      (!!normalizedImportCountry.code &&
+        normalizedImportCountry.code === eventCountryCode)
+
+    return sameDate && sameTitle && sameCity && sameCountry
+  })
+}
+
+function downloadEventCsvTemplate() {
+  const csv = [
+    'title,event_date,city,country,brand,distances,description,official_url',
+    '"Ultramarsch Potsdam","2026-04-18","Potsdam","Deutschland","Ultramarsch","55;100","Offizielles Ultramarsch Event 2026","https://example.com/event"',
+    '"Mammutmarsch Madrid 2026","2026-11-21","Madrid","Spanien","Mammutmarsch","30;50;100","Offizielles Mammutmarsch Event 2026","https://example.com/event"',
+  ].join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.setAttribute('download', 'ultimate-events-template.csv')
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  window.URL.revokeObjectURL(url)
+}
+
 async function findOrCreateEventMaster(
   draft: SubmissionDraft
 ): Promise<{ eventMasterId: number; matched: boolean }> {
@@ -153,37 +333,36 @@ async function findOrCreateEventMaster(
     )
   }
 
-
   const matchedEvent = (existingEvents as EventMasterMatch[]).find((event) => {
-  const eventTitle = normalizeText(event.title)
-  const eventCity = getCanonicalLocation(event.city)
-  const eventCountry = normalizeCountryInput(event.country)
-  const eventCountryCode = normalizeText(event.country_code)
+    const eventTitle = normalizeText(event.title)
+    const eventCity = getCanonicalLocation(event.city)
+    const eventCountry = normalizeCountryInput(event.country)
+    const eventCountryCode = normalizeText(event.country_code)
 
-  const sameDate = isSameDate(event.event_date, draft.activity_date)
+    const sameDate = isSameDate(event.event_date, draft.activity_date)
 
-  const sameName =
-    !!eventTitle &&
-    !!normalizedName &&
-    (eventTitle.includes(normalizedName) ||
-      normalizedName.includes(eventTitle) ||
-      eventTitle.split(' ').some((part) => normalizedName.includes(part)))
+    const sameName =
+      !!eventTitle &&
+      !!normalizedName &&
+      (eventTitle.includes(normalizedName) ||
+        normalizedName.includes(eventTitle) ||
+        eventTitle.split(' ').some((part) => normalizedName.includes(part)))
 
-  const sameCountry =
-  !normalizedCountry.name ||
-  !eventCountry.name ||
-  eventCountry.name === normalizedCountry.name ||
-  eventCountry.code === normalizedCountry.code ||
-  eventCountryCode === normalizedCountry.code
+    const sameCountry =
+      !normalizedCountry.name ||
+      !eventCountry.name ||
+      eventCountry.name === normalizedCountry.name ||
+      eventCountry.code === normalizedCountry.code ||
+      eventCountryCode === normalizedCountry.code
 
-  const locationCompatible =
-    !normalizedLocation ||
-    !eventCity ||
-    eventCity.includes(normalizedLocation) ||
-    normalizedLocation.includes(eventCity)
+    const locationCompatible =
+      !normalizedLocation ||
+      !eventCity ||
+      eventCity.includes(normalizedLocation) ||
+      normalizedLocation.includes(eventCity)
 
-  return sameDate && sameName && sameCountry && locationCompatible
-})
+    return sameDate && sameName && sameCountry && locationCompatible
+  })
 
   if (matchedEvent) {
     return { eventMasterId: matchedEvent.id, matched: true }
@@ -224,6 +403,7 @@ async function findOrCreateEventMaster(
 
   return { eventMasterId: createdEvent.id, matched: false }
 }
+
 async function findOrCreateEventDistance(
   eventMasterId: number,
   parsedDistance: number
@@ -269,6 +449,7 @@ async function findOrCreateEventDistance(
 function isSameDistance(a: number, b: number) {
   return Math.abs(a - b) < 0.2
 }
+
 function getCanonicalLocation(value: string | null | undefined) {
   const normalized = normalizeText(value)
 
@@ -359,17 +540,14 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [claims, setClaims] = useState<ClaimRequest[]>([])
-  const [recordSubmissions, setRecordSubmissions] = useState<RecordSubmission[]>(
-    []
-  )
-  const [submissionDrafts, setSubmissionDrafts] = useState<
-    Record<number, SubmissionDraft>
-  >({})
+  const [recordSubmissions, setRecordSubmissions] = useState<RecordSubmission[]>([])
+  const [submissionDrafts, setSubmissionDrafts] = useState<Record<number, SubmissionDraft>>({})
   const [userEmail, setUserEmail] = useState('')
   const [actionLoadingKey, setActionLoadingKey] = useState<string | null>(null)
   const [pageMessage, setPageMessage] = useState('')
   const [showResolvedClaims, setShowResolvedClaims] = useState(false)
   const [showResolvedSubmissions, setShowResolvedSubmissions] = useState(false)
+
   const [eventTitle, setEventTitle] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [eventCity, setEventCity] = useState('')
@@ -380,6 +558,14 @@ export default function AdminPage() {
   const [eventOfficialUrl, setEventOfficialUrl] = useState('')
   const [eventCreateLoading, setEventCreateLoading] = useState(false)
   const [eventCreateMessage, setEventCreateMessage] = useState('')
+
+  const eventCsvInputRef = useRef<HTMLInputElement | null>(null)
+  const [eventCsvRows, setEventCsvRows] = useState<EventCsvImportRow[]>([])
+  const [eventCsvFileName, setEventCsvFileName] = useState('')
+  const [eventCsvLoading, setEventCsvLoading] = useState(false)
+  const [eventCsvImportLoading, setEventCsvImportLoading] = useState(false)
+  const [eventCsvMessage, setEventCsvMessage] = useState('')
+  const [eventCsvDragActive, setEventCsvDragActive] = useState(false)
 
   useEffect(() => {
     async function loadAdminPage() {
@@ -588,29 +774,29 @@ export default function AdminPage() {
 
     try {
       if (!draft.activity_date.trim() || !draft.elapsed_time_text.trim()) {
-  setPageMessage('Bitte fülle vor der Freigabe alle Pflichtfelder aus.')
-  return
-}
+        setPageMessage('Bitte fülle vor der Freigabe alle Pflichtfelder aus.')
+        return
+      }
 
-if (draft.submission_type === 'official_event') {
-  if (
-    !draft.activity_name.trim() ||
-    !draft.official_distance_km.trim() ||
-    !draft.actual_distance_km.trim()
-  ) {
-    setPageMessage(
-      'Bei offiziellen Events müssen Eventname, offizielle Distanz und gelaufene Distanz ausgefüllt sein.'
-    )
-    return
-  }
-}
+      if (draft.submission_type === 'official_event') {
+        if (
+          !draft.activity_name.trim() ||
+          !draft.official_distance_km.trim() ||
+          !draft.actual_distance_km.trim()
+        ) {
+          setPageMessage(
+            'Bei offiziellen Events müssen Eventname, offizielle Distanz und gelaufene Distanz ausgefüllt sein.'
+          )
+          return
+        }
+      }
 
-if (draft.submission_type !== 'official_event') {
-  if (!(draft.actual_distance_km || draft.distance_km).trim()) {
-    setPageMessage('Bitte gib eine Distanz an.')
-    return
-  }
-}
+      if (draft.submission_type !== 'official_event') {
+        if (!(draft.actual_distance_km || draft.distance_km).trim()) {
+          setPageMessage('Bitte gib eine Distanz an.')
+          return
+        }
+      }
 
       const parsedDistance = Number(
         (draft.actual_distance_km || draft.distance_km).replace(',', '.')
@@ -618,14 +804,13 @@ if (draft.submission_type !== 'official_event') {
       let officialDistance: number | null = null
 
       if (draft.submission_type === 'official_event') {
-        const parsedOfficial = Number(
-          draft.official_distance_km.replace(',', '.')
-        )
+        const parsedOfficial = Number(draft.official_distance_km.replace(',', '.'))
 
         if (!Number.isNaN(parsedOfficial) && parsedOfficial > 0) {
           officialDistance = parsedOfficial
         }
       }
+
       if (Number.isNaN(parsedDistance) || parsedDistance <= 0) {
         setPageMessage('Distanz ist ungültig.')
         return
@@ -666,42 +851,37 @@ if (draft.submission_type !== 'official_event') {
         )
       }
 
-// 3. Record schreiben (JETZT MIT RICHTIGER ZUORDNUNG)
-const { error: recordError } = await supabase.from('records').insert({
-  hiker_id: submission.hiker_id,
-  event_master_id: eventMasterId,
-  event_distance_id: eventDistanceId,
-  distance_km: parsedDistance,
-  time_hours: timeHours,
-  avg_speed: avgSpeed,
-  activity_date: draft.activity_date,
-  division: null,
-  record_status: 'verified_admin_submission',
-  verified: true,
-  time_text: draft.elapsed_time_text.trim(),
-  record_source: draft.record_source.trim() || 'user_submission',
-  is_corrected: false,
-  elevation_gain:
-    parsedElevation !== null && !Number.isNaN(parsedElevation)
-      ? parsedElevation
-      : null,
-  custom_title:
-    draft.submission_type === 'private'
-      ? draft.description.trim() || 'Private Wanderung'
-      : null,
-  custom_location:
-    draft.submission_type === 'private'
-      ? draft.location.trim() || null
-      : null,
-  custom_country:
-    draft.submission_type === 'private'
-      ? draft.country.trim() || null
-      : null,
-})
-
-      
-
-     
+      const { error: recordError } = await supabase.from('records').insert({
+        hiker_id: submission.hiker_id,
+        event_master_id: eventMasterId,
+        event_distance_id: eventDistanceId,
+        distance_km: parsedDistance,
+        time_hours: timeHours,
+        avg_speed: avgSpeed,
+        activity_date: draft.activity_date,
+        division: null,
+        record_status: 'verified_admin_submission',
+        verified: true,
+        time_text: draft.elapsed_time_text.trim(),
+        record_source: draft.record_source.trim() || 'user_submission',
+        is_corrected: false,
+        elevation_gain:
+          parsedElevation !== null && !Number.isNaN(parsedElevation)
+            ? parsedElevation
+            : null,
+        custom_title:
+          draft.submission_type === 'private'
+            ? draft.description.trim() || 'Private Wanderung'
+            : null,
+        custom_location:
+          draft.submission_type === 'private'
+            ? draft.location.trim() || null
+            : null,
+        custom_country:
+          draft.submission_type === 'private'
+            ? draft.country.trim() || null
+            : null,
+      })
 
       if (recordError) {
         setPageMessage(
@@ -839,124 +1019,313 @@ const { error: recordError } = await supabase.from('records').insert({
   }
 
   async function handleCreateEvent() {
-  setEventCreateLoading(true)
-  setEventCreateMessage('')
+    setEventCreateLoading(true)
+    setEventCreateMessage('')
 
-  try {
-    if (!eventTitle.trim() || !eventDate.trim()) {
-      setEventCreateMessage('Bitte Name und Datum angeben.')
-      return
-    }
-
-    const slugBase = eventTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-
-    const slug = `${slugBase}-${eventDate}`
-    function normalizeCountry(input: string) {
-      const value = input.trim().toLowerCase()
-
-      if (!value) return { name: null, code: null }
-
-      if (['de', 'deutschland', 'germany'].includes(value))
-        return { name: 'Deutschland', code: 'DE' }
-
-      if (['es', 'spanien', 'spain'].includes(value))
-        return { name: 'Spanien', code: 'ES' }
-
-      if (['fr', 'frankreich', 'france'].includes(value))
-        return { name: 'Frankreich', code: 'FR' }
-
-      if (['it', 'italien', 'italy'].includes(value))
-        return { name: 'Italien', code: 'IT' }
-
-      if (['at', 'österreich', 'austria'].includes(value))
-        return { name: 'Österreich', code: 'AT' }
-
-      if (['ch', 'schweiz', 'switzerland'].includes(value))
-        return { name: 'Schweiz', code: 'CH' }
-
-      // fallback
-      return {
-        name: input.trim(),
-        code: input.trim().toUpperCase(),
+    try {
+      if (!eventTitle.trim() || !eventDate.trim()) {
+        setEventCreateMessage('Bitte Name und Datum angeben.')
+        return
       }
-    }
 
-    const { name: normalizedCountry, code: normalizedCountryCode } =
-      normalizeCountry(eventCountry)
+      const slugBase = eventTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
 
-    // 1. Event erstellen
-    const { data: createdEvent, error: eventError } = await supabase
-      .from('events_master')
-      .insert({
-        slug,
-        title: eventTitle.trim(),
-        city: eventCity.trim() || null,
-        country: normalizedCountry,
-        country_code: normalizedCountryCode,
-        event_date: eventDate,
-        brand: eventBrand.trim() || null,
-        description: eventDescription.trim() || null,
-        official_url: eventOfficialUrl.trim() || null,
-      })
-      .select('id')
-      .single()
+      const slug = `${slugBase}-${eventDate}`
 
-    if (eventError || !createdEvent) {
-      setEventCreateMessage(`Fehler: ${eventError?.message}`)
-      return
-    }
+      const { name: normalizedCountry, code: normalizedCountryCode } =
+        normalizeCountryForEvent(eventCountry)
 
-    const eventId = createdEvent.id
-
-    // 2. Distanzen erstellen
-    if (eventDistances.trim()) {
-      const distances = eventDistances
-        .split(',')
-        .map((d) => Number(d.trim()))
-        .filter((d) => !Number.isNaN(d) && d > 0)
-
-      for (const dist of distances) {
-        await supabase.from('event_distances').insert({
-          event_id: eventId,
-          distance_km: dist,
-          label: `${dist} km`,
+      const { data: createdEvent, error: eventError } = await supabase
+        .from('events_master')
+        .insert({
+          slug,
+          title: eventTitle.trim(),
+          city: eventCity.trim() || null,
+          country: normalizedCountry,
+          country_code: normalizedCountryCode,
+          event_date: eventDate,
+          brand: eventBrand.trim() || null,
+          description: eventDescription.trim() || null,
+          official_url: eventOfficialUrl.trim() || null,
         })
+        .select('id')
+        .single()
+
+      if (eventError || !createdEvent) {
+        setEventCreateMessage(`Fehler: ${eventError?.message}`)
+        return
       }
+
+      const eventId = createdEvent.id
+
+      if (eventDistances.trim()) {
+        const distances = eventDistances
+          .split(',')
+          .map((d) => Number(d.trim()))
+          .filter((d) => !Number.isNaN(d) && d > 0)
+
+        for (const dist of distances) {
+          await supabase.from('event_distances').insert({
+            event_id: eventId,
+            distance_km: dist,
+            label: `${dist} km`,
+          })
+        }
+      }
+
+      setEventTitle('')
+      setEventDate('')
+      setEventCity('')
+      setEventCountry('')
+      setEventBrand('')
+      setEventDistances('')
+      setEventDescription('')
+      setEventOfficialUrl('')
+
+      setEventCreateMessage('Event erfolgreich erstellt.')
+    } catch (err: any) {
+      setEventCreateMessage(err.message ?? 'Unbekannter Fehler')
+    } finally {
+      setEventCreateLoading(false)
+    }
+  }
+
+  async function parseEventCsvFile(file: File) {
+    setEventCsvLoading(true)
+    setEventCsvMessage('')
+    setEventCsvFileName(file.name)
+
+    try {
+      const text = await file.text()
+
+      const parsed = await new Promise<Papa.ParseResult<Record<string, string>>>(
+        (resolve, reject) => {
+          Papa.parse<Record<string, string>>(text, {
+            header: true,
+            skipEmptyLines: 'greedy',
+            transformHeader: (header) => header.trim(),
+            complete: (results) => resolve(results),
+            error: (error: unknown) => reject(error),
+          })
+        }
+      )
+
+      const rows = (parsed.data ?? []).map((rawRow, index) => {
+        const title = String(rawRow.title ?? '').trim()
+        const event_date = String(rawRow.event_date ?? '').trim()
+        const city = String(rawRow.city ?? '').trim()
+        const country = String(rawRow.country ?? '').trim()
+        const brand = String(rawRow.brand ?? '').trim()
+        const distancesRaw = String(rawRow.distances ?? '').trim()
+        const description = String(rawRow.description ?? '').trim()
+        const official_url = String(rawRow.official_url ?? '').trim()
+
+        const errors: string[] = []
+
+        if (!title) errors.push('Titel fehlt')
+        if (!event_date) errors.push('Datum fehlt')
+        if (event_date && !isValidIsoDate(event_date)) {
+          errors.push('Datum muss YYYY-MM-DD sein')
+        }
+
+        if (!city) errors.push('Stadt fehlt')
+        if (!country) errors.push('Land fehlt')
+        if (!brand) errors.push('Brand fehlt')
+        if (!distancesRaw) errors.push('Distanzen fehlen')
+
+        const distances = parseDistanceList(distancesRaw)
+        if (distancesRaw && distances.length === 0) {
+          errors.push('Distanzen konnten nicht gelesen werden')
+        }
+
+        if (official_url && !isValidHttpUrl(official_url)) {
+          errors.push('Offizielle URL ist ungültig')
+        }
+
+        const { name: normalizedCountry, code: normalizedCountryCode } =
+          normalizeCountryForEvent(country)
+
+        return {
+          rowNumber: index + 2,
+          title,
+          event_date,
+          city,
+          country,
+          brand,
+          distancesRaw,
+          description,
+          official_url,
+          distances,
+          normalizedCountry,
+          normalizedCountryCode,
+          errors,
+        } satisfies EventCsvImportRow
+      })
+
+      setEventCsvRows(rows)
+
+      if (rows.length === 0) {
+        setEventCsvMessage('Die CSV ist leer oder konnte nicht gelesen werden.')
+        return
+      }
+
+      const validCount = rows.filter((row) => row.errors.length === 0).length
+      const invalidCount = rows.filter((row) => row.errors.length > 0).length
+
+      setEventCsvMessage(
+        `CSV geladen: ${rows.length} Zeilen erkannt. ${validCount} gültig, ${invalidCount} mit Fehlern.`
+      )
+    } catch (error: any) {
+      setEventCsvRows([])
+      setEventCsvMessage(
+        `CSV konnte nicht gelesen werden: ${error?.message ?? 'Unbekannt'}`
+      )
+    } finally {
+      setEventCsvLoading(false)
+    }
+  }
+
+  async function handleEventCsvFileSelect(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0]
+
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setEventCsvMessage('Bitte eine CSV-Datei auswählen.')
+      return
     }
 
-    // Reset
-    setEventTitle('')
-    setEventDate('')
-    setEventCity('')
-    setEventCountry('')
-    setEventBrand('')
-    setEventDistances('')
-    setEventDescription('')
-    setEventOfficialUrl('')
-
-    setEventCreateMessage('Event erfolgreich erstellt.')
-  } catch (err: any) {
-    setEventCreateMessage(err.message ?? 'Unbekannter Fehler')
-  } finally {
-    setEventCreateLoading(false)
+    await parseEventCsvFile(file)
   }
-}
+
+  const validEventCsvRows = useMemo(
+    () => eventCsvRows.filter((row) => row.errors.length === 0),
+    [eventCsvRows]
+  )
+
+  async function handleEventCsvImport() {
+    if (validEventCsvRows.length === 0) {
+      setEventCsvMessage('Es gibt keine gültigen CSV-Zeilen zum Importieren.')
+      return
+    }
+
+    setEventCsvImportLoading(true)
+    setEventCsvMessage('')
+
+    try {
+      const { data: existingEvents, error: existingEventsError } = await supabase
+        .from('events_master')
+        .select('id, slug, title, city, country, country_code, event_date')
+        .order('event_date', { ascending: true })
+
+      if (existingEventsError) {
+        setEventCsvMessage(
+          `Fehler beim Laden vorhandener Events: ${existingEventsError.message}`
+        )
+        return
+      }
+
+      const existing = ((existingEvents as ExistingEventRow[]) ?? []).slice()
+      const usedSlugs = new Set(existing.map((event) => event.slug))
+
+      const result: EventCsvImportResult = {
+        created: 0,
+        skipped: 0,
+        failed: 0,
+      }
+
+      for (const row of validEventCsvRows) {
+        const duplicate = findMatchingExistingEvent(existing, row)
+
+        if (duplicate) {
+          result.skipped += 1
+          continue
+        }
+
+        const baseSlug = buildEventSlug(row.title, row.city, row.event_date)
+        const slug = ensureUniqueSlug(baseSlug, usedSlugs)
+
+        const { data: createdEvent, error: createEventError } = await supabase
+          .from('events_master')
+          .insert({
+            slug,
+            title: row.title,
+            city: row.city,
+            country: row.normalizedCountry,
+            country_code: row.normalizedCountryCode,
+            event_date: row.event_date,
+            brand: row.brand,
+            description: row.description || null,
+            official_url: row.official_url || null,
+            status: 'upcoming',
+            is_featured: false,
+          })
+          .select('id, slug, title, city, country, country_code, event_date')
+          .single()
+
+        if (createEventError || !createdEvent) {
+          result.failed += 1
+          continue
+        }
+
+        const distancePayload = row.distances.map((distance) => ({
+          event_id: createdEvent.id,
+          distance_km: distance,
+          label: `${formatDistanceLabel(distance)} km`,
+        }))
+
+        const { error: distanceInsertError } = await supabase
+          .from('event_distances')
+          .insert(distancePayload)
+
+        if (distanceInsertError) {
+          result.failed += 1
+          continue
+        }
+
+        existing.push(createdEvent as ExistingEventRow)
+        result.created += 1
+      }
+
+      setEventCsvMessage(
+        `Import abgeschlossen. Erstellt: ${result.created}, übersprungen: ${result.skipped}, fehlgeschlagen: ${result.failed}.`
+      )
+
+      if (result.created > 0) {
+        setEventCsvRows([])
+        setEventCsvFileName('')
+
+        if (eventCsvInputRef.current) {
+          eventCsvInputRef.current.value = ''
+        }
+      }
+    } catch (error: any) {
+      setEventCsvMessage(`Importfehler: ${error?.message ?? 'Unbekannt'}`)
+    } finally {
+      setEventCsvImportLoading(false)
+    }
+  }
 
   const pendingClaims = useMemo(
     () => claims.filter((claim) => claim.status === 'pending'),
     [claims]
   )
+
   const approvedClaims = useMemo(
     () => claims.filter((claim) => claim.status === 'approved'),
     [claims]
   )
+
   const rejectedClaims = useMemo(
     () => claims.filter((claim) => claim.status === 'rejected'),
     [claims]
   )
+
   const resolvedClaims = useMemo(
     () => claims.filter((claim) => claim.status !== 'pending'),
     [claims]
@@ -967,10 +1336,16 @@ const { error: recordError } = await supabase.from('records').insert({
       recordSubmissions.filter((submission) => submission.status === 'pending'),
     [recordSubmissions]
   )
+
   const resolvedSubmissions = useMemo(
     () =>
       recordSubmissions.filter((submission) => submission.status !== 'pending'),
     [recordSubmissions]
+  )
+
+  const invalidEventCsvRows = useMemo(
+    () => eventCsvRows.filter((row) => row.errors.length > 0),
+    [eventCsvRows]
   )
 
   if (loading) {
@@ -978,7 +1353,6 @@ const { error: recordError } = await supabase.from('records').insert({
       <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
         <div className="mx-auto max-w-6xl">
           <ProfileBrandBar />
-
           <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10">
             <h1 className="text-2xl font-bold text-white">
               Admin-Bereich wird geladen…
@@ -995,7 +1369,6 @@ const { error: recordError } = await supabase.from('records').insert({
       <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
         <div className="mx-auto max-w-6xl">
           <ProfileBrandBar />
-
           <Link
             href="/"
             className="text-sm text-stone-400 transition hover:text-white"
@@ -1369,6 +1742,215 @@ const { error: recordError } = await supabase.from('records').insert({
               {eventCreateLoading ? 'Wird erstellt…' : 'Event anlegen'}
             </button>
           </div>
+        </section>
+
+        <section className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
+          <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Events per CSV importieren</h2>
+              <p className="mt-1 text-sm text-stone-400">
+                Für kommende Events von Veranstaltern oder deine eigene Massenpflege.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={downloadEventCsvTemplate}
+              className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-stone-100 transition hover:bg-white/10"
+            >
+              CSV-Template herunterladen
+            </button>
+          </div>
+
+          <div className="rounded-2xl border border-dashed border-white/15 bg-black/10 p-5">
+            <div className="mb-3 text-sm font-medium text-white">
+              CSV hochladen
+            </div>
+
+            <div className="mb-4 text-xs leading-6 text-stone-400">
+              Pflichtspalten: <span className="text-stone-200">title</span>,{' '}
+              <span className="text-stone-200">event_date</span>,{' '}
+              <span className="text-stone-200">city</span>,{' '}
+              <span className="text-stone-200">country</span>,{' '}
+              <span className="text-stone-200">brand</span>,{' '}
+              <span className="text-stone-200">distances</span>. Optional:{' '}
+              <span className="text-stone-200">description</span>,{' '}
+              <span className="text-stone-200">official_url</span>.
+            </div>
+
+            <div
+              onDragOver={(e) => {
+                e.preventDefault()
+                setEventCsvDragActive(true)
+              }}
+              onDragLeave={() => setEventCsvDragActive(false)}
+              onDrop={async (e) => {
+                e.preventDefault()
+                setEventCsvDragActive(false)
+
+                const file = e.dataTransfer.files?.[0]
+                if (!file) return
+
+                if (!file.name.toLowerCase().endsWith('.csv')) {
+                  setEventCsvMessage('Bitte eine CSV-Datei droppen.')
+                  return
+                }
+
+                await parseEventCsvFile(file)
+              }}
+              className={`rounded-2xl border px-4 py-6 text-center transition ${
+                eventCsvDragActive
+                  ? 'border-white/30 bg-white/[0.08]'
+                  : 'border-white/10 bg-white/[0.03]'
+              }`}
+            >
+              <div className="text-sm font-medium text-white">
+                CSV hier hineinziehen
+              </div>
+              <div className="mt-1 text-sm text-stone-400">
+                oder Datei manuell auswählen
+              </div>
+
+              <div className="mt-4">
+                <input
+                  ref={eventCsvInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleEventCsvFileSelect}
+                  className="hidden"
+                  id="event-csv-upload"
+                />
+
+                <label
+                  htmlFor="event-csv-upload"
+                  className="inline-block cursor-pointer rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-stone-100 transition hover:bg-white/10"
+                >
+                  CSV auswählen
+                </label>
+              </div>
+
+              {eventCsvFileName ? (
+                <div className="mt-4 text-sm text-stone-300">
+                  Geladen: {eventCsvFileName}
+                </div>
+              ) : null}
+            </div>
+
+            {eventCsvMessage ? (
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-stone-200">
+                {eventCsvMessage}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                CSV-Zeilen
+              </div>
+              <div className="mt-2 text-2xl font-bold text-white">
+                {eventCsvRows.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                Gültig
+              </div>
+              <div className="mt-2 text-2xl font-bold text-emerald-200">
+                {validEventCsvRows.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                Fehlerhaft
+              </div>
+              <div className="mt-2 text-2xl font-bold text-red-200">
+                {invalidEventCsvRows.length}
+              </div>
+            </div>
+          </div>
+
+          {eventCsvRows.length > 0 ? (
+            <div className="mt-6">
+              <div className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-stone-400">
+                Vorschau
+              </div>
+
+              <div className="space-y-3">
+                {eventCsvRows.slice(0, 20).map((row) => (
+                  <div
+                    key={`${row.rowNumber}-${row.title}-${row.event_date}`}
+                    className="rounded-2xl border border-white/8 bg-black/10 p-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                          Zeile {row.rowNumber}
+                        </div>
+
+                        <div className="mt-1 text-lg font-semibold text-white">
+                          {row.city} · {row.brand}
+                        </div>
+
+                        <div className="mt-1 text-sm text-stone-400">
+                          {row.title}
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-stone-300">
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1">
+                            {row.event_date}
+                          </span>
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1">
+                            {row.country}
+                          </span>
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1">
+                            {row.distances.join(' / ') || row.distancesRaw}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`inline-flex rounded-full px-3 py-1 text-xs ${
+                          row.errors.length === 0
+                            ? 'border border-emerald-400/30 bg-emerald-400/12 text-emerald-200'
+                            : 'border border-red-400/30 bg-red-400/12 text-red-200'
+                        }`}
+                      >
+                        {row.errors.length === 0 ? 'Importierbar' : 'Fehler'}
+                      </div>
+                    </div>
+
+                    {row.errors.length > 0 ? (
+                      <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">
+                        {row.errors.join(' · ')}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+
+              {eventCsvRows.length > 20 ? (
+                <div className="mt-3 text-sm text-stone-500">
+                  Es werden nur die ersten 20 Zeilen in der Vorschau angezeigt.
+                </div>
+              ) : null}
+
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={handleEventCsvImport}
+                  disabled={
+                    eventCsvImportLoading || eventCsvLoading || validEventCsvRows.length === 0
+                  }
+                  className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {eventCsvImportLoading ? 'Import läuft…' : 'Gültige CSV-Zeilen importieren'}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="mt-12">
