@@ -456,21 +456,9 @@ export default function AccountPage() {
 
           return {
             ...record,
-            event_name:
-              event?.title ??
-              record.custom_title ??
-              'Private Wanderung',
-
-            location:
-              event?.city ??
-              record.custom_location ??
-              '—',
-
-            country:
-              event?.country ??
-              record.custom_country ??
-              '—',
-
+            event_name: event?.title ?? record.custom_title ?? 'Private Wanderung',
+            location: event?.city ?? record.custom_location ?? '—',
+            country: event?.country ?? record.custom_country ?? '—',
             country_code: event?.country_code ?? null,
           }
         })
@@ -755,7 +743,7 @@ export default function AccountPage() {
                     <span className="text-base">
                       {countryToFlag(hiker.country ?? null)}
                     </span>
-                    <span>{hiker.country ?? '—'}</span>
+                    <span>{getCountryLabel(hiker.country ?? null)}</span>
                   </div>
 
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-sm text-stone-200">
