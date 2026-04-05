@@ -67,11 +67,7 @@ type RecordItem = {
   country_code: string | null
 }
 
-type RankedHiker = {
-  id: number
-  total_km: number | null
-  division: string | null
-}
+
 
 type UserState = {
   email: string
@@ -275,32 +271,7 @@ function getRecordStatusLabel(status: string | null) {
   }
 }
 
-async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
-  const pageSize = 1000
-  let from = 0
-  let allRows: RankedHiker[] = []
 
-  while (true) {
-    const { data, error } = await supabase
-      .from('hikers')
-      .select('id, total_km, division')
-      .range(from, from + pageSize - 1)
-
-    if (error || !data || data.length === 0) {
-      break
-    }
-
-    allRows = allRows.concat(data as RankedHiker[])
-
-    if (data.length < pageSize) {
-      break
-    }
-
-    from += pageSize
-  }
-
-  return allRows
-}
 
 export default function AccountPage() {
   const [loading, setLoading] = useState(true)
@@ -366,33 +337,33 @@ export default function AccountPage() {
         setProfileCountry(currentHiker.country ?? '')
         setProfileGender(currentHiker.gender ?? '')
 
-        const allHikerRows = await fetchAllRankedHikers()
+        const currentTotalKm =
+          typeof currentHiker.total_km === 'number' ? currentHiker.total_km : 0
 
-        if (allHikerRows.length > 0) {
-          const ranked = allHikerRows
-            .filter(
-              (item) =>
-                typeof item.id === 'number' &&
-                typeof item.total_km === 'number' &&
-                item.total_km > 0
-            )
-            .sort((a, b) => (b.total_km ?? 0) - (a.total_km ?? 0))
+        const { count: overallHigherCount, error: overallRankError } = await supabase
+          .from('hikers')
+          .select('*', { count: 'exact', head: true })
+          .gt('total_km', currentTotalKm)
 
-          const overallIndex = ranked.findIndex(
-            (item) => item.id === currentHiker.id
-          )
-          setOverallRank(overallIndex >= 0 ? overallIndex + 1 : null)
-
-          const rankedDivision = ranked.filter(
-            (item) => item.division === currentHiker.division
-          )
-
-          const divisionIndex = rankedDivision.findIndex(
-            (item) => item.id === currentHiker.id
-          )
-          setDivisionRank(divisionIndex >= 0 ? divisionIndex + 1 : null)
-        } else {
+        if (overallRankError) {
           setOverallRank(null)
+        } else {
+          setOverallRank((overallHigherCount ?? 0) + 1)
+        }
+
+        if (currentHiker.division) {
+          const { count: divisionHigherCount, error: divisionRankError } = await supabase
+            .from('hikers')
+            .select('*', { count: 'exact', head: true })
+            .eq('division', currentHiker.division)
+            .gt('total_km', currentTotalKm)
+
+          if (divisionRankError) {
+            setDivisionRank(null)
+          } else {
+            setDivisionRank((divisionHigherCount ?? 0) + 1)
+          }
+        } else {
           setDivisionRank(null)
         }
 
