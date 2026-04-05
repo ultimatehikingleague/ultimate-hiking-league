@@ -15,18 +15,27 @@ type HikerResult = {
   division: string | null
 }
 
-type EventResult = {
+type EventDistanceResult = {
   id: number
-  event_name: string | null
-  location: string | null
-  country: string | null
-  event_date: string | null
-  official_distance_km: number | null
+  distance_km: number | null
+  label: string | null
 }
 
-function countryToFlag(country: string | null) {
-  if (!country) return ''
-  const code = country.trim().toUpperCase()
+type EventResult = {
+  id: number
+  slug: string
+  title: string | null
+  city: string | null
+  country: string | null
+  country_code: string | null
+  event_date: string | null
+  brand: string | null
+  event_distances?: EventDistanceResult[]
+}
+
+function countryToFlag(countryCode: string | null) {
+  if (!countryCode) return ''
+  const code = countryCode.trim().toUpperCase()
   if (code.length !== 2) return ''
   return String.fromCodePoint(
     ...[...code].map((char) => 127397 + char.charCodeAt(0))
@@ -36,6 +45,27 @@ function countryToFlag(country: string | null) {
 function formatDate(dateText: string | null) {
   if (!dateText) return '—'
   return new Date(dateText).toLocaleDateString('de-DE')
+}
+
+function formatDistances(distances: EventDistanceResult[] | undefined) {
+  if (!distances || distances.length === 0) return '—'
+
+  return distances
+    .slice()
+    .sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0))
+    .map((distance) => {
+      if (distance.label && distance.label.trim()) {
+        return distance.label
+      }
+
+      if (typeof distance.distance_km === 'number') {
+        return `${distance.distance_km} km`
+      }
+
+      return null
+    })
+    .filter(Boolean)
+    .join(' / ')
 }
 
 export default async function SearchPage({
@@ -55,12 +85,12 @@ export default async function SearchPage({
 
   const eventPromise = query
     ? supabase
-        .from('events')
+        .from('events_master')
         .select(
-          'id, event_name, location, country, event_date, official_distance_km'
+          'id, slug, title, city, country, country_code, event_date, brand, event_distances(id, distance_km, label)'
         )
         .or(
-          `event_name.ilike.%${query}%,location.ilike.%${query}%,country.ilike.%${query}%`
+          `title.ilike.%${query}%,city.ilike.%${query}%,country.ilike.%${query}%,brand.ilike.%${query}%`
         )
         .order('event_date', { ascending: true })
         .limit(30)
@@ -97,7 +127,7 @@ export default async function SearchPage({
                 type="text"
                 name="q"
                 defaultValue={query}
-                placeholder="Nach Hiker, Event oder Ort suchen…"
+                placeholder="Nach Hiker, Event, Ort oder Veranstalter suchen…"
                 className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
               />
               <button
@@ -111,7 +141,7 @@ export default async function SearchPage({
 
           {!query ? (
             <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-stone-400">
-              Gib einen Namen, ein Event oder einen Ort ein.
+              Gib einen Namen, ein Event, einen Ort oder einen Veranstalter ein.
             </div>
           ) : (
             <div className="space-y-8">
@@ -167,17 +197,23 @@ export default async function SearchPage({
                     {(events ?? []).map((event) => (
                       <Link
                         key={event.id}
-                        href="/events"
+                        href={`/events/${event.slug}`}
                         className="block rounded-2xl border border-white/10 bg-black/10 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
                       >
                         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                           <div className="min-w-0">
                             <div className="truncate font-semibold text-white">
-                              {event.event_name ?? 'Unbekanntes Event'}
+                              {event.city ?? 'Unbekannter Ort'}
+                              {event.brand ? ` · ${event.brand}` : ''}
                             </div>
+
                             <div className="mt-1 text-sm text-stone-400">
-                              {countryToFlag(event.country)} {event.country ?? '—'}
-                              {event.location ? ` · ${event.location}` : ''}
+                              {event.title ?? 'Unbekanntes Event'}
+                            </div>
+
+                            <div className="mt-1 text-sm text-stone-400">
+                              {countryToFlag(event.country_code)}{' '}
+                              {event.country ?? '—'}
                             </div>
                           </div>
 
@@ -186,7 +222,7 @@ export default async function SearchPage({
                               {formatDate(event.event_date)}
                             </div>
                             <div className="text-xs text-stone-500">
-                              {event.official_distance_km ?? '—'} km
+                              {formatDistances(event.event_distances)}
                             </div>
                           </div>
                         </div>
