@@ -16,6 +16,9 @@ export const metadata = {
   title: 'Ultimate European Hiking League',
   description:
     'Europas Rangliste für Langstreckenwanderer. Sammle Kilometer, vergleiche dich und steig in Divisionen auf.',
+  verification: {
+    google: 'googleef14f047f6463c41',
+  },
 }
 
 export default function RootLayout({
