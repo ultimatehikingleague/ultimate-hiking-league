@@ -11,6 +11,7 @@ type Hiker = {
   id: number
   display_name: string | null
   country: string | null
+  gender: string | null
   total_km: number | null
   avg_speed: number | null
   division: 'silver' | 'gold' | 'platinum' | null
@@ -34,6 +35,9 @@ type RawRecord = {
   record_source: string | null
   is_corrected: boolean | null
   elevation_gain: number | null
+  custom_title?: string | null
+  custom_location?: string | null
+  custom_country?: string | null
 }
 
 type EventItem = {
@@ -85,12 +89,78 @@ type ClaimRequest = {
 
 const SKYSCRAPER_THRESHOLD = 1500
 
+const COUNTRY_OPTIONS = [
+  { value: 'DE', label: 'Deutschland' },
+  { value: 'AT', label: 'Österreich' },
+  { value: 'CH', label: 'Schweiz' },
+
+  { value: 'FR', label: 'Frankreich' },
+  { value: 'IT', label: 'Italien' },
+  { value: 'ES', label: 'Spanien' },
+  { value: 'PT', label: 'Portugal' },
+  { value: 'NL', label: 'Niederlande' },
+  { value: 'BE', label: 'Belgien' },
+  { value: 'LU', label: 'Luxemburg' },
+  { value: 'DK', label: 'Dänemark' },
+  { value: 'SE', label: 'Schweden' },
+  { value: 'NO', label: 'Norwegen' },
+  { value: 'FI', label: 'Finnland' },
+  { value: 'IS', label: 'Island' },
+  { value: 'IE', label: 'Irland' },
+  { value: 'GB', label: 'Vereinigtes Königreich' },
+
+  { value: 'PL', label: 'Polen' },
+  { value: 'CZ', label: 'Tschechien' },
+  { value: 'SK', label: 'Slowakei' },
+  { value: 'HU', label: 'Ungarn' },
+  { value: 'SI', label: 'Slowenien' },
+  { value: 'HR', label: 'Kroatien' },
+  { value: 'BA', label: 'Bosnien und Herzegowina' },
+  { value: 'RS', label: 'Serbien' },
+  { value: 'ME', label: 'Montenegro' },
+  { value: 'MK', label: 'Nordmazedonien' },
+  { value: 'AL', label: 'Albanien' },
+
+  { value: 'RO', label: 'Rumänien' },
+  { value: 'BG', label: 'Bulgarien' },
+  { value: 'GR', label: 'Griechenland' },
+
+  { value: 'EE', label: 'Estland' },
+  { value: 'LV', label: 'Lettland' },
+  { value: 'LT', label: 'Litauen' },
+
+  { value: 'UA', label: 'Ukraine' },
+  { value: 'RU', label: 'Russland' },
+  { value: 'TR', label: 'Türkei' },
+]
+
+const GENDER_OPTIONS = [
+  { value: 'W', label: 'Weiblich' },
+  { value: 'M', label: 'Männlich' },
+  { value: 'D', label: 'Divers' },
+]
+
 function countryToFlag(countryCode: string | null) {
   if (!countryCode) return '—'
   const code = countryCode.trim().toUpperCase()
   if (code.length !== 2) return '—'
   return String.fromCodePoint(
     ...[...code].map((char) => 127397 + char.charCodeAt(0))
+  )
+}
+
+function getCountryLabel(countryCode: string | null) {
+  if (!countryCode) return '—'
+  return (
+    COUNTRY_OPTIONS.find((option) => option.value === countryCode)?.label ??
+    countryCode
+  )
+}
+
+function getGenderLabel(gender: string | null) {
+  if (!gender) return '—'
+  return (
+    GENDER_OPTIONS.find((option) => option.value === gender)?.label ?? gender
   )
 }
 
@@ -192,11 +262,7 @@ function formatDate(date: string | null) {
   return `${day}.${month}.${year}`
 }
 
-function formatDateTime(date: string | null) {
-  if (!date) return '—'
-  return new Date(date).toLocaleString('de-DE')
-  }
-  function getRecordStatusLabel(status: string | null) {
+function getRecordStatusLabel(status: string | null) {
   switch (status) {
     case 'verified_admin_submission':
       return 'verified'
@@ -208,8 +274,6 @@ function formatDateTime(date: string | null) {
       return status ?? '—'
   }
 }
-
-
 
 async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
   const pageSize = 1000
@@ -252,6 +316,12 @@ export default function AccountPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
+  const [profileCountry, setProfileCountry] = useState('')
+  const [profileGender, setProfileGender] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileSaveMessage, setProfileSaveMessage] = useState('')
+  const [profileSaveError, setProfileSaveError] = useState('')
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -281,7 +351,7 @@ export default function AccountPage() {
         const { data: hikerRows, error: hikerError } = await supabase
           .from('hikers')
           .select(
-            'id, display_name, country, total_km, avg_speed, division, claimed_profile, profile_image'
+            'id, display_name, country, gender, total_km, avg_speed, division, claimed_profile, profile_image'
           )
           .eq('claimed_by_user_id', session.user.id)
           .limit(1)
@@ -293,6 +363,8 @@ export default function AccountPage() {
 
         const currentHiker = hikerRows[0] as Hiker
         setHiker(currentHiker)
+        setProfileCountry(currentHiker.country ?? '')
+        setProfileGender(currentHiker.gender ?? '')
 
         const allHikerRows = await fetchAllRankedHikers()
 
@@ -354,57 +426,54 @@ export default function AccountPage() {
         setTotalElevation(totalElevationValue)
         setHasSkyscraper(totalElevationValue >= SKYSCRAPER_THRESHOLD)
 
-        
-      const eventMasterIds = Array.from(
-      new Set(
-      rawRecords
-      .map((record) => record.event_master_id)
-      .filter((eventId): eventId is number => typeof eventId === 'number')
-  )
-)
+        const eventMasterIds = Array.from(
+          new Set(
+            rawRecords
+              .map((record) => record.event_master_id)
+              .filter((eventId): eventId is number => typeof eventId === 'number')
+          )
+        )
 
+        let eventsMap = new Map<number, EventItem>()
 
+        if (eventMasterIds.length > 0) {
+          const { data: eventRows } = await supabase
+            .from('events_master')
+            .select('id, title, city, country, country_code')
+            .in('id', eventMasterIds)
 
-let eventsMap = new Map<number, EventItem>()
+          if (eventRows) {
+            eventsMap = new Map(
+              (eventRows as EventItem[]).map((event) => [event.id, event])
+            )
+          }
+        }
 
-if (eventMasterIds.length > 0) {
-  const { data: eventRows } = await supabase
-    .from('events_master')
-    .select('id, title, city, country, country_code')
-    .in('id', eventMasterIds)
+        const mergedRecords: RecordItem[] = rawRecords.map((record) => {
+          const event = record.event_master_id
+            ? eventsMap.get(record.event_master_id)
+            : null
 
-  if (eventRows) {
-    eventsMap = new Map(
-      (eventRows as EventItem[]).map((event) => [event.id, event])
-    )
-  }
-}
+          return {
+            ...record,
+            event_name:
+              event?.title ??
+              record.custom_title ??
+              'Private Wanderung',
 
-const mergedRecords: RecordItem[] = rawRecords.map((record) => {
-  const event = record.event_master_id
-    ? eventsMap.get(record.event_master_id)
-    : null
+            location:
+              event?.city ??
+              record.custom_location ??
+              '—',
 
-  return {
-    ...record,
-    event_name:
-      event?.title ??
-      (record as any).custom_title ??
-      'Private Wanderung',
+            country:
+              event?.country ??
+              record.custom_country ??
+              '—',
 
-    location:
-      event?.city ??
-      (record as any).custom_location ??
-      '—',
-
-    country:
-      event?.country ??
-      (record as any).custom_country ??
-      '—',
-
-    country_code: event?.country_code ?? null,
-  }
-})
+            country_code: event?.country_code ?? null,
+          }
+        })
 
         setRecords(mergedRecords)
       } catch (error) {
@@ -420,53 +489,96 @@ const mergedRecords: RecordItem[] = rawRecords.map((record) => {
 
     void loadData()
   }, [])
-async function handleProfileImageUpload(file: File) {
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
 
-    if (!session || !hiker) return
+  async function handleProfileImageUpload(file: File) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-    const fileExt = file.name.split('.').pop()
-    const filePath = `profile-${hiker.id}-${Date.now()}.${fileExt}`
+      if (!session || !hiker) return
 
-    const { error: uploadError } = await supabase.storage
-      .from('claim-proofs')
-      .upload(filePath, file)
+      const fileExt = file.name.split('.').pop()
+      const filePath = `profile-${hiker.id}-${Date.now()}.${fileExt}`
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError)
-      alert('Upload fehlgeschlagen')
-      return
+      const { error: uploadError } = await supabase.storage
+        .from('claim-proofs')
+        .upload(filePath, file)
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        alert('Upload fehlgeschlagen')
+        return
+      }
+
+      const { data } = supabase.storage
+        .from('claim-proofs')
+        .getPublicUrl(filePath)
+
+      const publicUrl = data.publicUrl
+
+      const { error: updateError } = await supabase
+        .from('hikers')
+        .update({ profile_image: publicUrl })
+        .eq('id', hiker.id)
+
+      if (updateError) {
+        console.error('DB update error:', updateError)
+        alert('Speichern fehlgeschlagen')
+        return
+      }
+
+      setHiker((prev) =>
+        prev ? { ...prev, profile_image: publicUrl } : prev
+      )
+    } catch (err) {
+      console.error(err)
+      alert('Fehler beim Upload')
     }
-
-    const { data } = supabase.storage
-      .from('claim-proofs')
-      .getPublicUrl(filePath)
-
-    const publicUrl = data.publicUrl
-
-    const { error: updateError } = await supabase
-      .from('hikers')
-      .update({ profile_image: publicUrl })
-      .eq('id', hiker.id)
-
-    if (updateError) {
-      console.error('DB update error:', updateError)
-      alert('Speichern fehlgeschlagen')
-      return
-    }
-
-    // UI sofort aktualisieren
-    setHiker((prev) =>
-      prev ? { ...prev, profile_image: publicUrl } : prev
-    )
-  } catch (err) {
-    console.error(err)
-    alert('Fehler beim Upload')
   }
-}
+
+  async function handleSaveProfileMeta() {
+    if (!hiker) return
+
+    setProfileSaving(true)
+    setProfileSaveMessage('')
+    setProfileSaveError('')
+
+    try {
+      const nextCountry = profileCountry || null
+      const nextGender = profileGender || null
+
+      const { error } = await supabase
+        .from('hikers')
+        .update({
+          country: nextCountry,
+          gender: nextGender,
+        })
+        .eq('id', hiker.id)
+
+      if (error) {
+        setProfileSaveError(error.message)
+        return
+      }
+
+      setHiker((prev) =>
+        prev
+          ? {
+              ...prev,
+              country: nextCountry,
+              gender: nextGender,
+            }
+          : prev
+      )
+
+      setProfileSaveMessage('Profilangaben wurden gespeichert.')
+    } catch (error: any) {
+      setProfileSaveError(error?.message ?? 'Unbekannter Fehler')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
     window.location.href = '/'
@@ -495,6 +607,8 @@ async function handleProfileImageUpload(file: File) {
         division: 'silver',
         total_km: 0,
         avg_speed: null,
+        country: null,
+        gender: null,
       })
 
       if (error) {
@@ -524,57 +638,57 @@ async function handleProfileImageUpload(file: File) {
   }
 
   if (!hiker) {
-  return (
-    <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
-      <div className="mx-auto max-w-xl">
-        <BackToHomeButton />
+    return (
+      <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+        <div className="mx-auto max-w-xl">
+          <BackToHomeButton />
 
-        <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-white">Profil erstellen</h1>
-          <p className="mt-3 text-stone-400">
-            Bitte gib deinen bürgerlichen Namen ein, um dein Profil anzulegen.
-          </p>
+          <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
+            <h1 className="text-2xl font-bold text-white">Profil erstellen</h1>
+            <p className="mt-3 text-stone-400">
+              Bitte gib deinen bürgerlichen Namen ein, um dein Profil anzulegen.
+            </p>
 
-          <div className="mt-6">
-            <label className="mb-2 block text-sm font-medium text-stone-300">
-              Bürgerlicher Name
-            </label>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Dein Name"
-              className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-white/25"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleCreateHiker}
-            disabled={creating}
-            className="mt-4 w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
-          >
-            {creating ? 'Wird erstellt…' : 'Profil erstellen'}
-          </button>
-
-          {createError && (
-            <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-              {createError}
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-stone-300">
+                Bürgerlicher Name
+              </label>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Dein Name"
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-white/25"
+              />
             </div>
-          )}
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
-          >
-            Abmelden
-          </button>
+            <button
+              type="button"
+              onClick={handleCreateHiker}
+              disabled={creating}
+              className="mt-4 w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
+            >
+              {creating ? 'Wird erstellt…' : 'Profil erstellen'}
+            </button>
+
+            {createError && (
+              <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                {createError}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
+            >
+              Abmelden
+            </button>
+          </div>
         </div>
-      </div>
-    </main>
-  )
-}
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
@@ -601,32 +715,30 @@ async function handleProfileImageUpload(file: File) {
             <div className="flex flex-col gap-6 md:flex-row md:items-start">
               <label className="relative flex h-32 w-32 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[2rem] border border-white/10 bg-black/15 text-5xl shadow-xl shadow-black/10">
                 {hiker.profile_image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={hiker.profile_image}
                     alt="Profilbild"
                     className="h-full w-full object-cover"
-                 />
-               ) : (
-                 '🥾'
-               )}
+                  />
+                ) : (
+                  '🥾'
+                )}
 
-               <input
-                 type="file"
-                 accept="image/*"
-                 className="hidden"
-                 onChange={(e) => {
-                   const file = e.target.files?.[0]
-                   if (file) handleProfileImageUpload(file)
-                 }}
-              />
-              
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleProfileImageUpload(file)
+                  }}
+                />
 
-              {!hiker.profile_image && (
-                <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-                  ändern
-                </div>
-              )}
+                {!hiker.profile_image && (
+                  <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
+                    ändern
+                  </div>
+                )}
               </label>
 
               <div className="min-w-0">
@@ -644,6 +756,10 @@ async function handleProfileImageUpload(file: File) {
                       {countryToFlag(hiker.country ?? null)}
                     </span>
                     <span>{hiker.country ?? '—'}</span>
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-sm text-stone-200">
+                    <span>{getGenderLabel(hiker.gender)}</span>
                   </div>
 
                   <div
@@ -683,6 +799,71 @@ async function handleProfileImageUpload(file: File) {
             >
               Abmelden
             </button>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="grid flex-1 gap-4 md:grid-cols-2 xl:max-w-3xl">
+                <div>
+                  <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
+                    Staatsangehörigkeit
+                  </label>
+                  <select
+                    value={profileCountry}
+                    onChange={(e) => setProfileCountry(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                  >
+                    <option value="">Bitte auswählen</option>
+                    {COUNTRY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
+                    Geschlecht
+                  </label>
+                  <select
+                    value={profileGender}
+                    onChange={(e) => setProfileGender(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                  >
+                    <option value="">Bitte auswählen</option>
+                    {GENDER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSaveProfileMeta}
+                  disabled={profileSaving}
+                  className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {profileSaving ? 'Speichert…' : 'Speichern'}
+                </button>
+              </div>
+            </div>
+
+            {profileSaveError ? (
+              <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                {profileSaveError}
+              </div>
+            ) : null}
+
+            {profileSaveMessage ? (
+              <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                {profileSaveMessage}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-7">
@@ -726,7 +907,7 @@ async function handleProfileImageUpload(file: File) {
 
         {claimRequests.length > 0 && (
           <section className="mt-6 rounded-2xl border border-white/10 bg-black/10 p-4">
-            <div className="text-sm text-stone-400 mb-2">
+            <div className="mb-2 text-sm text-stone-400">
               Deine Anfragen
             </div>
 
@@ -750,17 +931,16 @@ async function handleProfileImageUpload(file: File) {
                 </div>
               ))}
             </div>
-         </section>
-       )}
-             
+          </section>
+        )}
 
         <section className="mt-10">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">Meine Records</h2>
-            <div className="mt-4">
-              <RecordSubmissionPanel hikerId={hiker.id} />
-            </div>
+              <div className="mt-4">
+                <RecordSubmissionPanel hikerId={hiker.id} />
+              </div>
               <p className="mt-1 text-sm text-stone-400">
                 Deine verknüpften Leistungen und Event-Ergebnisse.
               </p>
@@ -883,17 +1063,6 @@ async function handleProfileImageUpload(file: File) {
                       </div>
                     </div>
                   </div>
-
-                  {/* 
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm"
-                  >
-                      Korrektur später hier
-                    </button>
-                  </div>
-                  */}
                 </div>
               ))
             )}
