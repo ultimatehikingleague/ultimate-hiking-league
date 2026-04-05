@@ -17,7 +17,7 @@ export const metadata = {
   description:
     'Europas Rangliste für Langstreckenwanderer. Sammle Kilometer, vergleiche dich und steig in Divisionen auf.',
   verification: {
-    google: 'googleef14f047f6463c41',
+    google: 'ZIK-G_8aqUkwIhHT1ar7Q2Zqapr47A0fJNb31OsMNPo',
   },
 }
 
