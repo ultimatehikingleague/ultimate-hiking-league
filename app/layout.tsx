@@ -19,7 +19,10 @@ export const metadata = {
   verification: {
     google: 'ZIK-G_8aqUkwIhHT1ar7Q2Zqapr47A0fJNb31OsMNPo',
   },
+  metadataBase: new URL('https://www.ultimatehikingleague.com'),
 }
+
+
 
 export default function RootLayout({
   children,
