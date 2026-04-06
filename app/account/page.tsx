@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import ProfileBrandBar from '../components/ProfileBrandBar'
 import RecordSubmissionPanel from '../components/RecordSubmissionPanel'
 import BackToHomeButton from '../components/BackToHomeButton'
+import RecordEditRequestForm from '../components/RecordEditRequestForm'
 
 type Hiker = {
   id: number
@@ -65,6 +66,7 @@ type RecordItem = {
   location: string
   country: string
   country_code: string | null
+  event_master_id: number | null
 }
 
 
@@ -427,7 +429,8 @@ export default function AccountPage() {
 
           return {
             ...record,
-            event_name: event?.title ?? record.custom_title ?? 'Private Wanderung',
+            event_master_id: record.event_master_id,
+            event_name: event?.title ?? record.custom_title ?? 'Privater Eintrag',
             location: event?.city ?? record.custom_location ?? '—',
             country: event?.country ?? record.custom_country ?? '—',
             country_code: event?.country_code ?? null,
@@ -971,6 +974,8 @@ export default function AccountPage() {
                           corrected
                         </div>
                       ) : null}
+
+                      
                     </div>
                   </div>
 
@@ -1022,6 +1027,20 @@ export default function AccountPage() {
                       </div>
                     </div>
                   </div>
+                  
+                  <RecordEditRequestForm
+                          recordId={record.id}
+                          hikerId={hiker.id}
+                          initialActivityName={record.event_name}
+                          initialActivityDate={record.activity_date}
+                          initialOfficialDistanceKm={record.distance_km}
+                          initialActualDistanceKm={record.distance_km}
+                          initialElapsedTimeText={record.time_text}
+                          initialElevationGain={record.elevation_gain}
+                          initialCountry={record.country}
+                          initialLocation={record.location}
+                          initialRecordSource={record.record_source}
+                        />
                 </div>
               ))
             )}
