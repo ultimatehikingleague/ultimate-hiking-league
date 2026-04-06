@@ -652,67 +652,120 @@ export default function AdminPage() {
     }))
   }
 
-  async function handleApproveClaim(claim: ClaimRequest) {
-    setActionLoadingKey(`claim-approve-${claim.id}`)
-    setPageMessage('')
+ async function handleApproveClaim(claim: ClaimRequest) {
+  setActionLoadingKey(`claim-approve-${claim.id}`)
+  setPageMessage('')
 
-    try {
-      const note = window.prompt(
-        'Optionaler Admin-Vermerk für die Genehmigung:',
-        claim.admin_note ?? ''
+  try {
+    const note = window.prompt(
+      'Optionaler Admin-Vermerk für die Genehmigung:',
+      claim.admin_note ?? ''
+    )
+
+    const targetHikerId = claim.hiker_id
+
+    // 1. Zielprofil claimen
+    const { error: targetClaimError } = await supabase
+      .from('hikers')
+      .update({
+        claimed_profile: true,
+        claimed_by_user_id: claim.user_id,
+      })
+      .eq('id', targetHikerId)
+
+    if (targetClaimError) {
+      setPageMessage(
+        `Fehler beim Aktualisieren des Zielprofils: ${targetClaimError.message}`
       )
-
-      const { error: hikerError } = await supabase
-        .from('hikers')
-        .update({
-          claimed_profile: true,
-          claimed_by_user_id: claim.user_id,
-        })
-        .eq('id', claim.hiker_id)
-
-      if (hikerError) {
-        setPageMessage(
-          `Fehler beim Aktualisieren des Hiker-Profils: ${hikerError.message}`
-        )
-        return
-      }
-
-      const { error: claimError } = await supabase
-        .from('claim_requests')
-        .update({
-          status: 'approved',
-          reviewed_at: new Date().toISOString(),
-          admin_note: note?.trim() ? note.trim() : null,
-        })
-        .eq('id', claim.id)
-
-      if (claimError) {
-        setPageMessage(
-          `Fehler beim Aktualisieren der Claim-Anfrage: ${claimError.message}`
-        )
-        return
-      }
-
-      setClaims((prev) =>
-        prev.map((item) =>
-          item.id === claim.id
-            ? {
-                ...item,
-                status: 'approved',
-                reviewed_at: new Date().toISOString(),
-                admin_note: note?.trim() ? note.trim() : null,
-              }
-            : item
-        )
-      )
-
-      setPageMessage('Claim wurde genehmigt.')
-    } catch (error: any) {
-      setPageMessage(`Fehler: ${error?.message ?? 'Unbekannt'}`)
-    } finally {
-      setActionLoadingKey(null)
+      return
     }
+
+    // 2. Prüfen, ob derselbe User bereits ein anderes Profil hat
+    const { data: duplicateHikers, error: duplicateHikersError } = await supabase
+      .from('hikers')
+      .select('id')
+      .eq('claimed_by_user_id', claim.user_id)
+      .neq('id', targetHikerId)
+
+    if (duplicateHikersError) {
+      setPageMessage(
+        `Fehler beim Laden möglicher Dubletten: ${duplicateHikersError.message}`
+      )
+      return
+    }
+
+    const duplicateIds = (duplicateHikers ?? []).map((row) => row.id)
+
+    // 3. Falls Dubletten existieren: Records auf Zielprofil umhängen
+    if (duplicateIds.length > 0) {
+      const { error: moveRecordsError } = await supabase
+        .from('records')
+        .update({ hiker_id: targetHikerId })
+        .in('hiker_id', duplicateIds)
+
+      if (moveRecordsError) {
+        setPageMessage(
+          `Fehler beim Übertragen der Records: ${moveRecordsError.message}`
+        )
+        return
+      }
+
+      // 4. Dublettenprofile löschen
+      const { error: deleteDuplicateError } = await supabase
+        .from('hikers')
+        .delete()
+        .in('id', duplicateIds)
+
+      if (deleteDuplicateError) {
+        setPageMessage(
+          `Fehler beim Löschen der Dublettenprofile: ${deleteDuplicateError.message}`
+        )
+        return
+      }
+    }
+
+    // 5. Claim-Anfrage als genehmigt markieren
+    const { error: claimError } = await supabase
+      .from('claim_requests')
+      .update({
+        status: 'approved',
+        reviewed_at: new Date().toISOString(),
+        admin_note: note?.trim() ? note.trim() : null,
+      })
+      .eq('id', claim.id)
+
+    if (claimError) {
+      setPageMessage(
+        `Fehler beim Aktualisieren der Claim-Anfrage: ${claimError.message}`
+      )
+      return
+    }
+
+    setClaims((prev) =>
+      prev.map((item) =>
+        item.id === claim.id
+          ? {
+              ...item,
+              status: 'approved',
+              reviewed_at: new Date().toISOString(),
+              admin_note: note?.trim() ? note.trim() : null,
+            }
+          : item
+      )
+    )
+
+    setPageMessage(
+      duplicateIds.length > 0
+        ? `Claim wurde genehmigt. ${duplicateIds.length} Dublettenprofil(e) wurden mit dem Zielprofil zusammengeführt.`
+        : 'Claim wurde genehmigt.'
+    )
+  } catch (error: any) {
+    setPageMessage(`Fehler: ${error?.message ?? 'Unbekannt'}`)
+  } finally {
+    setActionLoadingKey(null)
   }
+}
+  
 
   async function handleRejectClaim(claim: ClaimRequest) {
     setActionLoadingKey(`claim-reject-${claim.id}`)
