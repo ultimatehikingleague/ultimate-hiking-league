@@ -50,6 +50,28 @@ type RecordSubmission = {
   reviewed_at: string | null
 }
 
+type RecordCorrection = {
+  id: number
+  record_id: number
+  hiker_id: number
+  user_id: string | null
+  activity_name: string | null
+  activity_date: string | null
+  official_distance_km: number | null
+  actual_distance_km: number | null
+  proposed_time_text: string | null
+  elevation_gain: number | null
+  country: string | null
+  location: string | null
+  record_source: string | null
+  notes: string | null
+  admin_note: string | null
+  proof_url: string | null
+  status: string | null
+  created_at: string | null
+  reviewed_at: string | null
+}
+
 type SubmissionDraft = {
   activity_name: string
   description: string
@@ -556,6 +578,7 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [claims, setClaims] = useState<ClaimRequest[]>([])
   const [recordSubmissions, setRecordSubmissions] = useState<RecordSubmission[]>([])
+  const [recordCorrections, setRecordCorrections] = useState<RecordCorrection[]>([])
   const [submissionDrafts, setSubmissionDrafts] = useState<Record<number, SubmissionDraft>>({})
   const [userEmail, setUserEmail] = useState('')
   const [actionLoadingKey, setActionLoadingKey] = useState<string | null>(null)
@@ -613,6 +636,7 @@ export default function AdminPage() {
         const [
           { data: claimRows, error: claimsError },
           { data: submissionRows, error: submissionsError },
+          { data: correctionRows, error: correctionsError },
         ] = await Promise.all([
           supabase
             .from('claim_requests')
@@ -624,6 +648,12 @@ export default function AdminPage() {
             .from('record_submissions')
             .select(
               'id, user_id, hiker_id, activity_name, description, submission_type, activity_date, distance_km, official_distance_km, actual_distance_km, elapsed_time_text, elevation_gain, country, location, record_source, proof_image_url, notes, status, admin_note, created_at, reviewed_at'
+            )
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('record_corrections')
+            .select(
+              'id, record_id, hiker_id, user_id, activity_name, activity_date, official_distance_km, actual_distance_km, proposed_time_text, elevation_gain, country, location, record_source, notes, admin_note, proof_url, status, created_at, reviewed_at'
             )
             .order('created_at', { ascending: false }),
         ])
@@ -642,6 +672,11 @@ export default function AdminPage() {
           })
           setSubmissionDrafts(nextDrafts)
         }
+
+        if (!correctionsError && correctionRows) {
+          setRecordCorrections(correctionRows as RecordCorrection[])
+        }
+
       } catch (error) {
         console.error('AdminPage load error:', error)
         setIsAdmin(false)
@@ -1109,6 +1144,193 @@ export default function AdminPage() {
     }
   }
 
+  async function handleApproveCorrection(correction: RecordCorrection) {
+  setActionLoadingKey(`correction-approve-${correction.id}`)
+  setPageMessage('')
+
+  try {
+    const note = window.prompt(
+      'Optionaler Admin-Vermerk für die Genehmigung:',
+      correction.admin_note ?? ''
+    )
+
+    const nextDistance =
+      typeof correction.actual_distance_km === 'number'
+        ? correction.actual_distance_km
+        : typeof correction.official_distance_km === 'number'
+        ? correction.official_distance_km
+        : null
+
+    const nextTimeText = correction.proposed_time_text?.trim() || null
+    const nextTimeHours = nextTimeText
+      ? parseTimeTextToHours(nextTimeText)
+      : null
+
+    const nextAvgSpeed =
+      nextDistance && nextTimeHours && nextTimeHours > 0
+        ? Number((nextDistance / nextTimeHours).toFixed(2))
+        : null
+
+    let eventMasterId: number | null = null
+    let eventDistanceId: number | null = null
+
+    const hasEnoughEventData =
+      !!correction.activity_name?.trim() &&
+      !!correction.activity_date &&
+      typeof correction.official_distance_km === 'number' &&
+      correction.official_distance_km > 0
+
+    if (hasEnoughEventData) {
+      const officialEventDistanceKm = Number(correction.official_distance_km)
+
+      const correctionDraft: SubmissionDraft = {
+        activity_name: correction.activity_name ?? '',
+        description: '',
+        submission_type: 'official_event',
+        activity_date: correction.activity_date ?? '',
+        distance_km: nextDistance != null ? String(nextDistance) : '',
+        official_distance_km: String(officialEventDistanceKm),
+        actual_distance_km: nextDistance != null ? String(nextDistance) : '',
+        elapsed_time_text: nextTimeText ?? '',
+        elevation_gain:
+          typeof correction.elevation_gain === 'number'
+            ? String(correction.elevation_gain)
+            : '',
+        country: correction.country ?? '',
+        location: correction.location ?? '',
+        record_source: correction.record_source ?? '',
+        notes: correction.notes ?? '',
+        admin_note: note?.trim() ?? '',
+      }
+
+      const eventResult = await findOrCreateEventMaster(correctionDraft)
+      eventMasterId = eventResult.eventMasterId
+
+      eventDistanceId = await findOrCreateEventDistance(
+        eventMasterId,
+        officialEventDistanceKm
+      )
+    }
+
+    const { error: recordError } = await supabase
+      .from('records')
+      .update({
+        distance_km: nextDistance,
+        time_text: nextTimeText,
+        time_hours: nextTimeHours,
+        avg_speed: nextAvgSpeed,
+        activity_date: correction.activity_date || null,
+        elevation_gain:
+          typeof correction.elevation_gain === 'number'
+            ? correction.elevation_gain
+            : null,
+        event_master_id: eventMasterId,
+        event_distance_id: eventDistanceId,
+        record_source: correction.record_source?.trim() || null,
+        custom_title: eventMasterId
+          ? null
+          : correction.activity_name?.trim() || null,
+        custom_location: eventMasterId
+          ? null
+          : correction.location?.trim() || null,
+        custom_country: eventMasterId
+          ? null
+          : correction.country?.trim() || null,
+        is_corrected: true,
+      })
+      .eq('id', correction.record_id)
+
+    if (recordError) {
+      setPageMessage(
+        `Fehler beim Aktualisieren des Records: ${recordError.message}`
+      )
+      return
+    }
+
+    const { error: correctionError } = await supabase
+      .from('record_corrections')
+      .update({
+        status: 'approved',
+        admin_note: note?.trim() ? note.trim() : null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', correction.id)
+
+    if (correctionError) {
+      setPageMessage(
+        `Fehler beim Aktualisieren der Bearbeitung: ${correctionError.message}`
+      )
+      return
+    }
+
+    setRecordCorrections((prev) =>
+      prev.map((item) =>
+        item.id === correction.id
+          ? {
+              ...item,
+              status: 'approved',
+              admin_note: note?.trim() ? note.trim() : null,
+              reviewed_at: new Date().toISOString(),
+            }
+          : item
+      )
+    )
+
+    setPageMessage('Eintrags-Bearbeitung wurde genehmigt.')
+  } catch (error: any) {
+    setPageMessage(`Fehler: ${error?.message ?? 'Unbekannt'}`)
+  } finally {
+    setActionLoadingKey(null)
+  }
+}
+
+    async function handleRejectCorrection(correction: RecordCorrection) {
+      setActionLoadingKey(`correction-reject-${correction.id}`)
+      setPageMessage('')
+
+      try {
+        const note = window.prompt(
+          'Optionaler Admin-Vermerk für die Ablehnung:',
+          correction.admin_note ?? ''
+        )
+
+        const { error } = await supabase
+          .from('record_corrections')
+          .update({
+            status: 'rejected',
+            admin_note: note?.trim() ? note.trim() : null,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq('id', correction.id)
+
+        if (error) {
+          setPageMessage(
+            `Fehler beim Ablehnen der Bearbeitung: ${error.message}`
+          )
+          return
+        }
+
+        setRecordCorrections((prev) =>
+          prev.map((item) =>
+            item.id === correction.id
+              ? {
+                  ...item,
+                  status: 'rejected',
+                  admin_note: note?.trim() ? note.trim() : null,
+                  reviewed_at: new Date().toISOString(),
+                }
+              : item
+          )
+        )
+
+        setPageMessage('Eintrags-Bearbeitung wurde abgelehnt.')
+      } catch (error: any) {
+        setPageMessage(`Fehler: ${error?.message ?? 'Unbekannt'}`)
+      } finally {
+        setActionLoadingKey(null)
+      }
+    }
+
   async function handleCreateEvent() {
     setEventCreateLoading(true)
     setEventCreateMessage('')
@@ -1432,6 +1654,18 @@ export default function AdminPage() {
     () =>
       recordSubmissions.filter((submission) => submission.status !== 'pending'),
     [recordSubmissions]
+  )
+
+  const pendingCorrections = useMemo(
+    () =>
+      recordCorrections.filter((correction) => correction.status === 'pending'),
+    [recordCorrections]
+  )
+
+  const resolvedCorrections = useMemo(
+    () =>
+      recordCorrections.filter((correction) => correction.status !== 'pending'),
+    [recordCorrections]
   )
 
   const invalidEventCsvRows = useMemo(
@@ -2042,6 +2276,159 @@ export default function AdminPage() {
               </div>
             </div>
           ) : null}
+        </section>
+
+        <section className="mt-12">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">
+                Offene Eintrags-Bearbeitungen
+              </h2>
+              <p className="mt-1 text-sm text-stone-400">
+                Ergänzungen und Korrekturen bestehender Records prüfen.
+              </p>
+            </div>
+
+            <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
+              Offen
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {pendingCorrections.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-stone-400">
+                Aktuell keine offenen Bearbeitungen.
+              </div>
+            ) : (
+              pendingCorrections.map((correction) => (
+                <div
+                  key={correction.id}
+                  className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-stone-500">
+                        Eingereicht am {formatDate(correction.created_at)}
+                      </div>
+
+                      <div className="mt-1 text-xl font-semibold text-white">
+                        {correction.activity_name ?? 'Unbekannter Eintrag'}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-400">
+                        <span>Record-ID: {correction.record_id}</span>
+                        <span>·</span>
+                        <span>Hiker-ID: {correction.hiker_id}</span>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`inline-flex rounded-full px-3 py-1 text-xs ${getStatusClass(
+                        correction.status
+                      )}`}
+                    >
+                      {correction.status ?? 'pending'}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+                      <div className="mb-3 text-xs uppercase tracking-[0.18em] text-stone-500">
+                        Vorgeschlagene Daten
+                      </div>
+
+                      <div className="space-y-2 text-sm text-stone-200">
+                        <div>
+                          <span className="text-stone-500">Event:</span>{' '}
+                          {correction.activity_name ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Datum:</span>{' '}
+                          {correction.activity_date ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Offizielle Distanz:</span>{' '}
+                          {correction.official_distance_km ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Gelaufene Distanz:</span>{' '}
+                          {correction.actual_distance_km ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Zeit:</span>{' '}
+                          {correction.proposed_time_text ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Höhenmeter:</span>{' '}
+                          {correction.elevation_gain ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Land:</span>{' '}
+                          {correction.country ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Ort:</span>{' '}
+                          {correction.location ?? '—'}
+                        </div>
+                        <div>
+                          <span className="text-stone-500">Veranstalter:</span>{' '}
+                          {correction.record_source ?? '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                        User-Notiz
+                      </div>
+
+                      <div className="mt-2 text-sm text-stone-200">
+                        {correction.notes ?? '—'}
+                      </div>
+
+                      {correction.proof_url ? (
+                        <div className="mt-4">
+                          <a
+                            href={correction.proof_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-block text-sm font-medium text-white underline underline-offset-4 transition hover:text-stone-300"
+                          >
+                            Nachweis öffnen
+                          </a>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleApproveCorrection(correction)}
+                        disabled={actionLoadingKey === `correction-approve-${correction.id}`}
+                        className="rounded-2xl border border-emerald-400/30 bg-emerald-400/12 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/18 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {actionLoadingKey === `correction-approve-${correction.id}`
+                          ? 'Wird verarbeitet…'
+                          : 'Genehmigen'}
+                      </button>
+
+                     <button
+                       type="button"
+                       onClick={() => handleRejectCorrection(correction)}
+                       disabled={actionLoadingKey === `correction-reject-${correction.id}`}
+                       className="rounded-2xl border border-red-400/30 bg-red-400/12 px-4 py-2 text-sm font-medium text-red-200 transition hover:bg-red-400/18 disabled:cursor-not-allowed disabled:opacity-50"
+                     >
+                       {actionLoadingKey === `correction-reject-${correction.id}`
+                         ? 'Wird verarbeitet…'
+                         : 'Ablehnen'}
+                     </button>
+   
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </section>
 
         <section className="mt-12">
