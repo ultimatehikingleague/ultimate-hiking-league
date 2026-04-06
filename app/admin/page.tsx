@@ -536,6 +536,21 @@ function createSubmissionDraft(
   }
 }
 
+async function countRecordsForHikers(hikerIds: number[]) {
+  if (hikerIds.length === 0) return 0
+
+  const { count, error } = await supabase
+    .from('records')
+    .select('id', { count: 'exact', head: true })
+    .in('hiker_id', hikerIds)
+
+  if (error) {
+    throw new Error(`Fehler beim Zählen der Merge-Records: ${error.message}`)
+  }
+
+  return count ?? 0
+}
+
 export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -695,6 +710,7 @@ export default function AdminPage() {
     }
 
     const duplicateIds = (duplicateHikers ?? []).map((row) => row.id)
+    const movedRecordCount = duplicateIds.length > 0 ? await countRecordsForHikers(duplicateIds) : 0
 
     // 3. Falls Dubletten existieren: Records auf Zielprofil umhängen
     if (duplicateIds.length > 0) {
@@ -737,6 +753,28 @@ export default function AdminPage() {
     if (claimError) {
       setPageMessage(
         `Fehler beim Aktualisieren der Claim-Anfrage: ${claimError.message}`
+      )
+      return
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    const { error: mergeLogError } = await supabase
+      .from('hiker_merge_log')
+      .insert({
+        claim_request_id: claim.id,
+        admin_user_id: session?.user?.id ?? null,
+        user_id: claim.user_id,
+        target_hiker_id: targetHikerId,
+        merged_hiker_ids: duplicateIds,
+        moved_record_count: movedRecordCount,
+      })
+
+    if (mergeLogError) {
+      setPageMessage(
+        `Claim wurde genehmigt, aber Merge-Log konnte nicht gespeichert werden: ${mergeLogError.message}`
       )
       return
     }
