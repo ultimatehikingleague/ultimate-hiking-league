@@ -62,6 +62,29 @@ export default function FAQPage() {
           </div>
 
           <div>
+            <h2 className="font-semibold text-lg">
+              Warum zählt nur die Gesamtzeit und nicht die Gehzeit?
+            </h2>
+            <p className="text-stone-400 mt-2">
+              Die Gesamtzeit ist entscheidend, weil sie die tatsächliche Leistung einer
+              Wanderung widerspiegelt.
+            </p>
+            <p className="text-stone-400 mt-2">
+              Pausen gehören zum Leistungsspektrum dazu – egal ob Verpflegung, Erholung
+              oder kurze Stopps. Wer seine Kräfte besser einteilt und effizient pausiert,
+              ist im Vorteil.
+            </p>
+            <p className="text-stone-400 mt-2">
+              Die reine Gehzeit („Zeit in Bewegung“) würde das Ergebnis verfälschen, da
+              sie wichtige Faktoren der Ausdauerleistung ausblendet.
+            </p>
+            <p className="text-stone-400 mt-2">
+              👉 Deshalb gilt in der Ultimate Hiking League immer die Gesamtzeit von
+              Start bis Ziel.
+            </p>
+          </div>
+
+          <div>
             <h2 className="font-semibold text-lg">Was passiert nach meiner Eintragung?</h2>
             <p className="text-stone-400 mt-2">
               Deine Wanderung wird geprüft und danach in deinem Profil
