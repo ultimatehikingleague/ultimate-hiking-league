@@ -585,6 +585,7 @@ export default function AdminPage() {
   const [pageMessage, setPageMessage] = useState('')
   const [showResolvedClaims, setShowResolvedClaims] = useState(false)
   const [showResolvedSubmissions, setShowResolvedSubmissions] = useState(false)
+  const [showResolvedCorrections, setShowResolvedCorrections] = useState(false)
 
   const [eventTitle, setEventTitle] = useState('')
   const [eventDate, setEventDate] = useState('')
@@ -2873,6 +2874,61 @@ export default function AdminPage() {
                     {claim.admin_note ? (
                       <div className="mt-3 text-sm text-stone-300">
                         {claim.admin_note}
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="mt-8">
+          <button
+            type="button"
+            onClick={() => setShowResolvedCorrections((prev) => !prev)}
+            className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-stone-200 transition hover:bg-white/[0.06]"
+          >
+            {showResolvedCorrections
+              ? `Bearbeitete Bearbeitungen ausblenden (${resolvedCorrections.length})`
+              : `Bearbeitete Bearbeitungen anzeigen (${resolvedCorrections.length})`}
+          </button>
+
+          {showResolvedCorrections ? (
+            <div className="mt-4 space-y-3">
+              {resolvedCorrections.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-stone-400">
+                  Keine bearbeiteten Bearbeitungen vorhanden.
+                </div>
+              ) : (
+                resolvedCorrections.map((correction) => (
+                  <div
+                    key={correction.id}
+                    className="rounded-2xl border border-white/10 bg-black/10 p-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-white">
+                          {correction.activity_name ?? 'Unbekannter Eintrag'}
+                        </div>
+                        <div className="mt-1 text-xs text-stone-500">
+                          Record-ID {correction.record_id} ·{' '}
+                          {formatDate(correction.reviewed_at ?? correction.created_at)}
+                        </div>
+                      </div>
+
+                      <div
+                        className={`inline-flex rounded-full px-3 py-1 text-xs ${getStatusClass(
+                          correction.status
+                        )}`}
+                      >
+                        {correction.status ?? '—'}
+                      </div>
+                    </div>
+
+                    {correction.admin_note ? (
+                      <div className="mt-3 text-sm text-stone-300">
+                        {correction.admin_note}
                       </div>
                     ) : null}
                   </div>
