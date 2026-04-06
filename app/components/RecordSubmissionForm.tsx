@@ -327,6 +327,11 @@ if (isOfficialEvent) {
               placeholder="z. B. 08:34"
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
+
+            <p className="text-xs text-yellow-400 mt-1">
+              Bitte Gesamtzeit (inkl. Pausen), nicht nur Gehzeit.
+            </p>
+            
           </div>
 
           <div>
