@@ -20,7 +20,6 @@ export default function RecordSubmissionForm({
   const [officialDistanceKm, setOfficialDistanceKm] = useState('')
   const [actualDistanceKm, setActualDistanceKm] = useState('')
   const [activityDate, setActivityDate] = useState('')
-  const [distanceKm, setDistanceKm] = useState('')
   const [elapsedTimeText, setElapsedTimeText] = useState('')
   const [elevationGain, setElevationGain] = useState('')
   const [country, setCountry] = useState('')
@@ -33,6 +32,25 @@ export default function RecordSubmissionForm({
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+
+  async function uploadRecordProof(
+    filePath: string,
+    proofFile: File
+  ) {
+    const fileBuffer = await proofFile.arrayBuffer()
+
+    const { error } = await supabase.storage
+      .from('record-proofs')
+      .upload(filePath, fileBuffer, {
+        upsert: false,
+        contentType: proofFile.type || 'application/octet-stream',
+        cacheControl: '3600',
+      })
+
+    return error
+  }
+
+  
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -75,27 +93,7 @@ if (!isOfficialEvent && !actualDistanceKm.trim()) {
   return
 }
 
-      const fileExt = proofFile.name.split('.').pop()?.toLowerCase() ?? 'file'
-      const safeExt = fileExt.replace(/[^a-z0-9]/g, '') || 'file'
-      const filePath = `record-${hikerId}/${session.user.id}-${Date.now()}.${safeExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('record-proofs')
-        .upload(filePath, proofFile, {
-          upsert: false,
-        })
-
-      if (uploadError) {
-        setErrorMessage(`Upload-Fehler: ${uploadError.message}`)
-        setSubmitting(false)
-        return
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from('record-proofs')
-        .getPublicUrl(filePath)
-
-      const proofImageUrl = publicUrlData.publicUrl
+      
 
       let parsedDistance: number | null = null
 
@@ -134,6 +132,36 @@ if (isOfficialEvent) {
 }
       const parsedElevation =
         elevationGain.trim() === '' ? null : Number(elevationGain.replace(',', '.'))
+
+      const fileExt = proofFile.name.split('.').pop()?.toLowerCase() ?? 'file'
+      const safeExt = fileExt.replace(/[^a-z0-9]/g, '') || 'file'
+      const filePath = `record-${hikerId}/${session.user.id}-${Date.now()}.${safeExt}`
+
+      const uploadError = await uploadRecordProof(filePath, proofFile)
+
+      if (uploadError) {
+        console.error('Record proof upload failed', {
+          hikerId,
+          userId: session.user.id,
+          filePath,
+          fileName: proofFile.name,
+          fileType: proofFile.type,
+          fileSize: proofFile.size,
+          uploadError,
+        })
+
+        setErrorMessage(
+          `Upload-Fehler: ${uploadError.message || 'Unbekannter Upload-Fehler'}`
+        )
+        setSubmitting(false)
+        return
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('record-proofs')
+        .getPublicUrl(filePath)
+
+      const proofImageUrl = publicUrlData.publicUrl  
 
       const { error: insertError } = await supabase
         .from('record_submissions')
