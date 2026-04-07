@@ -28,12 +28,15 @@ export default function RecordSubmissionPanel({
         </div>
       </div>
 
-      <button
-        onClick={() => setSubmitted(false)}
-        className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10"
-      >
-        Weitere Wanderung hinzufügen
-      </button>
+     <button
+       onClick={() => {
+         setSubmitted(false)
+         setOpen(true)
+       }}
+       className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10"
+     >
+       Weitere Wanderung hinzufügen
+     </button> 
     </div>
   )
 }
