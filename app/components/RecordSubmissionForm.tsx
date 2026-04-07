@@ -39,15 +39,40 @@ export default function RecordSubmissionForm({
   ) {
     const fileBuffer = await proofFile.arrayBuffer()
 
-    const { error } = await supabase.storage
-      .from('record-proofs')
-      .upload(filePath, fileBuffer, {
-        upsert: false,
-        contentType: proofFile.type || 'application/octet-stream',
-        cacheControl: '3600',
+    const maxAttempts = 3
+    let lastError: any = null
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const { error } = await supabase.storage
+        .from('record-proofs')
+        .upload(filePath, fileBuffer, {
+          upsert: false,
+          contentType: proofFile.type || 'application/octet-stream',
+          cacheControl: '3600',
+        })
+
+      if (!error) {
+        return null
+      }
+
+      lastError = error
+
+      console.error('Record proof upload attempt failed', {
+        attempt,
+        maxAttempts,
+        filePath,
+        fileName: proofFile.name,
+        fileType: proofFile.type,
+        fileSize: proofFile.size,
+        error,
       })
 
-    return error
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1200))
+      }
+    }
+
+    return lastError
   }
 
   
@@ -151,7 +176,7 @@ if (isOfficialEvent) {
         })
 
         setErrorMessage(
-          `Upload-Fehler: ${uploadError.message || 'Unbekannter Upload-Fehler'}`
+          `Upload-Fehler nach mehreren Versuchen: ${uploadError.message || 'Unbekannter Upload-Fehler'}`
         )
         setSubmitting(false)
         return
