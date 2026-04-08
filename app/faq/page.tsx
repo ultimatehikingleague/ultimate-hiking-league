@@ -48,6 +48,14 @@ export default function FAQPage() {
           </div>
 
           <div>
+            <h2 className="font-semibold text-lg">Kann ich auch GPX Dateien hochladen?</h2>
+            <p className="text-stone-400 mt-2">
+              Nein. Am besten nur Screenshots oder Fotos mit allen relevanten Daten. Bei Events reicht auch eine 
+              personalisierte Finisherurkunde. Wobei hier nur die geforderten Kilometer angerechnet werden.
+            </p>
+          </div>
+
+          <div>
             <h2 className="font-semibold text-lg">Muss ich an offiziellen Events teilnehmen?</h2>
             <p className="text-stone-400 mt-2">
               Nein. Du kannst auch deine eigenen Wanderungen eintragen.
@@ -85,10 +93,32 @@ export default function FAQPage() {
           </div>
 
           <div>
+            <h2 className="font-semibold text-lg">Muss ich die Sekunden der Gesamtzeit mit angeben?</h2>
+            <p className="text-stone-400 mt-2">
+              Nein. Bitte nur Stunden und Minuten angeben.
+            </p>
+          </div>
+
+          <div>
             <h2 className="font-semibold text-lg">Was passiert nach meiner Eintragung?</h2>
             <p className="text-stone-400 mt-2">
               Deine Wanderung wird geprüft und danach in deinem Profil
               und im Ranking angezeigt.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="font-semibold text-lg">Kann ich auch Wanderungen aus dem Vorjahr angeben.</h2>
+            <p className="text-stone-400 mt-2">
+              Nein. Wir berücksichtigen nur Einträge aus der aktuellen Saison/Kalenderjahr.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="font-semibold text-lg">Warum taucht meine Wanderung nicht in meiner Timeline auf?</h2>
+            <p className="text-stone-400 mt-2">
+              Wahrscheinlich verstößt sie gegen eine unserer Ligaregeln. Checke dazu die Adminnotiz oder deine Emails.
+              Bitte auch im Spamordner nachsehen.
             </p>
           </div>
 

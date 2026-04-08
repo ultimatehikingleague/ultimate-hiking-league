@@ -85,6 +85,20 @@ type ClaimRequest = {
   admin_note: string | null
 }
 
+type RejectedSubmissionNotice = {
+  id: number
+  activity_name: string | null
+  admin_note: string | null
+  reviewed_at: string | null
+}
+
+type RejectedCorrectionNotice = {
+  id: number
+  activity_name: string | null
+  admin_note: string | null
+  reviewed_at: string | null
+}
+
 const SKYSCRAPER_THRESHOLD = 1500
 
 const COUNTRY_OPTIONS = [
@@ -273,6 +287,8 @@ function getRecordStatusLabel(status: string | null) {
   }
 }
 
+const REJECTION_NOTICE_START_DATE = '2026-04-08'
+
 
 
 export default function AccountPage() {
@@ -281,6 +297,10 @@ export default function AccountPage() {
   const [hiker, setHiker] = useState<Hiker | null>(null)
   const [records, setRecords] = useState<RecordItem[]>([])
   const [claimRequests, setClaimRequests] = useState<ClaimRequest[]>([])
+  const [rejectedSubmissionNotices, setRejectedSubmissionNotices] = useState<RejectedSubmissionNotice[]>([])
+  const [rejectedCorrectionNotices, setRejectedCorrectionNotices] = useState<RejectedCorrectionNotice[]>([])
+  const [dismissedSubmissionNoticeIds, setDismissedSubmissionNoticeIds] = useState<number[]>([])
+  const [dismissedCorrectionNoticeIds, setDismissedCorrectionNoticeIds] = useState<number[]>([])
   const [overallRank, setOverallRank] = useState<number | null>(null)
   const [divisionRank, setDivisionRank] = useState<number | null>(null)
   const [totalElevation, setTotalElevation] = useState<number>(0)
@@ -320,6 +340,30 @@ export default function AccountPage() {
           .order('created_at', { ascending: false })
 
         setClaimRequests((claimRows as ClaimRequest[]) ?? [])
+
+        const { data: rejectedSubmissionRows } = await supabase
+          .from('record_submissions')
+          .select('id, activity_name, admin_note, reviewed_at')
+          .eq('user_id', session.user.id)
+          .eq('status', 'rejected')
+          .gte('reviewed_at', `${REJECTION_NOTICE_START_DATE}T00:00:00`)
+          .order('reviewed_at', { ascending: false })
+
+        setRejectedSubmissionNotices(
+          (rejectedSubmissionRows as RejectedSubmissionNotice[]) ?? []
+        )
+
+        const { data: rejectedCorrectionRows } = await supabase
+          .from('record_corrections')
+          .select('id, activity_name, admin_note, reviewed_at')
+          .eq('user_id', session.user.id)
+          .eq('status', 'rejected')
+          .gte('reviewed_at', `${REJECTION_NOTICE_START_DATE}T00:00:00`)
+          .order('reviewed_at', { ascending: false })
+
+        setRejectedCorrectionNotices(
+          (rejectedCorrectionRows as RejectedCorrectionNotice[]) ?? []
+        )
 
         const { data: hikerRows, error: hikerError } = await supabase
           .from('hikers')
@@ -452,6 +496,37 @@ export default function AccountPage() {
     void loadData()
   }, [])
 
+  useEffect(() => {
+  try {
+    const storedSubmissionIds = window.localStorage.getItem(
+      'dismissedRejectedSubmissionNoticeIds'
+    )
+    const storedCorrectionIds = window.localStorage.getItem(
+      'dismissedRejectedCorrectionNoticeIds'
+    )
+
+    if (storedSubmissionIds) {
+      const parsed = JSON.parse(storedSubmissionIds)
+      if (Array.isArray(parsed)) {
+        setDismissedSubmissionNoticeIds(
+          parsed.filter((value) => typeof value === 'number')
+        )
+      }
+    }
+
+    if (storedCorrectionIds) {
+      const parsed = JSON.parse(storedCorrectionIds)
+      if (Array.isArray(parsed)) {
+        setDismissedCorrectionNoticeIds(
+          parsed.filter((value) => typeof value === 'number')
+        )
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load dismissed admin notices from localStorage', error)
+  }
+}, [])
+
   async function handleProfileImageUpload(file: File) {
     try {
       const {
@@ -538,6 +613,36 @@ export default function AccountPage() {
       setProfileSaveError(error?.message ?? 'Unbekannter Fehler')
     } finally {
       setProfileSaving(false)
+    }
+  }
+
+  function dismissSubmissionNotice(id: number) {
+    const updated = [...dismissedSubmissionNoticeIds, id]
+
+    setDismissedSubmissionNoticeIds(updated)
+
+    try {
+      window.localStorage.setItem(
+        'dismissedRejectedSubmissionNoticeIds',
+        JSON.stringify(updated)
+      )
+    } catch (error) {
+      console.error('Failed to store dismissed submission notice', error)
+    }
+  }
+
+  function dismissCorrectionNotice(id: number) {
+    const updated = [...dismissedCorrectionNoticeIds, id]
+
+    setDismissedCorrectionNoticeIds(updated)
+
+    try {
+      window.localStorage.setItem(
+        'dismissedRejectedCorrectionNoticeIds',
+        JSON.stringify(updated)
+      )
+    } catch (error) {
+      console.error('Failed to store dismissed correction notice', error)
     }
   }
 
@@ -893,6 +998,89 @@ export default function AccountPage() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {(rejectedSubmissionNotices.some(
+          (notice) => !dismissedSubmissionNoticeIds.includes(notice.id)
+        ) ||
+          rejectedCorrectionNotices.some(
+            (notice) => !dismissedCorrectionNoticeIds.includes(notice.id)
+          )) && (
+          <section className="mt-6 space-y-3">
+            {rejectedSubmissionNotices
+              .filter((notice) => !dismissedSubmissionNoticeIds.includes(notice.id))
+              .map((notice) => (
+                <div
+                  key={`submission-notice-${notice.id}`}
+                  className="rounded-2xl border border-red-400/20 bg-red-400/10 p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-red-200">
+                        <span aria-hidden="true">⚠️</span>
+                        <span>Ablehnung deiner Einreichung</span>
+                      </div>
+                      <div className="mt-1 text-sm text-red-100">
+                        Betroffen: {notice.activity_name ?? 'Eintrag'}
+                      </div>
+                      <div className="mt-2 text-sm text-red-100/90">
+                        {notice.admin_note ?? 'Es wurde kein Admin-Hinweis hinterlegt.'}
+                      </div>
+                      <div className="mt-2 text-xs text-red-200/70">
+                        {notice.reviewed_at
+                          ? `Geprüft am ${formatDate(notice.reviewed_at.slice(0, 10))}`
+                          : 'Geprüft'}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => dismissSubmissionNotice(notice.id)}
+                      className="shrink-0 rounded-xl border border-red-300/20 bg-black/10 px-3 py-1.5 text-xs text-red-100 transition hover:bg-black/20"
+                    >
+                      Schließen
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            {rejectedCorrectionNotices
+              .filter((notice) => !dismissedCorrectionNoticeIds.includes(notice.id))
+              .map((notice) => (
+                <div
+                  key={`correction-notice-${notice.id}`}
+                  className="rounded-2xl border border-orange-400/20 bg-orange-400/10 p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                     <div className="flex items-center gap-2 text-sm font-semibold text-red-200">
+                       <span aria-hidden="true">⚠️</span>
+                       <span>Ablehnung deiner Bearbeitung</span>
+                     </div> 
+                      <div className="mt-1 text-sm text-orange-100">
+                        Betroffen: {notice.activity_name ?? 'Eintrag'}
+                      </div>
+                      <div className="mt-2 text-sm text-orange-100/90">
+                        {notice.admin_note ?? 'Es wurde kein Admin-Hinweis hinterlegt.'}
+                      </div>
+                      <div className="mt-2 text-xs text-orange-200/70">
+                        {notice.reviewed_at
+                          ? `Geprüft am ${formatDate(notice.reviewed_at.slice(0, 10))}`
+                          : 'Geprüft'}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => dismissCorrectionNotice(notice.id)}
+                      className="shrink-0 rounded-xl border border-orange-300/20 bg-black/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-black/20"
+                    >
+                      Schließen
+                    </button>
+                  </div>
+                </div>
+              ))}
           </section>
         )}
 
