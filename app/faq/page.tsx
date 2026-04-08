@@ -108,7 +108,7 @@ export default function FAQPage() {
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Kann ich auch Wanderungen aus dem Vorjahr angeben.</h2>
+            <h2 className="font-semibold text-lg">Kann ich auch Wanderungen aus dem Vorjahr angeben?</h2>
             <p className="text-stone-400 mt-2">
               Nein. Wir berücksichtigen nur Einträge aus der aktuellen Saison/Kalenderjahr.
             </p>

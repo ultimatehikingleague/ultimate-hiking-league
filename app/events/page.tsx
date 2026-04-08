@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabase } from '../lib/supabase'
+import EventsFilterClient from '../components/EventsFilterClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -239,11 +240,7 @@ export default async function EventsPage() {
           </div>
 
           {upcomingEvents.length > 0 ? (
-            <div className="grid gap-4 xl:grid-cols-2">
-              {upcomingEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
+            <EventsFilterClient events={upcomingEvents} />
           ) : (
             <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
               Aktuell sind keine kommenden Events hinterlegt.
