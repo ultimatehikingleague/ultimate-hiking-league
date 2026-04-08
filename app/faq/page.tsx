@@ -48,6 +48,13 @@ export default function FAQPage() {
           </div>
 
           <div>
+            <h2 className="font-semibold text-lg">Wie kann ich meinen angezeigten Namen von pseudo in bürgerlich ändern?</h2>
+            <p className="text-stone-400 mt-2">
+              Schreibe uns bitte eine E-Mail an ultimatehikingleague@gmail.com
+            </p>
+          </div>
+
+          <div>
             <h2 className="font-semibold text-lg">Kann ich auch GPX Dateien hochladen?</h2>
             <p className="text-stone-400 mt-2">
               Nein. Am besten nur Screenshots oder Fotos mit allen relevanten Daten. Bei Events reicht auch eine 
