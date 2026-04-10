@@ -85,6 +85,11 @@ function getEventDisplayName(event: { event_name?: string | null } | undefined) 
   return 'Privater Eintrag'
 }
 
+function formatLeagueKm(value: number | null | undefined) {
+  const safeValue = typeof value === 'number' && !Number.isNaN(value) ? value : 0
+  return Math.round(safeValue).toLocaleString('de-DE')
+}
+
 type HikerRow = {
   id: number
   display_name: string
@@ -167,6 +172,16 @@ function RankingColumn({
 }
 
 export default async function Home() {
+    const { data: siteStatsRow, error: siteStatsError } = await supabase
+    .from('site_stats')
+    .select('key, value_numeric')
+    .eq('key', 'total_km')
+    .single()
+
+  const totalLeagueKm = siteStatsError
+    ? 0
+    : parseFloat(String(siteStatsRow?.value_numeric ?? '0'))
+
   const { data: globalData } = await supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
@@ -278,6 +293,21 @@ export default async function Home() {
       </section>
 
       <div className="mx-auto max-w-7xl px-6 pb-8 md:px-10">
+               <section className="mb-8 rounded-[1.75rem] border border-white/8 bg-white/[0.03] px-6 py-5 shadow-lg shadow-black/10 backdrop-blur-sm">
+                  <div className="text-center">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
+                      Liga-Stand
+                    </div>
+
+                    <p className="mt-2 text-base text-stone-300 md:text-lg">
+                      Alles zählt. Und zusammen habt ihr schon {' '}
+                      <span className="font-semibold text-white">
+                        {formatLeagueKm(totalLeagueKm)} Kilometer
+                      </span>{' '}
+                      zurückgelegt.
+                    </p>
+                  </div>
+                </section>         
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
