@@ -136,6 +136,13 @@ export default async function EventDetailPage({
             </Link>
 
             <Link
+              href="/leaderboard"
+              className="text-sm text-stone-400 transition hover:text-white"
+            >
+              ← Zurück zu Ranglisten
+            </Link>
+
+            <Link
               href="/events"
               className="text-sm text-stone-400 transition hover:text-white"
             >
@@ -219,12 +226,20 @@ export default async function EventDetailPage({
         <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent to-[#141312]" />
 
         <div className="relative z-10 mx-auto max-w-6xl px-6 pb-16 pt-12 md:px-10 md:pb-24 md:pt-16">
+          
           <div className="flex flex-wrap gap-4">
             <Link
               href="/"
               className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
             >
               ← Zurück zur Startseite
+            </Link>
+
+            <Link
+              href="/leaderboard"
+              className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
+            >
+              ← Zurück zu Ranglisten
             </Link>
 
             <Link
