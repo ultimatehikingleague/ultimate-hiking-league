@@ -295,7 +295,7 @@ export default async function Home() {
           <div className="grid gap-4 xl:grid-cols-4">
             <RankingColumn
               title="Top 10 Europa"
-              href="/"
+              href="/leaderboard/overall"
               hikers={(globalData ?? []) as HikerRow[]}
             />
             <RankingColumn
