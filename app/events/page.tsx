@@ -197,16 +197,16 @@ export default async function EventsPage() {
             </div>
 
             <div className="mx-auto max-w-5xl text-center">
-              <div className="mb-0 text-sm font-semibold uppercase tracking-[0.30em] text-stone-200 md:text-base">
+              <div className="mb-4 text-sm font-semibold uppercase tracking-[0.30em] text-stone-200 md:text-base">
                 Ultimate European Hiking League
               </div>
 
               <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
-                Events 2026
+                Wanderevents 2026 in Europa
               </h1>
 
               <p className="mx-auto mt-5 max-w-3xl text-lg font-medium text-stone-200">
-                Die nächsten Märsche, Highlights und Liga-Termine auf einen Blick.
+                Eine Übersicht aktueller Wanderevents mit allen wichtigen Infos zu Datum und Distanzen.
               </p>
             </div>
 
