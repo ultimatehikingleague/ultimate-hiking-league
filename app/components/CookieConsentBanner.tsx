@@ -32,8 +32,9 @@ export default function CookieConsentBanner() {
 
   function saveConsent(value: Exclude<ConsentValue, null>) {
     window.localStorage.setItem(CONSENT_KEY, value)
+    window.dispatchEvent(new Event('uhl-consent-updated'))
     setConsent(value)
-  }
+    }
 
   if (!mounted || consent) {
     return null
