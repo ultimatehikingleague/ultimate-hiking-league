@@ -64,6 +64,9 @@ export default function RootLayout({
                 <a href="/disclaimer" className="hover:text-white transition">
                   Disclaimer
                 </a>
+                <a href="/cookie-einstellungen" className="hover:text-white transition">
+                  Cookie-Einstellungen
+                </a>
               </div>
             </div>
           </footer>
