@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 // @ts-ignore
 import "./globals.css";
-
+import CookieConsentBanner from "./components/CookieConsentBanner";
+import GoogleAnalyticsLoader from "./components/GoogleAnalyticsLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,8 @@ export default function RootLayout({
       >
         <div className="flex min-h-screen flex-col">
           <main className="flex-1">{children}</main>
+          <CookieConsentBanner />
+          <GoogleAnalyticsLoader />
 
          <footer className="border-t border-white/10 px-6 py-6 text-sm text-stone-500">
             <div className="mx-auto max-w-6xl">
