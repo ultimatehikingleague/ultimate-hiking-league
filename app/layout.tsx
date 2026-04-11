@@ -57,9 +57,9 @@ export default function RootLayout({
         <div className="flex min-h-screen flex-col">
           <main className="flex-1">{children}</main>
 
-          <footer className="border-t border-white/10 px-6 py-6 text-sm text-stone-500">
+         <footer className="border-t border-white/10 px-6 py-6 text-sm text-stone-500">
             <div className="mx-auto max-w-6xl">
-              <div className="flex flex-wrap gap-6">
+              <div className="flex flex-wrap items-center gap-6">
                 <a href="/impressum" className="hover:text-white transition">
                   Impressum
                 </a>
@@ -69,11 +69,10 @@ export default function RootLayout({
                 <a href="/kontakt" className="hover:text-white transition">
                   Kontakt
                 </a>
+                <a href="/disclaimer" className="hover:text-white transition">
+                  Disclaimer
+                </a>
               </div>
-
-              <p className="mt-4 text-xs leading-5 text-stone-600">
-                Disclaimer
-              </p>
             </div>
           </footer>
         </div>
