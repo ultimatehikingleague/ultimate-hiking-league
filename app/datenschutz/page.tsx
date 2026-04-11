@@ -178,7 +178,7 @@ export default function DatenschutzPage() {
             beruht, kannst du diese jederzeit mit Wirkung für die Zukunft
             widerrufen. Die DSGVO regelt diese Betroffenenrechte in Art. 15 bis
             21; zusätzlich besteht das Recht auf Datenübertragbarkeit nach Art.
-            20 DSGVO.  [oai_citation:1‡EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj?locale=de&utm_source=chatgpt.com)
+            20 DSGVO. 
           </p>
 
           <p>
