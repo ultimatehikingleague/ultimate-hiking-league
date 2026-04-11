@@ -58,16 +58,22 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
 
           <footer className="border-t border-white/10 px-6 py-6 text-sm text-stone-500">
-            <div className="mx-auto flex max-w-6xl flex-wrap gap-6">
-              <a href="/impressum" className="hover:text-white transition">
-                Impressum
-              </a>
-              <a href="/datenschutz" className="hover:text-white transition">
-                Datenschutz
-              </a>
-              <a href="/kontakt" className="hover:text-white transition">
-                Kontakt
-              </a>
+            <div className="mx-auto max-w-6xl">
+              <div className="flex flex-wrap gap-6">
+                <a href="/impressum" className="hover:text-white transition">
+                  Impressum
+                </a>
+                <a href="/datenschutz" className="hover:text-white transition">
+                  Datenschutz
+                </a>
+                <a href="/kontakt" className="hover:text-white transition">
+                  Kontakt
+                </a>
+              </div>
+
+              <p className="mt-4 text-xs leading-5 text-stone-600">
+                Disclaimer
+              </p>
             </div>
           </footer>
         </div>
