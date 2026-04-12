@@ -263,17 +263,19 @@ export default function EventsFilterClient({
 
       {groupedEvents.length > 0 ? (
         <>
-          <div className="sticky top-0 z-20 mb-8 py-2">
-            <div className="flex flex-wrap gap-2 rounded-[1.5rem] border border-white/10 bg-[#141312]/85 p-3 backdrop-blur-xl">
-              {groupedEvents.map((group) => (
-                <a
-                  key={group.key}
-                  href={`#month-${group.key}`}
-                  className="whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/[0.08]"
-                >
-                  {group.label}
-                </a>
-              ))}
+          <div className="sticky top-0 z-20 mb-8 -mx-2 px-2 py-2">
+            <div className="overflow-x-auto md:overflow-visible">
+              <div className="flex w-max gap-2 rounded-[1.5rem] border border-white/10 bg-[#141312]/85 p-2 backdrop-blur-xl md:w-auto md:flex-wrap md:p-3">
+                {groupedEvents.map((group) => (
+                  <a
+                    key={group.key}
+                    href={`#month-${group.key}`}
+                    className="whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-200 transition hover:border-white/20 hover:bg-white/[0.08] md:px-4 md:py-2 md:text-sm"
+                  >
+                    {group.label}
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
 
