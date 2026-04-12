@@ -21,6 +21,12 @@ type CountryOption = {
   count: number
 }
 
+type MonthGroup = {
+  key: string
+  label: string
+  events: EventItem[]
+}
+
 function countryToFlag(countryCode: string | null) {
   if (!countryCode) return ''
   const code = countryCode.trim().toUpperCase()
@@ -36,6 +42,38 @@ function countryNameFromCode(countryCode: string | null) {
 
   const names = new Intl.DisplayNames(['de'], { type: 'region' })
   return names.of(code) ?? code
+}
+
+function parseGermanDate(dateString: string) {
+  const [day, month, year] = dateString.split('.')
+  const parsedDay = Number(day)
+  const parsedMonth = Number(month)
+  const parsedYear = Number(year)
+
+  if (!parsedDay || !parsedMonth || !parsedYear) {
+    return null
+  }
+
+  return new Date(parsedYear, parsedMonth - 1, parsedDay)
+}
+
+function getMonthKey(dateString: string) {
+  const date = parseGermanDate(dateString)
+  if (!date) return 'unknown'
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
+
+function getMonthLabel(dateString: string) {
+  const date = parseGermanDate(dateString)
+  if (!date) return 'Ohne Datum'
+
+  return new Intl.DateTimeFormat('de-DE', {
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
 }
 
 function EventCard({ event }: { event: EventItem }) {
@@ -144,6 +182,29 @@ export default function EventsFilterClient({
     })
   }, [events, selectedCountry, searchQuery])
 
+  const groupedEvents = useMemo<MonthGroup[]>(() => {
+    const groups = new Map<string, MonthGroup>()
+
+    filteredEvents.forEach((event) => {
+      const key = getMonthKey(event.date)
+      const label = getMonthLabel(event.date)
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          label,
+          events: [],
+        })
+      }
+
+      groups.get(key)?.events.push(event)
+    })
+
+    return Array.from(groups.values()).sort((a, b) =>
+      a.key.localeCompare(b.key)
+    )
+  }, [filteredEvents])
+
   return (
     <>
       <div className="mb-6 flex flex-col gap-4">
@@ -200,12 +261,47 @@ export default function EventsFilterClient({
         <span>{filteredEvents.length} Events</span>
       </div>
 
-      {filteredEvents.length > 0 ? (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {filteredEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
+      {groupedEvents.length > 0 ? (
+        <>
+          <div className="sticky top-0 z-20 mb-8 py-2">
+            <div className="flex flex-wrap gap-2 rounded-[1.5rem] border border-white/10 bg-[#141312]/85 p-3 backdrop-blur-xl">
+              {groupedEvents.map((group) => (
+                <a
+                  key={group.key}
+                  href={`#month-${group.key}`}
+                  className="whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/[0.08]"
+                >
+                  {group.label}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-14">
+            {groupedEvents.map((group) => (
+              <section
+                key={group.key}
+                id={`month-${group.key}`}
+                className="scroll-mt-32 pt-6 first:pt-0"
+              >
+                <div className="mb-6 flex items-center justify-between">
+                  <h3 className="text-2xl font-bold capitalize text-white">
+                    {group.label}
+                  </h3>
+                  <span className="text-xs uppercase tracking-[0.2em] text-stone-500">
+                    {group.events.length} Events
+                  </span>
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {group.events.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </>
       ) : (
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
           Keine passenden kommenden Events gefunden.
