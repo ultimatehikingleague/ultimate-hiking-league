@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 type Props = {
   recordId: number
   hikerId: number
+  isOfficialEvent: boolean
   initialActivityName: string
   initialActivityDate: string | null
   initialOfficialDistanceKm: number | null
@@ -20,6 +21,7 @@ type Props = {
 export default function RecordEditRequestForm({
   recordId,
   hikerId,
+  isOfficialEvent,
   initialActivityName,
   initialActivityDate,
   initialOfficialDistanceKm,
@@ -52,6 +54,7 @@ export default function RecordEditRequestForm({
   const [location, setLocation] = useState(initialLocation || '')
   const [recordSource, setRecordSource] = useState(initialRecordSource || '')
   const [notes, setNotes] = useState('')
+  const [proofFile, setProofFile] = useState<File | null>(null)
 
   async function handleSubmit() {
     setSaving(true)
@@ -102,6 +105,7 @@ export default function RecordEditRequestForm({
     } finally {
       setSaving(false)
     }
+    
   }
 
   if (!open) {
@@ -124,60 +128,84 @@ export default function RecordEditRequestForm({
     )
   }
 
-  return (
+    return (
     <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
       <div className="mb-4 text-sm font-medium text-white">
         Eintrag bearbeiten
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div>
-          <label className="mb-2 block text-sm text-stone-300">
-            Eventname
-          </label>
-          <input
-            type="text"
-            value={activityName}
-            onChange={(e) => setActivityName(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-          />
-        </div>
+        {isOfficialEvent ? (
+          <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/10 p-4">
+            <div className="mb-3 text-xs uppercase tracking-[0.18em] text-stone-500">
+              Feste Eventdaten
+            </div>
 
-        <div>
-          <label className="mb-2 block text-sm text-stone-300">
-            Datum
-          </label>
-          <input
-            type="date"
-            value={activityDate}
-            onChange={(e) => setActivityDate(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-          />
-        </div>
+            <div className="grid gap-3 md:grid-cols-2 text-sm text-stone-200">
+              <div>
+                <div className="text-stone-500">Eventname</div>
+                <div className="mt-1">{activityName || '—'}</div>
+              </div>
 
-        <div>
-          <label className="mb-2 block text-sm text-stone-300">
-            Offizielle Distanz
-          </label>
-          <input
-            type="text"
-            value={officialDistanceKm}
-            onChange={(e) => setOfficialDistanceKm(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-          />
-        </div>
+              <div>
+                <div className="text-stone-500">Datum</div>
+                <div className="mt-1">{activityDate || '—'}</div>
+              </div>
 
-        <div>
-          <label className="mb-2 block text-sm text-stone-300">
-            Gelaufene Distanz
-          </label>
-          <input
-            type="text"
-            value={actualDistanceKm}
-            onChange={(e) => setActualDistanceKm(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-          />
-        </div>
+              <div>
+                <div className="text-stone-500">Offizielle Distanz</div>
+                <div className="mt-1">{officialDistanceKm || '—'}</div>
+              </div>
+
+              <div>
+                <div className="text-stone-500">Gelaufene Distanz</div>
+                <div className="mt-1">{actualDistanceKm || '—'}</div>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-stone-500">
+              Diese Eventdaten wurden bereits geprüft und können nicht nachträglich geändert werden.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div>
+              <label className="mb-2 block text-sm text-stone-300">
+                Titel
+              </label>
+              <input
+                type="text"
+                value={activityName}
+                onChange={(e) => setActivityName(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm text-stone-300">
+                Datum
+              </label>
+              <input
+                type="date"
+                value={activityDate}
+                onChange={(e) => setActivityDate(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm text-stone-300">
+                Distanz
+              </label>
+              <input
+                type="text"
+                value={actualDistanceKm}
+                onChange={(e) => setActualDistanceKm(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+              />
+            </div>
+          </>
+        )}
 
         <div>
           <label className="mb-2 block text-sm text-stone-300">
@@ -237,6 +265,21 @@ export default function RecordEditRequestForm({
             value={recordSource}
             onChange={(e) => setRecordSource(e.target.value)}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="mb-2 block text-sm text-stone-300">
+            Neuer Nachweis <span className="text-stone-500">optional</span>
+          </label>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,.pdf"
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null
+              setProofFile(file)
+            }}
+            className="block w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-stone-300 file:mr-4 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/15"
           />
         </div>
 

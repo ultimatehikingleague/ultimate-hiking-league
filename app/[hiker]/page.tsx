@@ -594,12 +594,39 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                       </div>
                     </div>
 
-                    <CorrectionRequestForm
+                   <CorrectionRequestForm
                       recordId={record.id}
                       hikerId={hikerData.id}
-                      currentDistance={record.distance_km}
-                      currentTimeText={record.time_text}
-                    />
+                      isOfficialEvent={!!record.event_master_id}
+                      initialActivityName={
+                        event?.title ??
+                        record.custom_title ??
+                        ''
+                      }
+                      initialActivityDate={
+                        event?.event_date ??
+                        record.activity_date ??
+                        ''
+                      }
+                      initialOfficialDistanceKm={record.distance_km}
+                      initialActualDistanceKm={record.distance_km}
+                      initialElapsedTimeText={record.time_text}
+                      initialElevationGain={record.elevation_gain}
+                      initialCountry={
+                        event?.country ??
+                        record.custom_country ??
+                        ''
+                      }
+                      initialLocation={
+                        event?.city ??
+                        record.custom_location ??
+                        ''
+                      }
+                      initialRecordSource={
+                        event?.brand ??
+                        ''
+                      }
+                    /> 
                   </div>
                 )
               })}
