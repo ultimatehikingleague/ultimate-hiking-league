@@ -94,29 +94,29 @@ export default function RecordSubmissionForm({
         return
       }
 
-      if (!activityDate.trim() || !elapsedTimeText.trim() || !proofFile) {
-  setErrorMessage('Bitte fülle alle Pflichtfelder aus.')
-  setSubmitting(false)
-  return
-}
+      if (!activityDate.trim() || !proofFile) {
+        setErrorMessage('Bitte fülle alle Pflichtfelder aus.')
+        setSubmitting(false)
+        return
+      }
 
-if (isOfficialEvent && !activityName.trim()) {
-  setErrorMessage('Bitte wähle bzw. benenne ein offizielles Event.')
-  setSubmitting(false)
-  return
-}
+      if (isOfficialEvent && !activityName.trim()) {
+        setErrorMessage('Bitte wähle bzw. benenne ein offizielles Event.')
+        setSubmitting(false)
+        return
+      }
 
-if (isOfficialEvent && (!officialDistanceKm.trim() || !actualDistanceKm.trim())) {
-  setErrorMessage('Bitte fülle beide Distanzfelder aus.')
-  setSubmitting(false)
-  return
-}
+      if (isOfficialEvent && (!officialDistanceKm.trim() || !actualDistanceKm.trim())) {
+        setErrorMessage('Bitte fülle beide Distanzfelder aus.')
+        setSubmitting(false)
+        return
+      }
 
-if (!isOfficialEvent && !actualDistanceKm.trim()) {
-  setErrorMessage('Bitte gib deine gelaufene Distanz an.')
-  setSubmitting(false)
-  return
-}
+      if (!isOfficialEvent && !actualDistanceKm.trim()) {
+        setErrorMessage('Bitte gib deine gelaufene Distanz an.')
+        setSubmitting(false)
+        return
+      }
 
       
 
@@ -371,7 +371,7 @@ if (isOfficialEvent) {
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
-              Gesamtzeit *
+              Gesamtzeit 
             </label>
             <input
               type="text"
