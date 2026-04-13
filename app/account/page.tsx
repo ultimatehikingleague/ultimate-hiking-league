@@ -1219,6 +1219,7 @@ export default function AccountPage() {
                   <RecordEditRequestForm
                           recordId={record.id}
                           hikerId={hiker.id}
+                          isOfficialEvent={!!record.event_master_id}
                           initialActivityName={record.event_name}
                           initialActivityDate={record.activity_date}
                           initialOfficialDistanceKm={record.distance_km}
