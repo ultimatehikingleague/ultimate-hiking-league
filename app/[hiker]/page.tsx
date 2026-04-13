@@ -45,10 +45,105 @@ function formatDate(dateText: string | null) {
   return date.toLocaleDateString('de-DE')
 }
 
-function countryToFlag(country: string | null) {
-  if (!country) return ''
-  const code = country.trim().toUpperCase()
+function normalizeCountryCode(input: string | null | undefined) {
+  const value = (input ?? '').trim().toLowerCase()
+
+  if (!value) return ''
+
+  const map: Record<string, string> = {
+    de: 'DE',
+    deutschland: 'DE',
+    germany: 'DE',
+
+    at: 'AT',
+    österreich: 'AT',
+    oesterreich: 'AT',
+    austria: 'AT',
+
+    ch: 'CH',
+    schweiz: 'CH',
+    switzerland: 'CH',
+    suisse: 'CH',
+
+    es: 'ES',
+    spanien: 'ES',
+    spain: 'ES',
+
+    fr: 'FR',
+    frankreich: 'FR',
+    france: 'FR',
+
+    it: 'IT',
+    italien: 'IT',
+    italy: 'IT',
+
+    be: 'BE',
+    belgien: 'BE',
+    belgium: 'BE',
+
+    nl: 'NL',
+    niederlande: 'NL',
+    netherlands: 'NL',
+    holland: 'NL',
+
+    lu: 'LU',
+    luxemburg: 'LU',
+    luxembourg: 'LU',
+
+    li: 'LI',
+    liechtenstein: 'LI',
+
+    cz: 'CZ',
+    tschechien: 'CZ',
+    czechia: 'CZ',
+    'czech republic': 'CZ',
+
+    hu: 'HU',
+    ungarn: 'HU',
+    hungary: 'HU',
+
+    gb: 'GB',
+    uk: 'GB',
+    england: 'GB',
+    grossbritannien: 'GB',
+    großbritannien: 'GB',
+    'united kingdom': 'GB',
+
+    pl: 'PL',
+    polen: 'PL',
+    poland: 'PL',
+
+    pt: 'PT',
+    portugal: 'PT',
+
+    hr: 'HR',
+    kroatien: 'HR',
+    croatia: 'HR',
+
+    si: 'SI',
+    slowenien: 'SI',
+    slovenia: 'SI',
+
+    sk: 'SK',
+    slowakei: 'SK',
+    slovakia: 'SK',
+
+    ru: 'RU',
+    russland: 'RU',
+    russia: 'RU',
+
+    ua: 'UA',
+    ukraine: 'UA',
+  }
+
+  return map[value] ?? (value.length === 2 ? value.toUpperCase() : '')
+}
+
+function countryToFlag(country: string | null | undefined) {
+  const code = normalizeCountryCode(country)
+
   if (code.length !== 2) return ''
+
   return String.fromCodePoint(
     ...[...code].map((char) => 127397 + char.charCodeAt(0))
   )

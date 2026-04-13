@@ -997,7 +997,7 @@ export default function AdminPage() {
         division: null,
         record_status: 'verified_admin_submission',
         verified: true,
-        time_text: draft.elapsed_time_text.trim(),
+        time_text: hasTime ? draft.elapsed_time_text.trim() : null,
         record_source: draft.record_source.trim() || 'user_submission',
         is_corrected: false,
         elevation_gain:
@@ -1041,7 +1041,7 @@ export default function AdminPage() {
           official_distance_km: officialDistance,
           actual_distance_km: parsedDistance,
           distance_km: parsedDistance,
-          elapsed_time_text: draft.elapsed_time_text.trim(),
+          elapsed_time_text: hasTime ? draft.elapsed_time_text.trim() : null,
           elevation_gain:
             parsedElevation !== null && !Number.isNaN(parsedElevation)
               ? parsedElevation
@@ -1081,7 +1081,7 @@ export default function AdminPage() {
                 official_distance_km: officialDistance,
                 actual_distance_km: parsedDistance,
                 distance_km: parsedDistance,
-                elapsed_time_text: draft.elapsed_time_text.trim(),
+                elapsed_time_text: hasTime ? draft.elapsed_time_text.trim() : null,
                 elevation_gain:
                   parsedElevation !== null && !Number.isNaN(parsedElevation)
                     ? parsedElevation
