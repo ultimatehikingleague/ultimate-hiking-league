@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+type Mode = 'login' | 'register' | 'forgot_password'
+
 export default function LoginPage() {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,7 +27,6 @@ export default function LoginPage() {
       if (error) {
         setMessage(`Fehler: ${error.message}`)
       } else {
-        // 👉 Welcome-Mail triggern
         await fetch('/api/send-submission-email', {
           method: 'POST',
           headers: {
@@ -39,6 +40,24 @@ export default function LoginPage() {
 
         setMessage('Registrierung erfolgreich. Du kannst dich jetzt einloggen.')
         setMode('login')
+        setPassword('')
+      }
+    } else if (mode === 'forgot_password') {
+      const redirectTo =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/reset-password`
+          : undefined
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      })
+
+      if (error) {
+        setMessage(`Fehler: ${error.message}`)
+      } else {
+        setMessage(
+          'Wenn ein Konto mit dieser E-Mail existiert, wurde ein Link zum Zurücksetzen des Passworts versendet.'
+        )
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
@@ -57,6 +76,20 @@ export default function LoginPage() {
     setLoading(false)
   }
 
+  const title =
+    mode === 'login'
+      ? 'Einloggen'
+      : mode === 'register'
+      ? 'Registrieren'
+      : 'Passwort vergessen'
+
+  const subtitle =
+    mode === 'login'
+      ? 'Melde dich an, um später dein Profil zu übernehmen.'
+      : mode === 'register'
+      ? 'Erstelle deinen Zugang zur Liga.'
+      : 'Gib deine E-Mail-Adresse ein, um dein Passwort zurückzusetzen.'
+
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
       <div className="mx-auto max-w-xl">
@@ -74,14 +107,8 @@ export default function LoginPage() {
               alt="Ultimate Hiking League"
               className="mx-auto h-24 w-24 object-contain opacity-95"
             />
-            <h1 className="mt-4 text-3xl font-bold text-white">
-              {mode === 'login' ? 'Einloggen' : 'Registrieren'}
-            </h1>
-            <p className="mt-2 text-sm text-stone-400">
-              {mode === 'login'
-                ? 'Melde dich an, um später dein Profil zu übernehmen.'
-                : 'Erstelle deinen Zugang zur Liga.'}
-            </p>
+            <h1 className="mt-4 text-3xl font-bold text-white">{title}</h1>
+            <p className="mt-2 text-sm text-stone-400">{subtitle}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -98,18 +125,20 @@ export default function LoginPage() {
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-stone-300">
-                Passwort
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-white/25"
-              />
-            </div>
+            {mode !== 'forgot_password' && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-300">
+                  Passwort
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-white/25"
+                />
+              </div>
+            )}
 
             <button
               type="submit"
@@ -120,9 +149,27 @@ export default function LoginPage() {
                 ? 'Lädt...'
                 : mode === 'login'
                 ? 'Einloggen'
-                : 'Registrieren'}
+                : mode === 'register'
+                ? 'Registrieren'
+                : 'Link zum Zurücksetzen senden'}
             </button>
           </form>
+
+          {mode === 'login' && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('forgot_password')
+                  setPassword('')
+                  setMessage('')
+                }}
+                className="text-sm text-stone-300 underline transition hover:text-white"
+              >
+                Passwort vergessen?
+              </button>
+            </div>
+          )}
 
           {message && (
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-stone-300">
@@ -145,7 +192,7 @@ export default function LoginPage() {
                   Jetzt registrieren
                 </button>
               </>
-            ) : (
+            ) : mode === 'register' ? (
               <>
                 Bereits registriert?{' '}
                 <button
@@ -157,6 +204,20 @@ export default function LoginPage() {
                   className="text-white underline transition hover:text-stone-300"
                 >
                   Zum Login
+                </button>
+              </>
+            ) : (
+              <>
+                Zurück zum{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login')
+                    setMessage('')
+                  }}
+                  className="text-white underline transition hover:text-stone-300"
+                >
+                  Login
                 </button>
               </>
             )}
