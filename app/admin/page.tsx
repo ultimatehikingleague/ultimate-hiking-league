@@ -900,8 +900,8 @@ export default function AdminPage() {
     setPageMessage('')
 
     try {
-      if (!draft.activity_date.trim() || !draft.elapsed_time_text.trim()) {
-        setPageMessage('Bitte fülle vor der Freigabe alle Pflichtfelder aus.')
+      if (!draft.activity_date.trim()) {
+        setPageMessage('Bitte fülle vor der Freigabe das Datum aus.')
         return
       }
 
@@ -955,15 +955,23 @@ export default function AdminPage() {
         return
       }
 
-      const timeHours = parseTimeTextToHours(draft.elapsed_time_text)
-      if (timeHours === null || timeHours <= 0) {
+      const hasTime = !!draft.elapsed_time_text.trim()
+
+      const timeHours = hasTime
+        ? parseTimeTextToHours(draft.elapsed_time_text)
+        : null
+
+      if (hasTime && (timeHours === null || timeHours <= 0)) {
         setPageMessage(
           'Gesamtzeit ist ungültig. Bitte nutze z. B. 08:34 oder 08:34:12.'
         )
         return
       }
 
-      const avgSpeed = Number((parsedDistance / timeHours).toFixed(2))
+      const avgSpeed =
+        timeHours && timeHours > 0
+          ? Number((parsedDistance / timeHours).toFixed(2))
+          : null
 
       let eventMasterId: number | null = null
       let eventDistanceId: number | null = null
