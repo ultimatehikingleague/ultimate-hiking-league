@@ -49,6 +49,11 @@ type EventItem = {
   country_code: string | null
 }
 
+type EventDistanceItem = {
+  id: number
+  distance_km: number | null
+}
+
 type RecordItem = {
   id: number
   distance_km: number | null
@@ -67,6 +72,8 @@ type RecordItem = {
   country: string
   country_code: string | null
   event_master_id: number | null
+  official_distance_km: number | null
+  actual_distance_km: number | null
 }
 
 
@@ -452,6 +459,7 @@ export default function AccountPage() {
         )
 
         let eventsMap = new Map<number, EventItem>()
+        let eventDistancesMap = new Map<number, EventDistanceItem>()
 
         if (eventMasterIds.length > 0) {
           const { data: eventRows } = await supabase
@@ -464,12 +472,38 @@ export default function AccountPage() {
               (eventRows as EventItem[]).map((event) => [event.id, event])
             )
           }
+
+          const eventDistanceIds = Array.from(
+            new Set(
+              rawRecords
+                .map((record) => record.event_distance_id)
+                .filter((id): id is number => typeof id === 'number')
+            )
+          )
+
+          if (eventDistanceIds.length > 0) {
+            const { data: eventDistanceRows } = await supabase
+              .from('event_distances')
+              .select('id, distance_km')
+              .in('id', eventDistanceIds)
+
+            if (eventDistanceRows) {
+              eventDistancesMap = new Map(
+                (eventDistanceRows as EventDistanceItem[]).map((row) => [row.id, row])
+              )
+            }
+          }
         }
 
         const mergedRecords: RecordItem[] = rawRecords.map((record) => {
           const event = record.event_master_id
             ? eventsMap.get(record.event_master_id)
             : null
+
+          const eventDistance =
+            record.event_distance_id != null
+              ? eventDistancesMap.get(record.event_distance_id)
+              : null
 
           return {
             ...record,
@@ -478,6 +512,8 @@ export default function AccountPage() {
             location: event?.city ?? record.custom_location ?? '—',
             country: event?.country ?? record.custom_country ?? '—',
             country_code: event?.country_code ?? null,
+            official_distance_km: event ? eventDistance?.distance_km ?? null : null,
+            actual_distance_km: record.distance_km ?? null,
           }
         })
 
@@ -1216,20 +1252,20 @@ export default function AccountPage() {
                     </div>
                   </div>
                   
-                  <RecordEditRequestForm
-                          recordId={record.id}
-                          hikerId={hiker.id}
-                          isOfficialEvent={!!record.event_master_id}
-                          initialActivityName={record.event_name}
-                          initialActivityDate={record.activity_date}
-                          initialOfficialDistanceKm={record.distance_km}
-                          initialActualDistanceKm={record.distance_km}
-                          initialElapsedTimeText={record.time_text}
-                          initialElevationGain={record.elevation_gain}
-                          initialCountry={record.country}
-                          initialLocation={record.location}
-                          initialRecordSource={record.record_source}
-                        />
+                 <RecordEditRequestForm
+                   recordId={record.id}
+                   hikerId={hiker.id}
+                   isOfficialEvent={!!record.event_master_id}
+                   initialActivityName={record.event_name}
+                   initialActivityDate={record.activity_date}
+                   initialOfficialDistanceKm={record.official_distance_km}
+                   initialActualDistanceKm={record.actual_distance_km}
+                   initialElapsedTimeText={record.time_text}
+                   initialElevationGain={record.elevation_gain}
+                   initialCountry={record.country}
+                   initialLocation={record.location}
+                   initialRecordSource={record.record_source}
+                 /> 
                 </div>
               ))
             )}
