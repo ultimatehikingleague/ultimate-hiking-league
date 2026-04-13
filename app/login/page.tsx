@@ -43,10 +43,7 @@ export default function LoginPage() {
         setPassword('')
       }
     } else if (mode === 'forgot_password') {
-      const redirectTo =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/reset-password`
-          : undefined
+      const redirectTo = 'https://www.ultimatehikingleague.com/reset-password'
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
