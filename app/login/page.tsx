@@ -73,6 +73,23 @@ export default function LoginPage() {
     setLoading(false)
   }
 
+  async function handleGoogleLogin() {
+    setLoading(true)
+    setMessage('')
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://www.ultimatehikingleague.com/login',
+      },
+    })
+
+    if (error) {
+      setMessage(`Fehler: ${error.message}`)
+      setLoading(false)
+    }
+  }
+
   const title =
     mode === 'login'
       ? 'Einloggen'
@@ -107,6 +124,38 @@ export default function LoginPage() {
             <h1 className="mt-4 text-3xl font-bold text-white">{title}</h1>
             <p className="mt-2 text-sm text-stone-400">{subtitle}</p>
           </div>
+
+                      {mode !== 'forgot_password' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleGoogleLogin}
+                            disabled={loading}
+                            className="mb-4 flex h-14 w-full items-center justify-center rounded-2xl border border-white/10 bg-white px-5 transition hover:bg-stone-100 disabled:opacity-60"
+                          >
+                            <div className="flex items-center gap-3">
+                              <img
+                                src="/google-g-logo.png"
+                                alt="Google"
+                                className="h-6 w-6 shrink-0"
+                              />
+                              <span className="text-sm font-semibold text-black">
+                                {mode === 'login'
+                                  ? 'Mit Google anmelden'
+                                  : 'Mit Google registrieren'}
+                              </span>
+                            </div>
+                          </button>
+
+                          <div className="mb-4 flex items-center gap-3">
+                            <div className="h-px flex-1 bg-white/10" />
+                            <span className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                              oder
+                            </span>
+                            <div className="h-px flex-1 bg-white/10" />
+                          </div>
+                        </>
+                      )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
