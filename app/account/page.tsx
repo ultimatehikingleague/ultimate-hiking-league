@@ -321,6 +321,7 @@ export default function AccountPage() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSaveMessage, setProfileSaveMessage] = useState('')
   const [profileSaveError, setProfileSaveError] = useState('')
+  const [showProfileMetaForm, setShowProfileMetaForm] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -389,6 +390,7 @@ export default function AccountPage() {
         setHiker(currentHiker)
         setProfileCountry(currentHiker.country ?? '')
         setProfileGender(currentHiker.gender ?? '')
+        setShowProfileMetaForm(!currentHiker.country || !currentHiker.gender)
 
         const currentTotalKm =
           typeof currentHiker.total_km === 'number' ? currentHiker.total_km : 0
@@ -645,6 +647,7 @@ export default function AccountPage() {
       )
 
       setProfileSaveMessage('Profilangaben wurden gespeichert.')
+      setShowProfileMetaForm(false)
     } catch (error: any) {
       setProfileSaveError(error?.message ?? 'Unbekannter Fehler')
     } finally {
@@ -904,69 +907,111 @@ export default function AccountPage() {
             </button>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-              <div className="grid flex-1 gap-4 md:grid-cols-2 xl:max-w-3xl">
-                <div>
-                  <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
-                    Staatsangehörigkeit
-                  </label>
-                  <select
-                    value={profileCountry}
-                    onChange={(e) => setProfileCountry(e.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-                  >
-                    <option value="">Bitte auswählen</option>
-                    {COUNTRY_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div
+            className={
+              showProfileMetaForm
+                ? 'mt-5 rounded-2xl border border-white/8 bg-black/10 px-4 py-4'
+                : 'mt-4'
+            }
+          >
+            {!showProfileMetaForm ? (
+              <div className="mt-1 flex items-center justify-between gap-3 text-sm">
+                <span className="text-stone-500">
+                  Profilangaben gespeichert
+                </span>
 
-                <div>
-                  <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
-                    Geschlecht
-                  </label>
-                  <select
-                    value={profileGender}
-                    onChange={(e) => setProfileGender(e.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
-                  >
-                    <option value="">Bitte auswählen</option>
-                    {GENDER_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-3">
                 <button
                   type="button"
-                  onClick={handleSaveProfileMeta}
-                  disabled={profileSaving}
-                  className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => {
+                    setProfileSaveMessage('')
+                    setProfileSaveError('')
+                    setShowProfileMetaForm(true)
+                  }}
+                  className="text-sm font-medium text-stone-300 underline underline-offset-4 transition hover:text-white"
                 >
-                  {profileSaving ? 'Speichert…' : 'Speichern'}
+                  Profil bearbeiten
                 </button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                  <div className="grid flex-1 gap-4 md:grid-cols-2 xl:max-w-3xl">
+                    <div>
+                      <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
+                        Staatsangehörigkeit
+                      </label>
+                      <select
+                        value={profileCountry}
+                        onChange={(e) => setProfileCountry(e.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">Bitte auswählen</option>
+                        {COUNTRY_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-            {profileSaveError ? (
-              <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                {profileSaveError}
-              </div>
-            ) : null}
+                    <div>
+                      <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
+                        Geschlecht
+                      </label>
+                      <select
+                        value={profileGender}
+                        onChange={(e) => setProfileGender(e.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
+                      >
+                        <option value="">Bitte auswählen</option>
+                        {GENDER_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-            {profileSaveMessage ? (
-              <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-                {profileSaveMessage}
-              </div>
-            ) : null}
+                  <div className="flex shrink-0 items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveProfileMeta}
+                      disabled={profileSaving}
+                      className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {profileSaving ? 'Speichert…' : 'Speichern'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileCountry(hiker.country ?? '')
+                        setProfileGender(hiker.gender ?? '')
+                        setProfileSaveMessage('')
+                        setProfileSaveError('')
+                        setShowProfileMetaForm(false)
+                      }}
+                      className="rounded-2xl border border-white/10 bg-transparent px-5 py-3 text-sm font-medium text-stone-300 transition hover:bg-white/[0.04] hover:text-white"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+
+                {profileSaveError ? (
+                  <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                    {profileSaveError}
+                  </div>
+                ) : null}
+
+                {profileSaveMessage ? (
+                  <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                    {profileSaveMessage}
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-7">
