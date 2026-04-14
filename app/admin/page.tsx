@@ -210,28 +210,130 @@ function normalizeCountryForEvent(input: string | null | undefined) {
     }
   }
 
-  if (['de', 'deutschland', 'germany'].includes(value)) {
-    return { name: 'Deutschland', code: 'DE' }
+  const countryMap: Record<string, { name: string; code: string }> = {
+    de: { name: 'Deutschland', code: 'DE' },
+    deutschland: { name: 'Deutschland', code: 'DE' },
+    germany: { name: 'Deutschland', code: 'DE' },
+
+    at: { name: 'Österreich', code: 'AT' },
+    osterreich: { name: 'Österreich', code: 'AT' },
+    österreich: { name: 'Österreich', code: 'AT' },
+    austria: { name: 'Österreich', code: 'AT' },
+
+    ch: { name: 'Schweiz', code: 'CH' },
+    schweiz: { name: 'Schweiz', code: 'CH' },
+    switzerland: { name: 'Schweiz', code: 'CH' },
+    suisse: { name: 'Schweiz', code: 'CH' },
+
+    fr: { name: 'Frankreich', code: 'FR' },
+    frankreich: { name: 'Frankreich', code: 'FR' },
+    france: { name: 'Frankreich', code: 'FR' },
+
+    es: { name: 'Spanien', code: 'ES' },
+    spanien: { name: 'Spanien', code: 'ES' },
+    spain: { name: 'Spanien', code: 'ES' },
+
+    it: { name: 'Italien', code: 'IT' },
+    italien: { name: 'Italien', code: 'IT' },
+    italy: { name: 'Italien', code: 'IT' },
+
+    be: { name: 'Belgien', code: 'BE' },
+    belgien: { name: 'Belgien', code: 'BE' },
+    belgium: { name: 'Belgien', code: 'BE' },
+
+    nl: { name: 'Niederlande', code: 'NL' },
+    niederlande: { name: 'Niederlande', code: 'NL' },
+    holland: { name: 'Niederlande', code: 'NL' },
+    netherlands: { name: 'Niederlande', code: 'NL' },
+
+    lu: { name: 'Luxemburg', code: 'LU' },
+    luxemburg: { name: 'Luxemburg', code: 'LU' },
+    luxembourg: { name: 'Luxemburg', code: 'LU' },
+
+    dk: { name: 'Dänemark', code: 'DK' },
+    danemark: { name: 'Dänemark', code: 'DK' },
+    dänemark: { name: 'Dänemark', code: 'DK' },
+    denmark: { name: 'Dänemark', code: 'DK' },
+
+    se: { name: 'Schweden', code: 'SE' },
+    schweden: { name: 'Schweden', code: 'SE' },
+    sweden: { name: 'Schweden', code: 'SE' },
+
+    no: { name: 'Norwegen', code: 'NO' },
+    norwegen: { name: 'Norwegen', code: 'NO' },
+    norway: { name: 'Norwegen', code: 'NO' },
+
+    fi: { name: 'Finnland', code: 'FI' },
+    finnland: { name: 'Finnland', code: 'FI' },
+    finland: { name: 'Finnland', code: 'FI' },
+
+    pl: { name: 'Polen', code: 'PL' },
+    polen: { name: 'Polen', code: 'PL' },
+    poland: { name: 'Polen', code: 'PL' },
+
+    cz: { name: 'Tschechien', code: 'CZ' },
+    tschechien: { name: 'Tschechien', code: 'CZ' },
+    czechia: { name: 'Tschechien', code: 'CZ' },
+    'czech republic': { name: 'Tschechien', code: 'CZ' },
+
+    sk: { name: 'Slowakei', code: 'SK' },
+    slowakei: { name: 'Slowakei', code: 'SK' },
+    slovakia: { name: 'Slowakei', code: 'SK' },
+
+    hu: { name: 'Ungarn', code: 'HU' },
+    ungarn: { name: 'Ungarn', code: 'HU' },
+    hungary: { name: 'Ungarn', code: 'HU' },
+
+    si: { name: 'Slowenien', code: 'SI' },
+    slowenien: { name: 'Slowenien', code: 'SI' },
+    slovenia: { name: 'Slowenien', code: 'SI' },
+
+    hr: { name: 'Kroatien', code: 'HR' },
+    kroatien: { name: 'Kroatien', code: 'HR' },
+    croatia: { name: 'Kroatien', code: 'HR' },
+
+    pt: { name: 'Portugal', code: 'PT' },
+    portugal: { name: 'Portugal', code: 'PT' },
+
+    ie: { name: 'Irland', code: 'IE' },
+    irland: { name: 'Irland', code: 'IE' },
+    ireland: { name: 'Irland', code: 'IE' },
+
+    gb: { name: 'Großbritannien', code: 'GB' },
+    uk: { name: 'Großbritannien', code: 'GB' },
+    grossbritannien: { name: 'Großbritannien', code: 'GB' },
+    großbritannien: { name: 'Großbritannien', code: 'GB' },
+    'united kingdom': { name: 'Großbritannien', code: 'GB' },
+    england: { name: 'Großbritannien', code: 'GB' },
+
+    ro: { name: 'Rumänien', code: 'RO' },
+    rumanien: { name: 'Rumänien', code: 'RO' },
+    rumänien: { name: 'Rumänien', code: 'RO' },
+    romania: { name: 'Rumänien', code: 'RO' },
+
+    bg: { name: 'Bulgarien', code: 'BG' },
+    bulgarien: { name: 'Bulgarien', code: 'BG' },
+    bulgaria: { name: 'Bulgarien', code: 'BG' },
+
+    gr: { name: 'Griechenland', code: 'GR' },
+    griechenland: { name: 'Griechenland', code: 'GR' },
+    greece: { name: 'Griechenland', code: 'GR' },
+
+    ee: { name: 'Estland', code: 'EE' },
+    estland: { name: 'Estland', code: 'EE' },
+    estonia: { name: 'Estland', code: 'EE' },
+
+    lv: { name: 'Lettland', code: 'LV' },
+    lettland: { name: 'Lettland', code: 'LV' },
+    latvia: { name: 'Lettland', code: 'LV' },
+
+    lt: { name: 'Litauen', code: 'LT' },
+    litauen: { name: 'Litauen', code: 'LT' },
+    lithuania: { name: 'Litauen', code: 'LT' },
   }
 
-  if (['ch', 'schweiz', 'switzerland', 'suisse'].includes(value)) {
-    return { name: 'Schweiz', code: 'CH' }
-  }
-
-  if (['at', 'osterreich', 'österreich', 'austria'].includes(value)) {
-    return { name: 'Österreich', code: 'AT' }
-  }
-
-  if (['es', 'spanien', 'spain'].includes(value)) {
-    return { name: 'Spanien', code: 'ES' }
-  }
-
-  if (['fr', 'frankreich', 'france'].includes(value)) {
-    return { name: 'Frankreich', code: 'FR' }
-  }
-
-  if (['it', 'italien', 'italy'].includes(value)) {
-    return { name: 'Italien', code: 'IT' }
+  if (countryMap[value]) {
+    return countryMap[value]
   }
 
   return {
@@ -355,7 +457,7 @@ async function findOrCreateEventMaster(
 ): Promise<{ eventMasterId: number; matched: boolean }> {
   const normalizedName = normalizeText(draft.activity_name)
   const normalizedLocation = getCanonicalLocation(draft.location)
-  const normalizedCountry = normalizeCountryInput(draft.country)
+  const normalizedCountryInputValue = normalizeCountryInput(draft.country)
 
   const { data: existingEvents, error: existingEventsError } = await supabase
     .from('events_master')
@@ -384,11 +486,11 @@ async function findOrCreateEventMaster(
         eventTitle.split(' ').some((part) => normalizedName.includes(part)))
 
     const sameCountry =
-      !normalizedCountry.name ||
+      !normalizedCountryInputValue.name ||
       !eventCountry.name ||
-      eventCountry.name === normalizedCountry.name ||
-      eventCountry.code === normalizedCountry.code ||
-      eventCountryCode === normalizedCountry.code
+      eventCountry.name === normalizedCountryInputValue.name ||
+      eventCountry.code === normalizedCountryInputValue.code ||
+      eventCountryCode === normalizedCountryInputValue.code
 
     const locationCompatible =
       !normalizedLocation ||
@@ -409,14 +511,17 @@ async function findOrCreateEventMaster(
 
   const slug = `${slugBase || 'event'}-${draft.activity_date}`
 
+  const { name: normalizedCountry, code: normalizedCountryCode } =
+    normalizeCountryForEvent(draft.country)
+
   const { data: createdEvent, error: createEventError } = await supabase
     .from('events_master')
     .insert({
       slug,
       title: draft.activity_name.trim(),
       city: draft.location.trim() || null,
-      country: draft.country.trim() || null,
-      country_code: draft.country.trim().toUpperCase() || null,
+      country: normalizedCountry,
+      country_code: normalizedCountryCode,
       event_date: draft.activity_date,
       brand:
         draft.submission_type === 'official_event'
