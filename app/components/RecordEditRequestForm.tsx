@@ -56,6 +56,23 @@ export default function RecordEditRequestForm({
   const [notes, setNotes] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
 
+  async function uploadCorrectionProof(
+    filePath: string,
+    proofFile: File
+  ) {
+    const fileBuffer = await proofFile.arrayBuffer()
+
+    const { error } = await supabase.storage
+      .from('record-proofs')
+      .upload(filePath, fileBuffer, {
+        upsert: false,
+        contentType: proofFile.type || 'application/octet-stream',
+        cacheControl: '3600',
+      })
+
+    return error
+  }
+
   async function handleSubmit() {
     setSaving(true)
     setMessage('')
@@ -68,6 +85,27 @@ export default function RecordEditRequestForm({
       if (!session?.user) {
         setMessage('Keine aktive Session gefunden.')
         return
+      }
+
+      let proofUrl: string | null = null
+
+      if (proofFile) {
+        const fileExt = proofFile.name.split('.').pop()?.toLowerCase() ?? 'file'
+        const safeExt = fileExt.replace(/[^a-z0-9]/g, '') || 'file'
+        const filePath = `record-corrections/${hikerId}/${session.user.id}-${recordId}-${Date.now()}.${safeExt}`
+
+        const uploadError = await uploadCorrectionProof(filePath, proofFile)
+
+        if (uploadError) {
+          setMessage(`Upload-Fehler: ${uploadError.message}`)
+          return
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('record-proofs')
+          .getPublicUrl(filePath)
+
+        proofUrl = publicUrlData.publicUrl
       }
 
       const { error } = await supabase.from('record_corrections').insert({
@@ -90,6 +128,7 @@ export default function RecordEditRequestForm({
         location: location.trim() || null,
         record_source: recordSource.trim() || null,
         notes: notes.trim() || null,
+        proof_url: proofUrl,
         status: 'pending',
       })
 
@@ -99,6 +138,7 @@ export default function RecordEditRequestForm({
       }
 
       setMessage('Änderung wurde eingereicht und wird geprüft.')
+      setProofFile(null)
       setOpen(false)
     } catch (error: any) {
       setMessage(error?.message ?? 'Unbekannter Fehler')
@@ -281,6 +321,11 @@ export default function RecordEditRequestForm({
             }}
             className="block w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-stone-300 file:mr-4 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/15"
           />
+          {proofFile ? (
+            <p className="mt-2 text-sm text-stone-300">
+              Ausgewählt: {proofFile.name}
+            </p>
+          ) : null}
         </div>
 
         <div className="md:col-span-2">
