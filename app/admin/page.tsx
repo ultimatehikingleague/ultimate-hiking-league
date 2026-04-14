@@ -538,6 +538,42 @@ function parseTimeTextToHours(timeText: string) {
   return null
 }
 
+function normalizeDiffValue(value: string | number | null | undefined) {
+  if (value === null || value === undefined) return ''
+  return String(value).trim()
+}
+
+function renderDiffRow(
+  label: string,
+  currentValue: string | number | null | undefined,
+  nextValue: string | number | null | undefined
+) {
+  const currentNormalized = normalizeDiffValue(currentValue)
+  const nextNormalized = normalizeDiffValue(nextValue)
+
+  if (currentNormalized === nextNormalized) return null
+
+  const currentDisplay = currentNormalized || '—'
+  const nextDisplay = nextNormalized || '—'
+
+  return (
+    <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+      <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+        {label}
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 text-sm">
+        <div className="text-red-300 line-through decoration-red-400/70">
+          {currentDisplay}
+        </div>
+        <div className="text-emerald-300">
+          {nextDisplay}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function createSubmissionDraft(
   submission: RecordSubmission
 ): SubmissionDraft {
@@ -2364,7 +2400,7 @@ export default function AdminPage() {
                       </div>
 
                       <div className="mt-1 text-xl font-semibold text-white">
-                        {correction.activity_name ?? 'Unbekannter Eintrag'}
+                        {correction.activity_name ?? currentRecord?.custom_title ?? 'Unbekannter Eintrag'}
                       </div>
 
                       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-400">
@@ -2383,98 +2419,84 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-                      <div className="mb-3 text-xs uppercase tracking-[0.18em] text-stone-500">
-                        Aktueller Stand
-                      </div>
-
-                      <div className="space-y-2 text-sm text-stone-200">
-                        <div>
-                          <span className="text-stone-500">Titel:</span>{' '}
-                          {currentRecord?.custom_title ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Datum:</span>{' '}
-                          {currentRecord?.activity_date ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Distanz:</span>{' '}
-                          {currentRecord?.distance_km ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Zeit:</span>{' '}
-                          {currentRecord?.time_text ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Höhenmeter:</span>{' '}
-                          {currentRecord?.elevation_gain ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Land:</span>{' '}
-                          {currentRecord?.custom_country ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Ort:</span>{' '}
-                          {currentRecord?.custom_location ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Veranstalter:</span>{' '}
-                          {currentRecord?.record_source ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Typ:</span>{' '}
-                          {currentRecord?.event_master_id
-                            ? 'Offizielles Event'
-                            : 'Privater Eintrag'}
-                        </div>
-                      </div>
+                  <div className="mt-5">
+                    <div className="mb-3 text-xs uppercase tracking-[0.18em] text-stone-500">
+                      Geänderte Felder
                     </div>
 
-                    <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-                      <div className="mb-3 text-xs uppercase tracking-[0.18em] text-stone-500">
-                        Beantragte Änderung
-                      </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {renderDiffRow(
+                        'Titel',
+                        currentRecord?.custom_title,
+                        correction.activity_name
+                      )}
 
-                      <div className="space-y-2 text-sm text-stone-200">
-                        <div>
-                          <span className="text-stone-500">Titel:</span>{' '}
-                          {correction.activity_name ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Datum:</span>{' '}
-                          {correction.activity_date ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Offizielle Distanz:</span>{' '}
-                          {correction.official_distance_km ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Gelaufene Distanz:</span>{' '}
-                          {correction.actual_distance_km ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Zeit:</span>{' '}
-                          {correction.proposed_time_text ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Höhenmeter:</span>{' '}
-                          {correction.elevation_gain ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Land:</span>{' '}
-                          {correction.country ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Ort:</span>{' '}
-                          {correction.location ?? '—'}
-                        </div>
-                        <div>
-                          <span className="text-stone-500">Veranstalter:</span>{' '}
-                          {correction.record_source ?? '—'}
-                        </div>
-                      </div>
+                      {renderDiffRow(
+                        'Datum',
+                        currentRecord?.activity_date,
+                        correction.activity_date
+                      )}
+
+                      {!currentRecord?.event_master_id &&
+                        renderDiffRow(
+                          'Distanz',
+                          currentRecord?.distance_km,
+                          correction.actual_distance_km
+                        )}
+
+                      {renderDiffRow(
+                        'Zeit',
+                        currentRecord?.time_text,
+                        correction.proposed_time_text
+                      )}
+
+                      {renderDiffRow(
+                        'Höhenmeter',
+                        currentRecord?.elevation_gain,
+                        correction.elevation_gain
+                      )}
+
+                      {!currentRecord?.event_master_id &&
+                        renderDiffRow(
+                          'Land',
+                          currentRecord?.custom_country,
+                          correction.country
+                        )}
+
+                      {!currentRecord?.event_master_id &&
+                        renderDiffRow(
+                          'Ort',
+                          currentRecord?.custom_location,
+                          correction.location
+                        )}
+
+                      {renderDiffRow(
+                        'Veranstalter',
+                        currentRecord?.record_source,
+                        correction.record_source
+                      )}
                     </div>
+
+                    {[
+                      renderDiffRow('Titel', currentRecord?.custom_title, correction.activity_name),
+                      renderDiffRow('Datum', currentRecord?.activity_date, correction.activity_date),
+                      !currentRecord?.event_master_id
+                        ? renderDiffRow('Distanz', currentRecord?.distance_km, correction.actual_distance_km)
+                        : null,
+                      renderDiffRow('Zeit', currentRecord?.time_text, correction.proposed_time_text),
+                      renderDiffRow('Höhenmeter', currentRecord?.elevation_gain, correction.elevation_gain),
+                      !currentRecord?.event_master_id
+                        ? renderDiffRow('Land', currentRecord?.custom_country, correction.country)
+                        : null,
+                      !currentRecord?.event_master_id
+                        ? renderDiffRow('Ort', currentRecord?.custom_location, correction.location)
+                        : null,
+                      renderDiffRow('Veranstalter', currentRecord?.record_source, correction.record_source),
+                    ].filter(Boolean).length === 0 ? (
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-stone-400">
+                        Keine inhaltlichen Änderungen erkannt.
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
