@@ -312,6 +312,7 @@ export default function AccountPage() {
   const [divisionRank, setDivisionRank] = useState<number | null>(null)
   const [totalElevation, setTotalElevation] = useState<number>(0)
   const [hasSkyscraper, setHasSkyscraper] = useState(false)
+  const [skyscraperRank, setSkyscraperRank] = useState<number | null>(null)
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -440,7 +441,7 @@ export default function AccountPage() {
 
         const rawRecords = recordRows as RawRecord[]
 
-        const totalElevationValue = rawRecords.reduce((sum, record) => {
+       const totalElevationValue = rawRecords.reduce((sum, record) => {
           return (
             sum +
             (typeof record.elevation_gain === 'number'
@@ -451,6 +452,37 @@ export default function AccountPage() {
 
         setTotalElevation(totalElevationValue)
         setHasSkyscraper(totalElevationValue >= SKYSCRAPER_THRESHOLD)
+
+        const { data: elevationRows, error: elevationError } = await supabase
+          .from('records')
+          .select('hiker_id, elevation_gain')
+
+        if (elevationError || !elevationRows) {
+          setSkyscraperRank(null)
+        } else {
+          const elevationMap = new Map<number, number>()
+
+          elevationRows.forEach((row: any) => {
+            if (typeof row.hiker_id !== 'number') return
+
+            const current = elevationMap.get(row.hiker_id) ?? 0
+            const nextGain =
+              typeof row.elevation_gain === 'number' ? row.elevation_gain : 0
+
+            elevationMap.set(row.hiker_id, current + nextGain)
+          })
+
+          const skyscraperRanking = Array.from(elevationMap.entries())
+            .map(([id, elevation]) => ({ id, elevation }))
+            .filter((entry) => entry.elevation >= SKYSCRAPER_THRESHOLD)
+            .sort((a, b) => b.elevation - a.elevation)
+
+          const index = skyscraperRanking.findIndex(
+            (entry) => entry.id === currentHiker.id
+          )
+
+          setSkyscraperRank(index >= 0 ? index + 1 : null)
+        } 
 
         const eventMasterIds = Array.from(
           new Set(
@@ -526,6 +558,7 @@ export default function AccountPage() {
         setDivisionRank(null)
         setTotalElevation(0)
         setHasSkyscraper(false)
+        setSkyscraperRank(null)
       } finally {
         setLoading(false)
       }
@@ -1047,7 +1080,7 @@ export default function AccountPage() {
             />
             <StatCard
               label="Skyscraper"
-              value={hasSkyscraper ? 'Aktiv' : 'Noch offen'}
+              value={skyscraperRank ? `#${skyscraperRank}` : 'Noch offen'}
               division={hiker.division}
             />
           </div>

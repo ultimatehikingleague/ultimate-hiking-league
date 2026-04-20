@@ -273,6 +273,35 @@ export default async function HikerPage({
 
   const hasSkyscraper = totalElevation >= SKYSCRAPER_THRESHOLD
 
+  const { data: elevationRows } = await supabase
+    .from('records')
+    .select('hiker_id, elevation_gain')
+
+  const elevationMap = new Map<number, number>()
+
+  ;(elevationRows ?? []).forEach((row: any) => {
+    if (typeof row.hiker_id !== 'number') return
+    const current = elevationMap.get(row.hiker_id) ?? 0
+    const nextGain =
+      typeof row.elevation_gain === 'number' ? row.elevation_gain : 0
+
+    elevationMap.set(row.hiker_id, current + nextGain)
+  })
+
+  const skyscraperRanking = Array.from(elevationMap.entries())
+    .map(([hikerId, elevation]) => ({
+      id: hikerId,
+      elevation,
+    }))
+    .filter((entry) => entry.elevation >= SKYSCRAPER_THRESHOLD)
+    .sort((a, b) => b.elevation - a.elevation)
+
+  const skyscraperIndex = skyscraperRanking.findIndex(
+    (entry) => entry.id === hikerData.id
+  )
+
+  const skyscraperRank = skyscraperIndex >= 0 ? skyscraperIndex + 1 : null
+
   type RankedHiker = {
   id: number
   total_km: number | null
@@ -427,7 +456,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                     Skyscraper
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
-                    {hasSkyscraper ? 'Aktiv' : 'Noch offen'}
+                    {skyscraperRank ? `#${skyscraperRank}` : 'Noch offen'}
                   </div>
                 </div>
               </div>
