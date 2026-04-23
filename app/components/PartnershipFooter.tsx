@@ -29,11 +29,12 @@ export default function PartnershipFooter() {
               <li>• Ort / Land</li>
               <li>• angebotene Distanzen</li>
               <li>• Website / Anmeldelink</li>
-              <li>• Logo (optional)</li>
             </ul>
 
             <p className="mt-4 text-sm leading-6 text-stone-400">
-              Eventbeschreibungen übernehmen wir auf Wunsch individuell.
+              Individuelle Eventbeschreibungen und die Einbindung von Veranstalter-Logos
+
+              sind im Rahmen erweiterter Partnerschaften möglich.
             </p>
 
             <a
