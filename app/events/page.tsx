@@ -202,7 +202,7 @@ export default async function EventsPage() {
               </div>
 
               <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
-                Wanderevents 2026 in Europa
+                Wanderevents in Europa
               </h1>
 
               <p className="mx-auto mt-5 max-w-3xl text-lg font-medium text-stone-200">

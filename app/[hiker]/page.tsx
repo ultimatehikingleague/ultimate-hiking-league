@@ -166,6 +166,33 @@ function getEventDisplayName(
   return 'Privater Eintrag'
 }
 
+async function fetchAllElevationRecords() {
+  const pageSize = 1000
+  let from = 0
+  let allRows: any[] = []
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('records')
+      .select('hiker_id, elevation_gain')
+      .range(from, from + pageSize - 1)
+
+    if (error || !data || data.length === 0) {
+      break
+    }
+
+    allRows = allRows.concat(data)
+
+    if (data.length < pageSize) {
+      break
+    }
+
+    from += pageSize
+  }
+
+  return allRows
+}
+
 const SKYSCRAPER_THRESHOLD = 1500
 
 export default async function HikerPage({
@@ -273,9 +300,7 @@ export default async function HikerPage({
 
   const hasSkyscraper = totalElevation >= SKYSCRAPER_THRESHOLD
 
-  const { data: elevationRows } = await supabase
-    .from('records')
-    .select('hiker_id, elevation_gain')
+  const elevationRows = await fetchAllElevationRecords()
 
   const elevationMap = new Map<number, number>()
 
