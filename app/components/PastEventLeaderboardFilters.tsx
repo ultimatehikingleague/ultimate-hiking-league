@@ -30,16 +30,16 @@ function PastEventLeaderboardCard({ event }: { event: PastEventCard }) {
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="group rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
+      className="group block w-full max-w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06] md:p-6"
     >
       <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="shrink-0 text-xl">
                 {countryToFlag(event.countryCode)}
               </span>
-              <h3 className="truncate text-2xl font-bold text-white">
+              <h3 className="min-w-0 truncate text-2xl font-bold text-white">
                 {event.city}
               </h3>
             </div>
@@ -47,7 +47,7 @@ function PastEventLeaderboardCard({ event }: { event: PastEventCard }) {
             <p className="mt-1 text-sm text-stone-400">{event.country}</p>
           </div>
 
-          <span className="inline-flex shrink-0 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs uppercase tracking-wide text-stone-200">
+          <span className="inline-flex max-w-[150px] shrink truncate rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs uppercase tracking-wide text-stone-200 sm:max-w-[220px]">
             {event.brand}
           </span>
         </div>
@@ -64,7 +64,7 @@ function PastEventLeaderboardCard({ event }: { event: PastEventCard }) {
             <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
               Distanzen
             </div>
-            <div className="mt-1 font-semibold text-white">
+            <div className="mt-1 break-words font-semibold text-white">
               {event.distances}
             </div>
           </div>
