@@ -159,10 +159,63 @@ const GENDER_OPTIONS = [
   { value: 'D', label: 'Divers' },
 ]
 
-function countryToFlag(countryCode: string | null) {
-  if (!countryCode) return '—'
-  const code = countryCode.trim().toUpperCase()
-  if (code.length !== 2) return '—'
+function normalizeCountryCode(input: string | null | undefined) {
+  const value = (input ?? '').trim().toLowerCase()
+
+  if (!value) return ''
+
+  const map: Record<string, string> = {
+    de: 'DE',
+    deutschland: 'DE',
+    germany: 'DE',
+
+    at: 'AT',
+    österreich: 'AT',
+    oesterreich: 'AT',
+    austria: 'AT',
+
+    ch: 'CH',
+    schweiz: 'CH',
+    switzerland: 'CH',
+    suisse: 'CH',
+
+    be: 'BE',
+    belgien: 'BE',
+    belgium: 'BE',
+
+    nl: 'NL',
+    niederlande: 'NL',
+    netherlands: 'NL',
+    holland: 'NL',
+
+    fr: 'FR',
+    frankreich: 'FR',
+    france: 'FR',
+
+    it: 'IT',
+    italien: 'IT',
+    italy: 'IT',
+
+    es: 'ES',
+    spanien: 'ES',
+    spain: 'ES',
+
+    ua: 'UA',
+    ukraine: 'UA',
+
+    ru: 'RU',
+    russland: 'RU',
+    russia: 'RU',
+  }
+
+  return map[value] ?? (value.length === 2 ? value.toUpperCase() : '')
+}
+
+function countryToFlag(country: string | null | undefined) {
+  const code = normalizeCountryCode(country)
+
+  if (code.length !== 2) return ''
+
   return String.fromCodePoint(
     ...[...code].map((char) => 127397 + char.charCodeAt(0))
   )
@@ -545,7 +598,7 @@ export default function AccountPage() {
             event_name: event?.title ?? record.custom_title ?? 'Privater Eintrag',
             location: event?.city ?? record.custom_location ?? '—',
             country: event?.country ?? record.custom_country ?? '—',
-            country_code: event?.country_code ?? null,
+            country_code: event?.country_code ?? normalizeCountryCode(record.custom_country),
             official_distance_km: event ? eventDistance?.distance_km ?? null : null,
             actual_distance_km: record.distance_km ?? null,
           }
