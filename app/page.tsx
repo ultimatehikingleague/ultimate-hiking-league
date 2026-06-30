@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { supabase } from './lib/supabase'
 import Nav from './components/Nav'
+import { getActivePartnerBookings } from './lib/partnerBookings'
 
 type HomeEventItem = {
   id: number
@@ -185,12 +186,14 @@ export default async function Home() {
   const { data: globalData } = await supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
+    .eq('profile_status', 'active')
     .order('total_km', { ascending: false })
     .limit(10)
 
   const { data: platinumData } = await supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
+    .eq('profile_status', 'active')
     .eq('division', 'platinum')
     .order('total_km', { ascending: false })
     .limit(10)
@@ -198,6 +201,7 @@ export default async function Home() {
   const { data: goldData } = await supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
+    .eq('profile_status', 'active')
     .eq('division', 'gold')
     .order('total_km', { ascending: false })
     .limit(10)
@@ -205,11 +209,26 @@ export default async function Home() {
   const { data: silverData } = await supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
+    .eq('profile_status', 'active')
     .eq('division', 'silver')
     .order('total_km', { ascending: false })
     .limit(10)
 
   const homeEvents = await fetchUpcomingHomeEvents()
+
+  const activePartnerBookings = await getActivePartnerBookings()
+
+  const premiumHomepageBookings = activePartnerBookings.filter(
+    (booking) =>
+      booking.booking_type === 'brand_partner' &&
+      booking.package_code === 'E'
+  )
+
+  const officialPartnerBookings = activePartnerBookings.filter(
+    (booking) =>
+      booking.booking_type === 'brand_partner' &&
+      booking.package_code === 'F'
+  )
 
   const { data: recentRecords } = await supabase
     .from('records')
@@ -293,6 +312,37 @@ export default async function Home() {
       </section>
 
       <div className="mx-auto max-w-7xl px-6 pb-8 md:px-10">
+        {premiumHomepageBookings.length > 0 ? (
+          <section className="mb-8">
+            <div className="grid gap-4 md:grid-cols-3">
+              {premiumHomepageBookings.slice(0, 3).map((booking) => {
+                const mediaUrl =
+                  booking.banner_url || booking.logo_url || booking.partners?.logo_url
+
+                const targetUrl =
+                  booking.target_url || booking.partners?.website_url || '#'
+
+                if (!mediaUrl) return null
+
+                const image = (
+                  <img
+                    src={mediaUrl}
+                    alt="Partner"
+                    className="h-32 w-full rounded-[1.75rem] border border-white/10 object-cover shadow-2xl shadow-black/20 transition hover:-translate-y-0.5 hover:border-white/20 hover:opacity-95 md:h-40"
+                  />
+                )
+
+                return targetUrl !== '#' ? (
+                  <a key={booking.id} href={targetUrl} target="_blank" rel="noreferrer">
+                    {image}
+                  </a>
+                ) : (
+                  <div key={booking.id}>{image}</div>
+                )
+              })}
+            </div>
+          </section>
+        ) : null}
                <section className="mb-8 rounded-[1.75rem] border border-white/8 bg-white/[0.03] px-6 py-5 shadow-lg shadow-black/10 backdrop-blur-sm">
                   <div className="text-center">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
@@ -307,7 +357,45 @@ export default async function Home() {
                       zurückgelegt.
                     </p>
                   </div>
-                </section>         
+                </section>
+
+           {officialPartnerBookings.length > 0 ? (
+              <section className="mb-8 rounded-[1.75rem] border border-white/8 bg-white/[0.03] px-6 py-5 shadow-lg shadow-black/10 backdrop-blur-sm">
+                <div className="flex flex-wrap items-center justify-center gap-8">
+                  {officialPartnerBookings.map((booking) => {
+                    const mediaUrl =
+                      booking.logo_url || booking.banner_url || booking.partners?.logo_url
+
+                    const targetUrl =
+                      booking.target_url || booking.partners?.website_url || '#'
+
+                    if (!mediaUrl) return null
+
+                    const image = (
+                      <img
+                        src={mediaUrl}
+                        alt="Official Partner"
+                        className="h-10 max-w-[180px] object-contain opacity-90 transition hover:opacity-100"
+                      />
+                    )
+
+                    return targetUrl !== '#' ? (
+                      <a
+                        key={booking.id}
+                        href={targetUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="transition hover:-translate-y-0.5"
+                      >
+                        {image}
+                      </a>
+                    ) : (
+                      <div key={booking.id}>{image}</div>
+                    )
+                  })}
+                </div>
+              </section>
+            ) : null}
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>

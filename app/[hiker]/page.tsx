@@ -205,10 +205,41 @@ export default async function HikerPage({
   const { data: hikerData, error: hikerError } = await supabase
     .from('hikers')
     .select(
-      'id, display_name, total_km, division, country, avg_speed, profile_image, claimed_profile'
+      'id, display_name, total_km, division, country, avg_speed, profile_image, claimed_profile, claimed_by_user_id, profile_status'
     )
     .eq('id', hiker)
     .single()
+  
+   const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    const isOwnProfile =
+      !!session?.user?.id &&
+      hikerData?.claimed_by_user_id === session.user.id
+
+    const isPubliclyVisible = hikerData?.profile_status === 'active'
+
+    if (hikerData && !isPubliclyVisible && !isOwnProfile) {
+      return (
+        <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+          <div className="mx-auto max-w-5xl">
+            <ProfileBrandBar />
+
+            <Link
+              href="/leaderboard/overall"
+              className="mb-6 inline-block text-sm text-stone-400 transition hover:text-white"
+            >
+              ← Zurück zum Ranking
+            </Link>
+
+            <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10">
+              <p className="text-stone-300">Hiker nicht gefunden 😢</p>
+            </div>
+          </div>
+        </main>
+      )
+    } 
 
   if (hikerError || !hikerData) {
     return (
@@ -342,7 +373,8 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
   while (true) {
     const { data, error } = await supabase
       .from('hikers')
-      .select('id, total_km, division, display_name')
+      .select('id, total_km, division, display_name, profile_status')
+      .eq('profile_status', 'active')
       .order('total_km', { ascending: false })
       .order('display_name', { ascending: true })
       .range(from, from + pageSize - 1)
@@ -374,6 +406,19 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
         >
           ← Zurück zum Ranking
         </Link>
+
+        {isOwnProfile && hikerData.profile_status !== 'active' ? (
+          <div className="mb-6 rounded-[2rem] border border-yellow-400/25 bg-yellow-400/10 p-5 text-yellow-100">
+            <div className="text-lg font-semibold">
+              Dein Profil ist aktuell pausiert.
+            </div>
+            <p className="mt-2 text-sm leading-6 text-yellow-100/80">
+              Dein Profil, deine Wanderungen und deine Ranking-Daten werden derzeit öffentlich nicht angezeigt.
+              Du selbst kannst dein Profil weiterhin sehen. Wenn du wieder in der Liga erscheinen möchtest,
+              kann der Admin dein Profil wieder aktivieren.
+            </p>
+          </div>
+        ) : null}
 
         <section className="mb-8 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-start">

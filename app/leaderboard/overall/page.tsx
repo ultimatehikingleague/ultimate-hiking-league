@@ -81,7 +81,8 @@ async function fetchAllHikers() {
   while (true) {
     const { data, error } = await supabase
       .from('hikers')
-      .select('id, display_name, country, division, total_km')
+      .select('id, display_name, country, division, total_km, profile_status')
+      .eq('profile_status', 'active')
       .range(from, from + pageSize - 1)
 
     if (error || !data || data.length === 0) {

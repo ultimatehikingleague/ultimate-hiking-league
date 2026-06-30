@@ -69,6 +69,8 @@ async function fetchAllPlatinumHikers() {
       .from('hikers')
       .select('id, display_name, country, division, total_km')
       .eq('division', 'platinum')
+      .eq('profile_status', 'active')
+      .order('total_km', { ascending: false })
       .range(from, from + pageSize - 1)
 
     if (error || !data || data.length === 0) {

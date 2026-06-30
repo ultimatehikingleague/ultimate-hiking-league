@@ -78,6 +78,7 @@ export default async function SearchPage({
     ? supabase
         .from('hikers')
         .select('id, display_name, country, total_km, division')
+        .eq('profile_status', 'active')
         .ilike('display_name', `%${query}%`)
         .order('total_km', { ascending: false })
         .limit(30)
