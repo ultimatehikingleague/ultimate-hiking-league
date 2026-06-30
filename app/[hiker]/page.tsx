@@ -202,12 +202,35 @@ export default async function HikerPage({
 }) {
   const { hiker } = await params
 
+  const hikerId = Number(hiker)
+
+  if (!Number.isInteger(hikerId) || hikerId <= 0) {
+    return (
+      <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+        <div className="mx-auto max-w-5xl">
+          <ProfileBrandBar />
+
+          <Link
+            href="/leaderboard/overall"
+            className="mb-6 inline-block text-sm text-stone-400 transition hover:text-white"
+          >
+            ← Zurück zum Ranking
+          </Link>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10">
+            <p className="text-stone-300">Hiker nicht gefunden 😢</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   const { data: hikerData, error: hikerError } = await supabase
     .from('hikers')
     .select(
       'id, display_name, total_km, division, country, avg_speed, profile_image, claimed_profile, claimed_by_user_id, profile_status'
     )
-    .eq('id', hiker)
+    .eq('id', hikerId)
     .single()
   
    const {
@@ -306,7 +329,7 @@ export default async function HikerPage({
         custom_country
       `
   )
-  .eq('hiker_id', hiker)
+  .eq('hiker_id', hikerId)
   .order('activity_date', { ascending: false })
 
   const eventIds =
