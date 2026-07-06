@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import BrandHeader from '../components/BrandHeader'
 import LeaderboardSubnav from '../components/LeaderboardSubnav'
 import BackToHomeButton from '../components/BackToHomeButton'
+import { countryToFlag } from '../lib/country'
 
 type RankedUser = {
   id: number
@@ -18,14 +19,7 @@ type RankedUser = {
 const PAGE_SIZE = 50
 const MIN_ELEVATION = 1500
 
-function countryToFlag(countryCode: string | null) {
-  if (!countryCode) return '—'
-  const code = countryCode.trim().toUpperCase()
-  if (code.length !== 2) return '—'
-  return String.fromCodePoint(
-    ...[...code].map((char) => 127397 + char.charCodeAt(0))
-  )
-}
+
 
 function getRankDisplay(rank: number, useMedals: boolean) {
   if (useMedals) {
@@ -68,7 +62,8 @@ async function fetchAllHikers() {
   while (true) {
     const { data, error } = await supabase
       .from('hikers')
-      .select('id, display_name, country')
+      .select('id, display_name, country, profile_status')
+      .eq('profile_status', 'active')
       .range(from, from + pageSize - 1)
 
     if (error || !data || data.length === 0) break
