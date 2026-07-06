@@ -900,6 +900,7 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [claims, setClaims] = useState<ClaimRequest[]>([])
   const [recordSubmissions, setRecordSubmissions] = useState<RecordSubmission[]>([])
+  const [resolvedSubmissionCount, setResolvedSubmissionCount] = useState(0)
   const [recordCorrections, setRecordCorrections] = useState<RecordCorrection[]>([])
   const [currentCorrectionRecords, setCurrentCorrectionRecords] = useState<
     Record<number, CurrentCorrectionRecord>
@@ -1013,6 +1014,13 @@ export default function AdminPage() {
           })
           setSubmissionDrafts(nextDrafts)
         }
+
+        const { count: resolvedSubmissionsExactCount } = await supabase
+          .from('record_submissions')
+          .select('*', { count: 'exact', head: true })
+          .neq('status', 'pending')
+
+        setResolvedSubmissionCount(resolvedSubmissionsExactCount ?? 0)
 
         if (!correctionsError && correctionRows) {
           const rows = correctionRows as RecordCorrection[]
@@ -4562,8 +4570,8 @@ async function handleDeletePartnerBooking(bookingId: string) {
             className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-stone-200 transition hover:bg-white/[0.06]"
           >
             {showResolvedSubmissions
-              ? `Bearbeitete Einreichungen ausblenden (${resolvedSubmissions.length})`
-              : `Bearbeitete Einreichungen anzeigen (${resolvedSubmissions.length})`}
+              ? `Bearbeitete Einreichungen ausblenden ({resolvedSubmissionCount})`
+              : `Bearbeitete Einreichungen anzeigen ({resolvedSubmissionCount})`}
           </button>
 
           {showResolvedSubmissions ? (
