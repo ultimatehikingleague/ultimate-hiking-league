@@ -7,6 +7,7 @@ import ProfileBrandBar from '../components/ProfileBrandBar'
 import RecordSubmissionPanel from '../components/RecordSubmissionPanel'
 import BackToHomeButton from '../components/BackToHomeButton'
 import RecordEditRequestForm from '../components/RecordEditRequestForm'
+import { countryToFlag, normalizeCountryCode } from '../lib/country'
 
 type Hiker = {
   id: number
@@ -159,67 +160,9 @@ const GENDER_OPTIONS = [
   { value: 'D', label: 'Divers' },
 ]
 
-function normalizeCountryCode(input: string | null | undefined) {
-  const value = (input ?? '').trim().toLowerCase()
 
-  if (!value) return ''
 
-  const map: Record<string, string> = {
-    de: 'DE',
-    deutschland: 'DE',
-    germany: 'DE',
 
-    at: 'AT',
-    österreich: 'AT',
-    oesterreich: 'AT',
-    austria: 'AT',
-
-    ch: 'CH',
-    schweiz: 'CH',
-    switzerland: 'CH',
-    suisse: 'CH',
-
-    be: 'BE',
-    belgien: 'BE',
-    belgium: 'BE',
-
-    nl: 'NL',
-    niederlande: 'NL',
-    netherlands: 'NL',
-    holland: 'NL',
-
-    fr: 'FR',
-    frankreich: 'FR',
-    france: 'FR',
-
-    it: 'IT',
-    italien: 'IT',
-    italy: 'IT',
-
-    es: 'ES',
-    spanien: 'ES',
-    spain: 'ES',
-
-    ua: 'UA',
-    ukraine: 'UA',
-
-    ru: 'RU',
-    russland: 'RU',
-    russia: 'RU',
-  }
-
-  return map[value] ?? (value.length === 2 ? value.toUpperCase() : '')
-}
-
-function countryToFlag(country: string | null | undefined) {
-  const code = normalizeCountryCode(country)
-
-  if (code.length !== 2) return ''
-
-  return String.fromCodePoint(
-    ...[...code].map((char) => 127397 + char.charCodeAt(0))
-  )
-}
 
 function getCountryLabel(countryCode: string | null) {
   if (!countryCode) return '—'
@@ -348,6 +291,53 @@ function getRecordStatusLabel(status: string | null) {
 }
 
 const REJECTION_NOTICE_START_DATE = '2026-04-08'
+
+async function fetchAllActiveHikersForRanking() {
+  const pageSize = 1000
+  let from = 0
+  let allRows: any[] = []
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('hikers')
+      .select('id, total_km, division, display_name, profile_status')
+      .eq('profile_status', 'active')
+      .range(from, from + pageSize - 1)
+
+    if (error || !data || data.length === 0) break
+
+    allRows = allRows.concat(data)
+
+    if (data.length < pageSize) break
+
+    from += pageSize
+  }
+
+  return allRows
+}
+
+async function fetchAllElevationRecords() {
+  const pageSize = 1000
+  let from = 0
+  let allRows: any[] = []
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('records')
+      .select('hiker_id, elevation_gain')
+      .range(from, from + pageSize - 1)
+
+    if (error || !data || data.length === 0) break
+
+    allRows = allRows.concat(data)
+
+    if (data.length < pageSize) break
+
+    from += pageSize
+  }
+
+  return allRows
+}
 
 
 
@@ -506,36 +496,42 @@ export default function AccountPage() {
         setTotalElevation(totalElevationValue)
         setHasSkyscraper(totalElevationValue >= SKYSCRAPER_THRESHOLD)
 
-        const { data: elevationRows, error: elevationError } = await supabase
-          .from('records')
-          .select('hiker_id, elevation_gain')
+        const [activeHikersForRanking, elevationRows] = await Promise.all([
+          fetchAllActiveHikersForRanking(),
+          fetchAllElevationRecords(),
+        ])
 
-        if (elevationError || !elevationRows) {
-          setSkyscraperRank(null)
-        } else {
-          const elevationMap = new Map<number, number>()
+        const activeHikerIds = new Set(
+          activeHikersForRanking
+            .map((row: any) => row.id)
+            .filter((id: any) => typeof id === 'number')
+        )
 
-          elevationRows.forEach((row: any) => {
-            if (typeof row.hiker_id !== 'number') return
+        const elevationMap = new Map<number, number>()
 
-            const current = elevationMap.get(row.hiker_id) ?? 0
-            const nextGain =
-              typeof row.elevation_gain === 'number' ? row.elevation_gain : 0
+        elevationRows.forEach((row: any) => {
+          if (typeof row.hiker_id !== 'number') return
+          if (!activeHikerIds.has(row.hiker_id)) return
 
-            elevationMap.set(row.hiker_id, current + nextGain)
-          })
+          const current = elevationMap.get(row.hiker_id) ?? 0
+          const nextGain =
+            typeof row.elevation_gain === 'number' && !Number.isNaN(row.elevation_gain)
+              ? row.elevation_gain
+              : 0
 
-          const skyscraperRanking = Array.from(elevationMap.entries())
-            .map(([id, elevation]) => ({ id, elevation }))
-            .filter((entry) => entry.elevation >= SKYSCRAPER_THRESHOLD)
-            .sort((a, b) => b.elevation - a.elevation)
+          elevationMap.set(row.hiker_id, current + nextGain)
+        })
 
-          const index = skyscraperRanking.findIndex(
-            (entry) => entry.id === currentHiker.id
-          )
+        const skyscraperRanking = Array.from(elevationMap.entries())
+          .map(([id, elevation]) => ({ id, elevation }))
+          .filter((entry) => entry.elevation >= SKYSCRAPER_THRESHOLD)
+          .sort((a, b) => b.elevation - a.elevation)
 
-          setSkyscraperRank(index >= 0 ? index + 1 : null)
-        } 
+        const index = skyscraperRanking.findIndex(
+          (entry) => entry.id === currentHiker.id
+        )
+
+        setSkyscraperRank(index >= 0 ? index + 1 : null)
 
         const eventMasterIds = Array.from(
           new Set(
