@@ -4570,8 +4570,8 @@ async function handleDeletePartnerBooking(bookingId: string) {
             className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-stone-200 transition hover:bg-white/[0.06]"
           >
             {showResolvedSubmissions
-              ? `Bearbeitete Einreichungen ausblenden ({resolvedSubmissionCount})`
-              : `Bearbeitete Einreichungen anzeigen ({resolvedSubmissionCount})`}
+              ? `Bearbeitete Einreichungen ausblenden (${resolvedSubmissionCount})`
+              : `Bearbeitete Einreichungen anzeigen (${resolvedSubmissionCount})`}
           </button>
 
           {showResolvedSubmissions ? (
