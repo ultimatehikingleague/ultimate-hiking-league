@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type Mode = 'login' | 'register' | 'forgot_password'
@@ -13,12 +13,76 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
+  useEffect(() => {
+    async function checkOAuthBan() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user?.email) return
+
+      try {
+        const response = await fetch('/api/check-user-ban', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: session.user.email,
+          }),
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const result = await response.json()
+
+        if (result.banned) {
+          await supabase.auth.signOut()
+
+          setMessage(
+            'Eine Anmeldung mit diesem Zugang ist nicht möglich.'
+          )
+        }
+      } catch (error) {
+        console.error('OAuth ban check failed:', error)
+      }
+    }
+
+    checkOAuthBan()
+  }, [])
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setMessage('')
 
     if (mode === 'register') {
+      const banResponse = await fetch('/api/check-user-ban', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!banResponse.ok) {
+        setMessage('Registrierung derzeit nicht möglich. Bitte versuche es später erneut.')
+        setLoading(false)
+        return
+      }
+
+      const banResult = await banResponse.json()
+
+      if (banResult.banned) {
+        setMessage(
+          'Eine Registrierung mit diesem Zugang ist nicht möglich.'
+        )
+        setLoading(false)
+        return
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
