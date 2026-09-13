@@ -8,6 +8,7 @@ import RecordSubmissionPanel from '../components/RecordSubmissionPanel'
 import BackToHomeButton from '../components/BackToHomeButton'
 import RecordEditRequestForm from '../components/RecordEditRequestForm'
 import { countryToFlag, normalizeCountryCode } from '../lib/country'
+import RecordVisibilityToggle from '../components/RecordVisibilityToggle'
 
 type Hiker = {
   id: number
@@ -25,6 +26,7 @@ type RawRecord = {
   id: number
   event_id: number | null
   event_master_id: number | null
+  is_public: boolean
   event_distance_id: number | null
   distance_km: number | null
   time_hours: number | null
@@ -73,6 +75,7 @@ type RecordItem = {
   country: string
   country_code: string | null
   event_master_id: number | null
+  is_public: boolean
   official_distance_km: number | null
   actual_distance_km: number | null
 }
@@ -469,7 +472,7 @@ export default function AccountPage() {
         const { data: recordRows, error: recordsError } = await supabase
           .from('records')
           .select(
-            'id, event_id, event_master_id, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain, custom_title, custom_location, custom_country'
+            'id, event_id, event_master_id, is_public, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain, custom_title, custom_location, custom_country'
           )
           .eq('hiker_id', currentHiker.id)
           .order('activity_date', { ascending: false })
@@ -1378,6 +1381,13 @@ export default function AccountPage() {
                       </div>
                     </div>
                   </div>
+
+                  {!record.event_master_id ? (
+                    <RecordVisibilityToggle
+                      recordId={record.id}
+                      initialIsPublic={record.is_public !== false}
+                    />
+                  ) : null}
                   
                  <RecordEditRequestForm
                    recordId={record.id}

@@ -5,6 +5,7 @@ import ProfileBrandBar from '../components/ProfileBrandBar'
 import ClaimProfilePanel from '../components/ClaimProfilePanel'
 import { countryToFlag } from '../lib/country'
 
+
 function getDivisionBadgeClass(division: string | null) {
   switch (division) {
     case 'platinum':
@@ -126,7 +127,7 @@ export default async function HikerPage({
   const { data: hikerData, error: hikerError } = await supabase
     .from('hikers')
     .select(
-      'id, display_name, total_km, division, country, avg_speed, profile_image, claimed_profile, claimed_by_user_id, profile_status'
+      'id, display_name, total_km, division, country, avg_speed, profile_image, claimed_profile, claimed_by_user_id, profile_status, hide_private_records'
     )
     .eq('id', hikerId)
     .single()
@@ -220,6 +221,7 @@ export default async function HikerPage({
         activity_date,
         record_status,
         event_master_id,
+        is_public,
         is_corrected,
         elevation_gain,
         custom_title,
@@ -229,6 +231,17 @@ export default async function HikerPage({
   )
   .eq('hiker_id', hikerId)
   .order('activity_date', { ascending: false })
+
+  const visibleRecords =
+    recordsData?.filter((record) => {
+      if (isOwnProfile) return true
+
+      if (record.event_master_id) return true
+
+      if (hikerData.hide_private_records) return false
+
+      return record.is_public !== false
+    }) ?? []
 
   const eventIds =
     recordsData?.map((record) => record.event_master_id).filter(Boolean) ?? []
@@ -491,7 +504,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
             </div>
           ) : (
             <div className="space-y-3">
-              {recordsData.map((record) => {
+              {visibleRecords.map((record) => {
                 const event = eventsMap.get(record.event_master_id)
 
                 return (
@@ -613,6 +626,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                         </div>
                       </div>
                     </div>
+                    
 
                    <CorrectionRequestForm
                       recordId={record.id}

@@ -33,6 +33,7 @@ type RecordSubmission = {
   activity_name: string
   description: string | null
   submission_type: string | null
+  is_public: boolean
   activity_date: string
   distance_km: number | null
   official_distance_km: number | null
@@ -977,7 +978,7 @@ export default function AdminPage() {
           supabase
             .from('record_submissions')
             .select(
-              'id, user_id, hiker_id, activity_name, description, submission_type, activity_date, distance_km, official_distance_km, actual_distance_km, elapsed_time_text, elevation_gain, country, location, record_source, proof_image_url, notes, status, admin_note, created_at, reviewed_at'
+              'id, user_id, hiker_id, activity_name, description, submission_type, is_public, activity_date, distance_km, official_distance_km, actual_distance_km, elapsed_time_text, elevation_gain, country, location, record_source, proof_image_url, notes, status, admin_note, created_at, reviewed_at'
             )
             .order('created_at', { ascending: false }),
                     supabase
@@ -1761,6 +1762,9 @@ async function handleDeletePartnerBooking(bookingId: string) {
 
       const { error: recordError } = await supabase.from('records').insert({
         hiker_id: submission.hiker_id,
+        is_public: submission.submission_type === 'official_event'
+          ? true
+          : submission.is_public,
         event_master_id: eventMasterId,
         event_distance_id: eventDistanceId,
         distance_km: parsedDistance,

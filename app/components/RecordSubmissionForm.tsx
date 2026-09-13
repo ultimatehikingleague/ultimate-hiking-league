@@ -25,6 +25,7 @@ export default function RecordSubmissionForm({
   const [country, setCountry] = useState('')
   const [location, setLocation] = useState('')
   const [organizer, setOrganizer] = useState('')
+  const [isPublic, setIsPublic] = useState(true)
   
   const [notes, setNotes] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
@@ -194,6 +195,7 @@ if (isOfficialEvent) {
           user_id: session.user.id,
           hiker_id: hikerId,
           submission_type: isOfficialEvent ? 'official_event' : 'private',
+          is_public: isOfficialEvent ? true : isPublic,
           activity_name: isOfficialEvent
             ? activityName.trim()
             : 'Private Wanderung',
@@ -224,6 +226,7 @@ if (isOfficialEvent) {
       
 
       setIsOfficialEvent(true)
+      setIsPublic(true)
       setActivityName('')
       setDescription('')
       setOfficialDistanceKm('')
@@ -427,6 +430,41 @@ if (isOfficialEvent) {
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
           </div>
+
+          {!isOfficialEvent ? (
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-sm font-medium text-stone-200">
+                    Sichtbarkeit
+                  </div>
+
+                  <p className="mt-1 text-xs text-stone-500">
+                    Entscheide, ob diese Wanderung in deinem öffentlichen Profil sichtbar ist.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPublic((current) => !current)}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+                    isPublic ? 'bg-emerald-500' : 'bg-white/15'
+                  }`}
+                  aria-pressed={isPublic}
+                >
+                  <span
+                    className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${
+                      isPublic ? 'left-6' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="mt-3 text-xs font-medium text-stone-300">
+                {isPublic ? 'Für jeden sichtbar' : 'Nur für mich sichtbar'}
+              </div>
+            </div>
+          ) : null}
 
           
         </div>
