@@ -372,7 +372,14 @@ export default function AccountPage() {
   const [profileSaveError, setProfileSaveError] = useState('')
   const [showProfileMetaForm, setShowProfileMetaForm] = useState(false)
 
+  const [showEmailForm, setShowEmailForm] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [emailChanging, setEmailChanging] = useState(false)
+  const [emailChangeError, setEmailChangeError] = useState('')
+  const [emailChangeSuccess, setEmailChangeSuccess] = useState(false)
+
   useEffect(() => {
+
     async function loadData() {
       try {
         const {
@@ -816,6 +823,40 @@ export default function AccountPage() {
     window.location.href = '/'
   }
 
+  async function handleEmailChange() {
+    const email = newEmail.trim().toLowerCase()
+
+    if (!email) {
+      setEmailChangeError('Bitte gib eine neue E-Mail-Adresse ein.')
+      return
+    }
+
+    if (email === user?.email?.toLowerCase()) {
+      setEmailChangeError('Die neue E-Mail-Adresse entspricht deiner aktuellen Adresse.')
+      return
+    }
+
+    setEmailChanging(true)
+    setEmailChangeError('')
+    setEmailChangeSuccess(false)
+
+    const { error } = await supabase.auth.updateUser({
+      email,
+    })
+
+    if (error) {
+      console.error('Email change failed:', error)
+      setEmailChangeError(
+        'Die E-Mail-Adresse konnte nicht geändert werden. Bitte versuche es später erneut.'
+      )
+      setEmailChanging(false)
+      return
+    }
+
+    setEmailChangeSuccess(true)
+    setEmailChanging(false)
+  }
+
   async function handleCreateHiker() {
     if (!newName.trim()) return
 
@@ -909,13 +950,82 @@ export default function AccountPage() {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="mt-3 w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
-            >
-              Abmelden
-            </button>
+            <div className="mt-3 space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmailForm((current) => !current)
+                  setEmailChangeError('')
+                  setEmailChangeSuccess(false)
+                }}
+                className="w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
+              >
+                E-Mail-Adresse ändern
+              </button>
+
+              {showEmailForm ? (
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="text-sm font-medium text-stone-200">
+                    E-Mail-Adresse ändern
+                  </div>
+
+                  <p className="mt-2 text-xs leading-5 text-stone-400">
+                    Aus Sicherheitsgründen muss die Änderung sowohl über deine bisherige
+                    als auch über deine neue E-Mail-Adresse bestätigt werden. Erst nachdem
+                    beide Bestätigungen erfolgt sind, wird deine E-Mail-Adresse geändert.
+                  </p>
+
+                  <div className="mt-4">
+                    <label className="mb-2 block text-xs font-medium text-stone-300">
+                      Neue E-Mail-Adresse
+                    </label>
+
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="name@beispiel.de"
+                      autoComplete="email"
+                      className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-white/25"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleEmailChange}
+                    disabled={emailChanging}
+                    className="mt-4 w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
+                  >
+                    {emailChanging
+                      ? 'Änderung wird angefordert…'
+                      : 'E-Mail-Änderung anfordern'}
+                  </button>
+
+                  {emailChangeError ? (
+                    <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-200">
+                      {emailChangeError}
+                    </div>
+                  ) : null}
+
+                  {emailChangeSuccess ? (
+                    <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-3 text-xs leading-5 text-emerald-200">
+                      Bestätigungs-E-Mails wurden angefordert. Bitte prüfe sowohl dein
+                      bisheriges als auch dein neues E-Mail-Postfach und bestätige die
+                      Änderung in beiden E-Mails. Die neue Adresse wird erst danach
+                      übernommen.
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
+              >
+                Abmelden
+              </button>
+            </div>
           </div>
         </div>
       </main>
