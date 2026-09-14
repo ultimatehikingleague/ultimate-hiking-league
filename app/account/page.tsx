@@ -1103,7 +1103,7 @@ export default function AccountPage() {
               </div>
             ) : (
               <>
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div className="flex flex-col gap-4">
                   <div className="grid flex-1 gap-4 md:grid-cols-2 xl:max-w-3xl">
                     <div>
                       <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
