@@ -479,7 +479,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Ø Geschwindigkeit
+                    Ø Speed
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
                     {formatSpeed(hikerData.avg_speed)}
