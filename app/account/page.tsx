@@ -357,6 +357,8 @@ export default function AccountPage() {
   const [overallRank, setOverallRank] = useState<number | null>(null)
   const [divisionRank, setDivisionRank] = useState<number | null>(null)
   const [totalElevation, setTotalElevation] = useState<number>(0)
+  const [eventAvgSpeed, setEventAvgSpeed] = useState<number | null>(null)
+  const [elevationPerKm, setElevationPerKm] = useState<number | null>(null)
   const [hasSkyscraper, setHasSkyscraper] = useState(false)
   const [skyscraperRank, setSkyscraperRank] = useState<number | null>(null)
   const [newName, setNewName] = useState('')
@@ -487,6 +489,36 @@ export default function AccountPage() {
 
         const rawRecords = recordRows as RawRecord[]
 
+        const eventRecords = rawRecords.filter(
+          (record) => record.event_master_id
+        )
+
+        const totalEventDistance = eventRecords.reduce(
+          (sum, record) =>
+            sum + (typeof record.distance_km === 'number' ? record.distance_km : 0),
+          0
+        )
+
+        const totalEventHours = eventRecords.reduce(
+          (sum, record) =>
+            sum + (typeof record.time_hours === 'number' ? record.time_hours : 0),
+          0
+        )
+
+        const eventAvgSpeedValue =
+          totalEventHours > 0
+            ? totalEventDistance / totalEventHours
+            : null
+
+        setEventAvgSpeed(eventAvgSpeedValue)
+
+        const totalDistance = rawRecords.reduce(
+          (sum, record) =>
+            sum + (typeof record.distance_km === 'number' ? record.distance_km : 0),
+          0
+        )
+
+
        const totalElevationValue = rawRecords.reduce((sum, record) => {
           return (
             sum +
@@ -495,6 +527,13 @@ export default function AccountPage() {
               : 0)
           )
         }, 0)
+
+        const elevationPerKmValue =
+          totalDistance > 0
+            ? totalElevationValue / totalDistance
+            : null
+
+        setElevationPerKm(elevationPerKmValue)
 
         setTotalElevation(totalElevationValue)
         setHasSkyscraper(totalElevationValue >= SKYSCRAPER_THRESHOLD)
@@ -1126,8 +1165,18 @@ export default function AccountPage() {
               division={hiker.division}
             />
             <StatCard
+              label="Ø Event Speed"
+              value={eventAvgSpeed !== null ? `${eventAvgSpeed.toFixed(2)} km/h` : '-'}
+              division={hiker.division}
+            />
+            <StatCard
               label="Höhenmeter"
               value={`${Math.round(totalElevation).toLocaleString('de-DE')} hm`}
+              division={hiker.division}
+            />
+            <StatCard
+              label="Höhenmeter / km"
+              value={elevationPerKm !== null ? `${elevationPerKm.toFixed(1)} hm/km` : '-'}
               division={hiker.division}
             />
             <StatCard

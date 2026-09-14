@@ -215,6 +215,7 @@ export default async function HikerPage({
     `
         id,
         distance_km,
+        time_hours,
         avg_speed,
         division,
         time_text,
@@ -263,11 +264,43 @@ export default async function HikerPage({
       return sum + (typeof record.elevation_gain === 'number' ? record.elevation_gain : 0)
     }, 0) ?? 0
 
-  const hasSkyscraper = totalElevation >= SKYSCRAPER_THRESHOLD
+  const eventRecords =
+  recordsData?.filter((record) => record.event_master_id) ?? []
 
-  const elevationRows = await fetchAllElevationRecords()
+const totalEventDistance = eventRecords.reduce(
+  (sum, record) =>
+    sum + (typeof record.distance_km === 'number' ? record.distance_km : 0),
+  0
+)
 
-  const elevationMap = new Map<number, number>()
+const totalEventHours = eventRecords.reduce(
+  (sum, record) =>
+    sum + (typeof record.time_hours === 'number' ? record.time_hours : 0),
+  0
+)
+
+const eventAvgSpeed =
+  totalEventHours > 0
+    ? totalEventDistance / totalEventHours
+    : null
+
+const totalDistance =
+  recordsData?.reduce(
+    (sum, record) =>
+      sum + (typeof record.distance_km === 'number' ? record.distance_km : 0),
+    0
+  ) ?? 0
+
+const elevationPerKm =
+  totalDistance > 0
+    ? totalElevation / totalDistance
+    : null  
+
+const hasSkyscraper = totalElevation >= SKYSCRAPER_THRESHOLD
+
+const elevationRows = await fetchAllElevationRecords()
+
+const elevationMap = new Map<number, number>()
 
   ;(elevationRows ?? []).forEach((row: any) => {
     if (typeof row.hiker_id !== 'number') return
@@ -278,7 +311,7 @@ export default async function HikerPage({
     elevationMap.set(row.hiker_id, current + nextGain)
   })
 
-  const skyscraperRanking = Array.from(elevationMap.entries())
+const skyscraperRanking = Array.from(elevationMap.entries())
     .map(([hikerId, elevation]) => ({
       id: hikerId,
       elevation,
@@ -286,11 +319,11 @@ export default async function HikerPage({
     .filter((entry) => entry.elevation >= SKYSCRAPER_THRESHOLD)
     .sort((a, b) => b.elevation - a.elevation)
 
-  const skyscraperIndex = skyscraperRanking.findIndex(
+const skyscraperIndex = skyscraperRanking.findIndex(
     (entry) => entry.id === hikerData.id
   )
 
-  const skyscraperRank = skyscraperIndex >= 0 ? skyscraperIndex + 1 : null
+const skyscraperRank = skyscraperIndex >= 0 ? skyscraperIndex + 1 : null
 
   type RankedHiker = {
   id: number
@@ -448,10 +481,32 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                    Ø Event Speed
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-white">
+                    {eventAvgSpeed !== null
+                      ? `${eventAvgSpeed.toFixed(2)} km/h`
+                      : '-'}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
                     Höhenmeter
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
                     {Math.round(totalElevation).toLocaleString('de-DE')} hm
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                    Höhenmeter / km
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-white">
+                    {elevationPerKm !== null
+                      ? `${elevationPerKm.toFixed(1)} hm/km`
+                      : '-'}
                   </div>
                 </div>
 
