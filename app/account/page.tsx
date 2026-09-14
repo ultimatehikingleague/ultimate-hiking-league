@@ -447,6 +447,7 @@ export default function AccountPage() {
         const { count: overallHigherCount, error: overallRankError } = await supabase
           .from('hikers')
           .select('*', { count: 'exact', head: true })
+          .eq('profile_status', 'active')
           .gt('total_km', currentTotalKm)
 
         if (overallRankError) {
@@ -459,6 +460,7 @@ export default function AccountPage() {
           const { count: divisionHigherCount, error: divisionRankError } = await supabase
             .from('hikers')
             .select('*', { count: 'exact', head: true })
+            .eq('profile_status', 'active')
             .eq('division', currentHiker.division)
             .gt('total_km', currentTotalKm)
 

@@ -300,10 +300,17 @@ const hasSkyscraper = totalElevation >= SKYSCRAPER_THRESHOLD
 
 const elevationRows = await fetchAllElevationRecords()
 
+const activeHikersForSkyscraper = await fetchAllRankedHikers()
+
+const activeHikerIdsForSkyscraper = new Set(
+  activeHikersForSkyscraper.map((hiker) => hiker.id)
+)
+
 const elevationMap = new Map<number, number>()
 
   ;(elevationRows ?? []).forEach((row: any) => {
     if (typeof row.hiker_id !== 'number') return
+    if (!activeHikerIdsForSkyscraper.has(row.hiker_id)) return
     const current = elevationMap.get(row.hiker_id) ?? 0
     const nextGain =
       typeof row.elevation_gain === 'number' ? row.elevation_gain : 0
