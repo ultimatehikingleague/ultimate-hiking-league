@@ -953,73 +953,6 @@ export default function AccountPage() {
             <div className="mt-3 space-y-3">
               <button
                 type="button"
-                onClick={() => {
-                  setShowEmailForm((current) => !current)
-                  setEmailChangeError('')
-                  setEmailChangeSuccess(false)
-                }}
-                className="w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
-              >
-                E-Mail-Adresse ändern
-              </button>
-
-              {showEmailForm ? (
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="text-sm font-medium text-stone-200">
-                    E-Mail-Adresse ändern
-                  </div>
-
-                  <p className="mt-2 text-xs leading-5 text-stone-400">
-                    Aus Sicherheitsgründen muss die Änderung sowohl über deine bisherige
-                    als auch über deine neue E-Mail-Adresse bestätigt werden. Erst nachdem
-                    beide Bestätigungen erfolgt sind, wird deine E-Mail-Adresse geändert.
-                  </p>
-
-                  <div className="mt-4">
-                    <label className="mb-2 block text-xs font-medium text-stone-300">
-                      Neue E-Mail-Adresse
-                    </label>
-
-                    <input
-                      type="email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="name@beispiel.de"
-                      autoComplete="email"
-                      className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-white/25"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleEmailChange}
-                    disabled={emailChanging}
-                    className="mt-4 w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
-                  >
-                    {emailChanging
-                      ? 'Änderung wird angefordert…'
-                      : 'E-Mail-Änderung anfordern'}
-                  </button>
-
-                  {emailChangeError ? (
-                    <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-200">
-                      {emailChangeError}
-                    </div>
-                  ) : null}
-
-                  {emailChangeSuccess ? (
-                    <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-3 text-xs leading-5 text-emerald-200">
-                      Bestätigungs-E-Mails wurden angefordert. Bitte prüfe sowohl dein
-                      bisheriges als auch dein neues E-Mail-Postfach und bestätige die
-                      Änderung in beiden E-Mails. Die neue Adresse wird erst danach
-                      übernommen.
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <button
-                type="button"
                 onClick={handleLogout}
                 className="w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
               >
@@ -1207,6 +1140,100 @@ export default function AccountPage() {
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  <div className="w-full rounded-2xl border border-white/10 bg-black/15 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
+                          E-Mail-Adresse
+                        </div>
+                        <div className="mt-1 text-sm text-stone-200">
+                          {user?.email ?? 'Unbekannt'}
+                        </div>
+                      </div>
+
+                      {!showEmailForm ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowEmailForm(true)
+                            setNewEmail('')
+                            setEmailChangeError('')
+                            setEmailChangeSuccess(false)
+                          }}
+                          className="shrink-0 text-sm font-medium text-stone-300 underline underline-offset-4 transition hover:text-white"
+                        >
+                          Ändern
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {showEmailForm ? (
+                      <div className="mt-4 border-t border-white/10 pt-4">
+                        <p className="text-xs leading-5 text-stone-400">
+                          <span className="font-medium text-stone-200">Wichtig:</span>{' '}
+                          Aus Sicherheitsgründen musst du die Änderung sowohl über deine
+                          bisherige als auch über deine neue E-Mail-Adresse bestätigen. Erst
+                          nachdem beide Bestätigungen erfolgt sind, wird die neue
+                          E-Mail-Adresse übernommen.
+                        </p>
+
+                        <label className="mt-4 mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
+                          Neue E-Mail-Adresse
+                        </label>
+
+                        <input
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          placeholder="name@beispiel.de"
+                          autoComplete="email"
+                          className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition focus:border-white/25"
+                        />
+
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={handleEmailChange}
+                            disabled={emailChanging}
+                            className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/10 disabled:opacity-60"
+                          >
+                            {emailChanging
+                              ? 'Änderung wird angefordert…'
+                              : 'E-Mail-Änderung anfordern'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowEmailForm(false)
+                              setNewEmail('')
+                              setEmailChangeError('')
+                              setEmailChangeSuccess(false)
+                            }}
+                            disabled={emailChanging}
+                            className="rounded-2xl border border-white/10 px-5 py-3 text-sm text-stone-400 transition hover:text-white disabled:opacity-60"
+                          >
+                            Abbrechen
+                          </button>
+                        </div>
+
+                        {emailChangeError ? (
+                          <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-200">
+                            {emailChangeError}
+                          </div>
+                        ) : null}
+
+                        {emailChangeSuccess ? (
+                          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-3 text-xs leading-5 text-emerald-200">
+                            Die Änderung wurde angefordert. Bitte prüfe sowohl dein bisheriges
+                            als auch dein neues E-Mail-Postfach und bestätige die Änderung in
+                            beiden E-Mails. Erst danach wird die neue Adresse übernommen.
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3">
