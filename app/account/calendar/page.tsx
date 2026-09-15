@@ -129,6 +129,20 @@ const [eventDistances, setEventDistances] = useState<
 
         console.log('Geladene Kalenderevents:', data)
 
+        const sortedData = ((data ?? []) as unknown as CalendarEvent[]).sort(
+            (a, b) => {
+                const dateA = a.event?.event_date
+                ? new Date(a.event.event_date).getTime()
+                : Number.MAX_SAFE_INTEGER
+
+                const dateB = b.event?.event_date
+                ? new Date(b.event.event_date).getTime()
+                : Number.MAX_SAFE_INTEGER
+
+                return dateA - dateB
+            }
+            )
+
 
         const eventIds = (data ?? []).map((item) => Number(item.event_master_id))
 
@@ -167,7 +181,7 @@ const [eventDistances, setEventDistances] = useState<
             setEventDistances(groupedDistances)
         }
         }
-                setCalendarEvents((data ?? []) as unknown as CalendarEvent[])
+                setCalendarEvents(sortedData as unknown as CalendarEvent[])
                 setLoading(false)
             }
 
