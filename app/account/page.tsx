@@ -9,6 +9,7 @@ import BackToHomeButton from '../components/BackToHomeButton'
 import RecordEditRequestForm from '../components/RecordEditRequestForm'
 import { countryToFlag, normalizeCountryCode } from '../lib/country'
 import RecordVisibilityToggle from '../components/RecordVisibilityToggle'
+import { CalendarDays } from 'lucide-react'
 
 type Hiker = {
   id: number
@@ -1067,13 +1068,23 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10"
-            >
-              Abmelden
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/account/calendar"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                <CalendarDays className="h-4 w-4" />
+                Mein Kalender
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Abmelden
+              </button>
+            </div>
           </div>
 
           <div

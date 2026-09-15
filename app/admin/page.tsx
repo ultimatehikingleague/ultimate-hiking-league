@@ -30,6 +30,7 @@ type RecordSubmission = {
   id: number
   user_id: string
   hiker_id: number | null
+  event_master_id: number | null
   activity_name: string
   description: string | null
   submission_type: string | null
@@ -978,7 +979,7 @@ export default function AdminPage() {
           supabase
             .from('record_submissions')
             .select(
-              'id, user_id, hiker_id, activity_name, description, submission_type, is_public, activity_date, distance_km, official_distance_km, actual_distance_km, elapsed_time_text, elevation_gain, country, location, record_source, proof_image_url, notes, status, admin_note, created_at, reviewed_at'
+              'id, user_id, hiker_id, event_master_id, activity_name, description, submission_type, is_public, activity_date, distance_km, official_distance_km, actual_distance_km, elapsed_time_text, elevation_gain, country, location, record_source, proof_image_url, notes, status, admin_note, created_at, reviewed_at'
             )
             .order('created_at', { ascending: false }),
                     supabase
@@ -1751,8 +1752,12 @@ async function handleDeletePartnerBooking(bookingId: string) {
       let eventDistanceId: number | null = null
 
       if (draft.submission_type === 'official_event') {
-        const eventResult = await findOrCreateEventMaster(draft)
-        eventMasterId = eventResult.eventMasterId
+        if (submission.event_master_id) {
+          eventMasterId = submission.event_master_id
+        } else {
+          const eventResult = await findOrCreateEventMaster(draft)
+          eventMasterId = eventResult.eventMasterId
+        }
 
         eventDistanceId = await findOrCreateEventDistance(
           eventMasterId,
@@ -1793,6 +1798,7 @@ async function handleDeletePartnerBooking(bookingId: string) {
           draft.submission_type === 'private'
             ? draft.country.trim() || null
             : null,
+        
       })
 
       if (recordError) {

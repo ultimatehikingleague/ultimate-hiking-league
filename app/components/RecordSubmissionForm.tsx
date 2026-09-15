@@ -1,18 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type RecordSubmissionFormProps = {
   hikerId: number
   onSuccess?: () => void
   onCancel?: () => void
+  preselectedEvent?: {
+    eventMasterId: number
+    title: string
+    date: string
+    country: string
+    city: string
+    organizer: string
+    distanceKm?: number | null
+  }
 }
 
 export default function RecordSubmissionForm({
   hikerId,
   onSuccess,
   onCancel,
+  preselectedEvent,
 }: RecordSubmissionFormProps) {
   const [isOfficialEvent, setIsOfficialEvent] = useState(true)
   const [activityName, setActivityName] = useState('')
@@ -33,6 +43,22 @@ export default function RecordSubmissionForm({
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+
+  useEffect(() => {
+  if (!preselectedEvent) return
+
+  setIsOfficialEvent(true)
+  setActivityName(preselectedEvent.title)
+  setActivityDate(preselectedEvent.date)
+  setCountry(preselectedEvent.country)
+  setLocation(preselectedEvent.city)
+  setOrganizer(preselectedEvent.organizer)
+
+  if (preselectedEvent.distanceKm !== null && preselectedEvent.distanceKm !== undefined) {
+    setOfficialDistanceKm(String(preselectedEvent.distanceKm))
+    setActualDistanceKm(String(preselectedEvent.distanceKm))
+  }
+}, [preselectedEvent])
 
   async function uploadRecordProof(
     filePath: string,
@@ -194,6 +220,10 @@ if (isOfficialEvent) {
         .insert({
           user_id: session.user.id,
           hiker_id: hikerId,
+          event_master_id:
+            isOfficialEvent && preselectedEvent
+              ? preselectedEvent.eventMasterId
+              : null,
           submission_type: isOfficialEvent ? 'official_event' : 'private',
           is_public: isOfficialEvent ? true : isPublic,
           activity_name: isOfficialEvent

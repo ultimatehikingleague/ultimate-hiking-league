@@ -1,7 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { CalendarDays } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 type EventItem = {
   id: number
@@ -76,7 +78,19 @@ function getMonthLabel(dateString: string) {
   }).format(date)
 }
 
-function EventCard({ event }: { event: EventItem }) {
+function EventCard({
+  event,
+  userId,
+  isSaved,
+  calendarLoading,
+  onAddToCalendar,
+}: {
+  event: EventItem
+  userId: string | null
+  isSaved: boolean
+  calendarLoading: boolean
+  onAddToCalendar: (eventId: number) => Promise<void>
+}) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-5 shadow-xl shadow-black/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -124,13 +138,32 @@ function EventCard({ event }: { event: EventItem }) {
         </div>
       ) : null}
 
-      <div className="mt-5">
+      <div className="mt-5 flex flex-wrap gap-3">
         <Link
           href={`/events/${event.slug}`}
-          className="inline-block rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-stone-100 transition hover:bg-white/10"
+          className="inline-flex items-center rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-stone-100 transition hover:bg-white/10"
         >
           Event öffnen
         </Link>
+
+        {userId ? (
+          <button
+            type="button"
+            onClick={() => onAddToCalendar(event.id)}
+            disabled={calendarLoading || isSaved}
+            className={`inline-flex items-center rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+              isSaved
+                ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                : 'border-white/15 bg-white/5 text-stone-100 hover:bg-white/10'
+            } disabled:cursor-default`}
+          >
+            {calendarLoading
+              ? 'Kalender wird geladen…'
+              : isSaved
+                ? '✓ Im Kalender'
+                : 'Zu meinem Kalender'}
+          </button>
+        ) : null}
       </div>
     </div>
   )
@@ -143,6 +176,65 @@ export default function EventsFilterClient({
 }) {
   const [selectedCountry, setSelectedCountry] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
+  const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set())
+  const [calendarLoading, setCalendarLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadCalendar() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      const currentUserId = session?.user?.id ?? null
+      setUserId(currentUserId)
+
+      if (!currentUserId) {
+        setCalendarLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('user_event_calendar')
+        .select('event_master_id')
+        .eq('user_id', currentUserId)
+
+      if (!error && data) {
+        setSavedEventIds(
+          new Set(
+            data.map((item) => Number(item.event_master_id))
+          )
+        )
+      }
+
+      setCalendarLoading(false)
+    }
+
+    loadCalendar()
+  }, [])
+
+  async function addEventToCalendar(eventId: number) {
+    if (!userId || savedEventIds.has(eventId)) return
+
+    const { error } = await supabase
+      .from('user_event_calendar')
+      .insert({
+        user_id: userId,
+        event_master_id: eventId,
+        status: 'planned',
+      })
+
+    if (error) {
+      console.error('Event konnte nicht zum Kalender hinzugefügt werden:', error)
+      return
+    }
+
+    setSavedEventIds((current) => {
+      const next = new Set(current)
+      next.add(eventId)
+      return next
+    })
+  }
 
   const countries = useMemo<CountryOption[]>(() => {
     const groupedCountries = new Map<string, number>()
@@ -207,6 +299,18 @@ export default function EventsFilterClient({
 
   return (
     <>
+      {userId ? (
+        <div className="mb-6 flex justify-end">
+          <Link
+            href="/account/calendar"
+            className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-semibold text-stone-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.12] hover:shadow-lg active:translate-y-0 active:scale-[0.98]"
+          >
+            <CalendarDays className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+            Mein Kalender
+          </Link>
+        </div>
+      ) : null}
+
       <div className="mb-6 flex flex-col gap-4">
         <div>
           <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">
@@ -297,7 +401,14 @@ export default function EventsFilterClient({
 
                 <div className="grid gap-4 xl:grid-cols-2">
                   {group.events.map((event) => (
-                    <EventCard key={event.id} event={event} />
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      userId={userId}
+                      isSaved={savedEventIds.has(event.id)}
+                      calendarLoading={calendarLoading}
+                      onAddToCalendar={addEventToCalendar}
+                    />
                   ))}
                 </div>
               </section>
