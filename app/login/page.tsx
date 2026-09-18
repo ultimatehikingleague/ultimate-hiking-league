@@ -19,20 +19,18 @@ export default function LoginPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      if (!session?.user?.email) return
+      if (!session?.access_token) return
 
       try {
-        const response = await fetch('/api/check-user-ban', {
+        const response = await fetch('/api/enforce-user-ban', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            email: session.user.email,
-          }),
         })
 
         if (!response.ok) {
+          console.error('OAuth ban enforcement failed')
           return
         }
 
@@ -46,7 +44,7 @@ export default function LoginPage() {
           )
         }
       } catch (error) {
-        console.error('OAuth ban check failed:', error)
+        console.error('OAuth ban enforcement failed:', error)
       }
     }
 
@@ -121,6 +119,34 @@ export default function LoginPage() {
         )
       }
     } else {
+      const banResponse = await fetch('/api/check-user-ban', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!banResponse.ok) {
+        setMessage(
+          'Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.'
+        )
+        setLoading(false)
+        return
+      }
+
+      const banResult = await banResponse.json()
+
+      if (banResult.banned) {
+        await supabase.auth.signOut()
+
+        setMessage(
+          'Eine Anmeldung mit diesem Zugang ist nicht möglich.'
+        )
+        setLoading(false)
+        return
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
