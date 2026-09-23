@@ -102,17 +102,17 @@ export default function ChristmasChallengeJoinButton({
   }
 
   if (!isLoggedIn) {
-    return (
-      <div className="mt-6">
-        <Link
-          href="/login"
-          className="inline-flex min-h-[50px] items-center justify-center rounded-2xl bg-red-600 px-7 py-3 font-semibold text-white transition hover:bg-red-500"
-        >
-          Einloggen & anmelden
-        </Link>
-      </div>
-    )
-  }
+  return (
+    <div>
+      <Link
+        href="/login"
+        className="inline-flex min-h-[50px] items-center justify-center rounded-2xl bg-red-600 px-7 py-3 font-semibold text-white transition hover:bg-red-500"
+      >
+        Einloggen & anmelden
+      </Link>
+    </div>
+  )
+}
 
   if (!hikerId) {
     return (
