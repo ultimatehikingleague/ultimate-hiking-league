@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { supabase } from './lib/supabase'
 import Nav from './components/Nav'
 import { getActivePartnerBookings } from './lib/partnerBookings'
+import ChristmasChallengeJoinButton from './components/ChristmasChallengeJoinButton'
+import { CalendarDays, Trophy, CircleCheck } from 'lucide-react'
 
 type HomeEventItem = {
   id: number
@@ -173,11 +175,35 @@ function RankingColumn({
 }
 
 export default async function Home() {
+    const { data: christmasChallenge } = await supabase
+    .from('challenges')
+    .select(
+      'id, slug, title, registration_start, registration_end, challenge_start, challenge_end, min_distance_km, status'
+    )
+    .eq('slug', 'christmas-challenge-2026')
+    .single()
     const { data: siteStatsRow, error: siteStatsError } = await supabase
     .from('site_stats')
     .select('key, value_numeric')
     .eq('key', 'total_km')
     .single()
+    const { data: christmasParticipants } = christmasChallenge
+      ? await supabase
+          .from('challenge_participants')
+          .select('hiker_id')
+          .eq('challenge_id', christmasChallenge.id)
+      : { data: [] }
+    const christmasParticipantIds =
+      christmasParticipants?.map((participant) => participant.hiker_id) ?? []
+
+    const { data: christmasParticipantHikers } =
+      christmasParticipantIds.length > 0
+        ? await supabase
+            .from('hikers')
+            .select('id, display_name, country, profile_status')
+            .in('id', christmasParticipantIds)
+            .eq('profile_status', 'active')
+        : { data: [] }
 
   const totalLeagueKm = siteStatsError
     ? 0
@@ -343,6 +369,104 @@ export default async function Home() {
             </div>
           </section>
         ) : null}
+                {christmasChallenge && christmasChallenge.status !== 'archived' ? (
+                  <section
+                    className="mb-8 overflow-hidden rounded-[2rem] border border-white/15 shadow-2xl shadow-black/30"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(90deg, rgba(14,13,13,0.94) 0%, rgba(18,16,17,0.82) 48%, rgba(18,16,17,0.42) 100%), url('/christmas-challenge-2026-hero.png')",
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  >
+                    <div className="px-6 py-10 md:px-10 md:py-12">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-amber-200">
+                        <span className="text-base">✦</span>
+                        Christmas Special
+                      </div>
+
+                      <h2 className="mt-3 max-w-3xl text-3xl font-bold text-white md:text-4xl">
+                        Christmas Challenge 2026
+                      </h2>
+
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-300 md:text-base">
+                        Sammle vom 20. Oktober bis 15. Dezember so viele verifizierte Kilometer
+                        wie möglich. Platz 1 gewinnt eine NEUE Garmin Venu Sq.
+                      </p>
+
+                      <div className="mt-5 grid max-w-[760px] gap-3 md:grid-cols-3">
+                        <div className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-white/40 bg-white/[0.04] px-4 py-3 backdrop-blur-sm">
+                          <CalendarDays
+                            size={17}
+                            strokeWidth={1.8}
+                            className="text-stone-300"
+                          />
+                          <div>
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                              Zeitraum
+                            </div>
+                            <div className="text-sm font-semibold text-white">
+                              20. Okt. – 15. Dez.
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-amber-300/30 bg-amber-300/[0.07] px-4 py-3 backdrop-blur-sm">
+                          <Trophy
+                            size={17}
+                            strokeWidth={1.8}
+                            className="text-amber-200"
+                          />
+                          <div>
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/70">
+                              Hauptpreis
+                            </div>
+                            <div className="text-sm font-semibold text-white">
+                              Garmin Venu Sq
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex min-h-[74px] items-center gap-3 rounded-2xl border border-emerald-300/30 bg-emerald-300/[0.06] px-4 py-3 backdrop-blur-sm">
+                          <CircleCheck
+                            size={17}
+                            strokeWidth={1.8}
+                            className="text-emerald-200"
+                          />
+                          <div>
+                            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/70">
+                              Teilnahme
+                            </div>
+                            <div className="text-sm font-semibold text-white">
+                              Kostenlos · bis 19. Oktober
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex flex-wrap items-center gap-3">
+                        <ChristmasChallengeJoinButton
+                          challengeId={christmasChallenge.id}
+                          challengeStatus={christmasChallenge.status}
+                        />
+
+                        <Link
+                          href={`/challenges/${christmasChallenge.slug}`}
+                          className="inline-flex min-h-[50px] items-center rounded-2xl border border-white/15 bg-black/30 px-6 py-3 font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
+                        >
+                          Challenge ansehen →
+                        </Link>
+
+                        <div className="ml-1 text-sm text-stone-400">
+                          {christmasParticipantHikers?.length ?? 0}{' '}
+                          {(christmasParticipantHikers?.length ?? 0) === 1
+                            ? 'Teilnehmer'
+                            : 'Teilnehmer'}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
                <section className="mb-8 rounded-[1.75rem] border border-white/8 bg-white/[0.03] px-6 py-5 shadow-lg shadow-black/10 backdrop-blur-sm">
                   <div className="text-center">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
