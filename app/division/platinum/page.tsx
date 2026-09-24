@@ -16,6 +16,8 @@ type RankedUser = {
 }
 
 const PAGE_SIZE = 50
+const CURRENT_YEAR = new Date().getFullYear()
+const USE_SEASON_RANKING = new Date() >= new Date('2027-01-01T00:00:00')
 
 function countryToFlag(countryCode: string | null) {
   if (!countryCode) return '—'
@@ -86,7 +88,34 @@ async function fetchAllPlatinumHikers() {
     from += pageSize
   }
 
-  return allRows
+  if (!USE_SEASON_RANKING || allRows.length === 0) {
+    return allRows
+  }
+
+  const hikerIds = allRows.map((hiker) => hiker.id)
+
+  const { data: seasonStats, error: seasonError } = await supabase
+    .from('hiker_season_stats')
+    .select('hiker_id, season_km')
+    .eq('season_year', CURRENT_YEAR)
+    .in('hiker_id', hikerIds)
+
+  if (seasonError) {
+    console.error('Platinum season stats load error:', seasonError)
+    return []
+  }
+
+  const seasonKmByHiker = new Map(
+    (seasonStats ?? []).map((row) => [
+      row.hiker_id,
+      typeof row.season_km === 'number' ? row.season_km : 0,
+    ])
+  )
+
+  return allRows.map((hiker) => ({
+    ...hiker,
+    total_km: seasonKmByHiker.get(hiker.id) ?? 0,
+  }))
 }
 
 export default function PlatinumPage() {
@@ -117,7 +146,7 @@ export default function PlatinumPage() {
                 : 0,
             rank: 0,
           }))
-          .filter((u) => u.total_km > 0)
+          .filter((u) => USE_SEASON_RANKING || u.total_km > 0)
           .sort((a, b) => b.total_km - a.total_km)
           .map((u, index) => ({
             ...u,

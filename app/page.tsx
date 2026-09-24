@@ -33,6 +33,9 @@ async function fetchUpcomingHomeEvents(): Promise<HomeEventItem[]> {
 
 export const dynamic = 'force-dynamic'
 
+const CURRENT_YEAR = new Date().getFullYear()
+const USE_SEASON_RANKING = new Date() >= new Date('2027-01-01T00:00:00')
+
 function countryToFlag(country: string | null) {
   if (!country) return ''
   const code = country.trim().toUpperCase()
@@ -239,6 +242,36 @@ export default async function Home() {
     .eq('division', 'silver')
     .order('total_km', { ascending: false })
     .limit(10)
+
+    let homepagePlatinumData = platinumData ?? []
+    let homepageGoldData = goldData ?? []
+    let homepageSilverData = silverData ?? []
+
+    if (USE_SEASON_RANKING) {
+      const { data: seasonStats } = await supabase
+        .from('hiker_season_stats')
+        .select('hiker_id, season_km')
+        .eq('season_year', CURRENT_YEAR)
+
+      const seasonKmByHiker = new Map(
+        (seasonStats ?? []).map((row) => [
+          row.hiker_id,
+          typeof row.season_km === 'number' ? row.season_km : 0,
+        ])
+      )
+
+      const applySeasonRanking = (hikers: HikerRow[]) =>
+        hikers
+          .map((hiker) => ({
+            ...hiker,
+            total_km: seasonKmByHiker.get(hiker.id) ?? 0,
+          }))
+          .sort((a, b) => (b.total_km ?? 0) - (a.total_km ?? 0))
+
+      homepagePlatinumData = applySeasonRanking(platinumData ?? [])
+      homepageGoldData = applySeasonRanking(goldData ?? [])
+      homepageSilverData = applySeasonRanking(silverData ?? [])
+    }
 
   const homeEvents = await fetchUpcomingHomeEvents()
 
@@ -543,21 +576,21 @@ export default async function Home() {
             <RankingColumn
               title="Top 10 Platinum"
               href="/division/platinum"
-              hikers={(platinumData ?? []) as HikerRow[]}
+              hikers={homepagePlatinumData as HikerRow[]}
               divisionStyle={getDivisionTitleClass('platinum')}
               divisionDotClass={getDivisionDotClass('platinum')}
             />
             <RankingColumn
               title="Top 10 Gold"
               href="/division/gold"
-              hikers={(goldData ?? []) as HikerRow[]}
+              hikers={homepageGoldData as HikerRow[]}
               divisionStyle={getDivisionTitleClass('gold')}
               divisionDotClass={getDivisionDotClass('gold')}
             />
             <RankingColumn
               title="Top 10 Silver"
               href="/division/silver"
-              hikers={(silverData ?? []) as HikerRow[]}
+              hikers={homepageSilverData as HikerRow[]}
               divisionStyle={getDivisionTitleClass('silver')}
               divisionDotClass={getDivisionDotClass('silver')}
             />
