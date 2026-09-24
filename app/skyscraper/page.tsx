@@ -19,7 +19,8 @@ type RankedUser = {
 const PAGE_SIZE = 50
 const MIN_ELEVATION = 1500
 
-
+const CURRENT_YEAR = new Date().getFullYear()
+const USE_SEASON_RANKING = new Date() >= new Date('2027-01-01T00:00:00')
 
 function getRankDisplay(rank: number, useMedals: boolean) {
   if (useMedals) {
@@ -84,14 +85,33 @@ async function fetchAllElevationRecords() {
   let allRows: any[] = []
 
   while (true) {
-    const { data, error } = await supabase
-      .from('records')
-      .select('hiker_id, elevation_gain')
-      .range(from, from + pageSize - 1)
+    let query
+
+    if (USE_SEASON_RANKING) {
+      query = supabase
+        .from('hiker_season_stats')
+        .select('hiker_id, season_elevation_gain')
+        .eq('season_year', CURRENT_YEAR)
+        .range(from, from + pageSize - 1)
+    } else {
+      query = supabase
+        .from('records')
+        .select('hiker_id, elevation_gain')
+        .range(from, from + pageSize - 1)
+    }
+
+    const { data, error } = await query
 
     if (error || !data || data.length === 0) break
 
-    allRows = allRows.concat(data)
+    allRows = allRows.concat(
+      data.map((row: any) => ({
+        hiker_id: row.hiker_id,
+        elevation_gain: USE_SEASON_RANKING
+          ? row.season_elevation_gain
+          : row.elevation_gain,
+      }))
+    )
 
     if (data.length < pageSize) break
 
@@ -224,7 +244,7 @@ export default function SkyscraperPage() {
 
             <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">
               Die Höhenmeter-Rangliste der Liga. Sichtbar ab mindestens {MIN_ELEVATION}{' '}
-              hm Gesamtleistung.
+              hm {USE_SEASON_RANKING ? `in der Saison ${CURRENT_YEAR}` : 'Gesamtleistung'}.
             </p>
           </div>
 
