@@ -136,7 +136,7 @@ function RankingColumn({
       </div>
 
       <div className="space-y-2">
-        {hikers.map((hiker, index) => {
+        {hikers.slice(0, 10).map((hiker, index) => {
           const isTop3 = index < 3
 
           return (
@@ -225,7 +225,7 @@ export default async function Home() {
     .eq('profile_status', 'active')
     .eq('division', 'platinum')
     .order('total_km', { ascending: false })
-    .limit(10)
+    
 
   const { data: goldData } = await supabase
     .from('hikers')
@@ -233,7 +233,7 @@ export default async function Home() {
     .eq('profile_status', 'active')
     .eq('division', 'gold')
     .order('total_km', { ascending: false })
-    .limit(10)
+    
 
   const { data: silverData } = await supabase
     .from('hikers')
@@ -241,7 +241,7 @@ export default async function Home() {
     .eq('profile_status', 'active')
     .eq('division', 'silver')
     .order('total_km', { ascending: false })
-    .limit(10)
+    
 
     let homepagePlatinumData = platinumData ?? []
     let homepageGoldData = goldData ?? []
