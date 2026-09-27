@@ -17,10 +17,17 @@ type Hiker = {
   country: string | null
   gender: string | null
   total_km: number | null
+  total_elevation_gain: number | null
   avg_speed: number | null
   division: 'silver' | 'gold' | 'platinum' | null
   claimed_profile: boolean | null
   profile_image: string | null
+}
+
+type SeasonStat = {
+  season_year: number
+  season_km: number
+  season_elevation_gain: number
 }
 
 type RawRecord = {
@@ -112,6 +119,9 @@ type RejectedCorrectionNotice = {
 }
 
 const SKYSCRAPER_THRESHOLD = 1500
+
+const USE_SEASON_RANKING =
+  new Date() >= new Date('2027-01-01T00:00:00')
 
 const COUNTRY_OPTIONS = [
   { value: 'DE', label: 'Deutschland' },
@@ -326,14 +336,33 @@ async function fetchAllElevationRecords() {
   let allRows: any[] = []
 
   while (true) {
-    const { data, error } = await supabase
-      .from('records')
-      .select('hiker_id, elevation_gain')
-      .range(from, from + pageSize - 1)
+    let query
+
+    if (USE_SEASON_RANKING) {
+      query = supabase
+        .from('hiker_season_stats')
+        .select('hiker_id, season_elevation_gain')
+        .eq('season_year', new Date().getFullYear())
+        .range(from, from + pageSize - 1)
+    } else {
+      query = supabase
+        .from('records')
+        .select('hiker_id, elevation_gain')
+        .range(from, from + pageSize - 1)
+    }
+
+    const { data, error } = await query
 
     if (error || !data || data.length === 0) break
 
-    allRows = allRows.concat(data)
+    allRows = allRows.concat(
+      data.map((row: any) => ({
+        hiker_id: row.hiker_id,
+        elevation_gain: USE_SEASON_RANKING
+          ? row.season_elevation_gain
+          : row.elevation_gain,
+      }))
+    )
 
     if (data.length < pageSize) break
 
@@ -359,6 +388,29 @@ export default function AccountPage() {
   const [divisionRank, setDivisionRank] = useState<number | null>(null)
   const [totalElevation, setTotalElevation] = useState<number>(0)
   const [eventAvgSpeed, setEventAvgSpeed] = useState<number | null>(null)
+  const [seasonKm, setSeasonKm] = useState<number>(0)
+  const [seasonElevation, setSeasonElevation] = useState<number>(0)
+  const [seasonHistory, setSeasonHistory] = useState<SeasonStat[]>([])
+  const [selectedSeasonYear, setSelectedSeasonYear] = useState<number>(
+    new Date().getFullYear()
+  )
+  const selectedSeason = seasonHistory.find(
+    (season) => season.season_year === selectedSeasonYear
+  )
+
+  const selectedSeasonKm = selectedSeason?.season_km ?? 0
+  const selectedSeasonElevation = selectedSeason?.season_elevation_gain ?? 0
+
+  const displayedRecords = USE_SEASON_RANKING
+  ? records.filter((record) => {
+      if (!record.activity_date) return false
+
+      return (
+        new Date(`${record.activity_date}T00:00:00`).getFullYear() ===
+        selectedSeasonYear
+      )
+    })
+  : records
   const [elevationPerKm, setElevationPerKm] = useState<number | null>(null)
   const [hasSkyscraper, setHasSkyscraper] = useState(false)
   const [skyscraperRank, setSkyscraperRank] = useState<number | null>(null)
@@ -433,7 +485,7 @@ export default function AccountPage() {
         const { data: hikerRows, error: hikerError } = await supabase
           .from('hikers')
           .select(
-            'id, display_name, country, gender, total_km, avg_speed, division, claimed_profile, profile_image'
+            'id, display_name, country, gender, total_km, total_elevation_gain, avg_speed, division, claimed_profile, profile_image'
           )
           .eq('claimed_by_user_id', session.user.id)
           .limit(1)
@@ -448,6 +500,42 @@ export default function AccountPage() {
         setProfileCountry(currentHiker.country ?? '')
         setProfileGender(currentHiker.gender ?? '')
         setShowProfileMetaForm(!currentHiker.country || !currentHiker.gender)
+
+        const currentYear = new Date().getFullYear()
+
+        const { data: seasonRows, error: seasonError } = await supabase
+          .from('hiker_season_stats')
+          .select('season_year, season_km, season_elevation_gain')
+          .eq('hiker_id', currentHiker.id)
+          .order('season_year', { ascending: false })
+
+        let currentSeasonKm = 0
+        let currentSeasonElevation = 0
+
+        if (seasonError) {
+          console.error('Season stats load error:', seasonError)
+          setSeasonKm(0)
+          setSeasonElevation(0)
+          setSeasonHistory([])
+        } else {
+          const history = (seasonRows ?? []).map((row: any) => ({
+            season_year: Number(row.season_year),
+            season_km: Number(row.season_km ?? 0),
+            season_elevation_gain: Number(row.season_elevation_gain ?? 0),
+          }))
+
+          setSeasonHistory(history)
+
+          const currentSeason = history.find(
+            (season) => season.season_year === currentYear
+          )
+
+          currentSeasonKm = currentSeason?.season_km ?? 0
+          currentSeasonElevation = currentSeason?.season_elevation_gain ?? 0
+
+          setSeasonKm(currentSeasonKm)
+          setSeasonElevation(currentSeasonElevation)
+        }
 
         const currentTotalKm =
           typeof currentHiker.total_km === 'number' ? currentHiker.total_km : 0
@@ -465,17 +553,55 @@ export default function AccountPage() {
         }
 
         if (currentHiker.division) {
-          const { count: divisionHigherCount, error: divisionRankError } = await supabase
-            .from('hikers')
-            .select('*', { count: 'exact', head: true })
-            .eq('profile_status', 'active')
-            .eq('division', currentHiker.division)
-            .gt('total_km', currentTotalKm)
+          if (USE_SEASON_RANKING) {
+            const activeHikers = await fetchAllActiveHikersForRanking()
 
-          if (divisionRankError) {
-            setDivisionRank(null)
+            const divisionHikerIds = activeHikers
+              .filter((row: any) => row.division === currentHiker.division)
+              .map((row: any) => row.id)
+
+            if (divisionHikerIds.length === 0) {
+              setDivisionRank(null)
+            } else {
+              const { data: divisionSeasonRows, error: divisionRankError } =
+                await supabase
+                  .from('hiker_season_stats')
+                  .select('hiker_id, season_km')
+                  .eq('season_year', currentYear)
+                  .in('hiker_id', divisionHikerIds)
+
+              if (divisionRankError) {
+                setDivisionRank(null)
+              } else {
+                const seasonKmByHiker = new Map(
+                  (divisionSeasonRows ?? []).map((row: any) => [
+                    row.hiker_id,
+                    typeof row.season_km === 'number' ? row.season_km : 0,
+                  ])
+                )
+
+                const higherCount = divisionHikerIds.filter(
+                  (id: number) =>
+                    (seasonKmByHiker.get(id) ?? 0) > currentSeasonKm
+                ).length
+
+                setDivisionRank(higherCount + 1)
+              }
+            }
           } else {
-            setDivisionRank((divisionHigherCount ?? 0) + 1)
+            const { count: divisionHigherCount, error: divisionRankError } =
+              await supabase
+                .from('hikers')
+                .select('*', { count: 'exact', head: true })
+                .eq('profile_status', 'active')
+                .eq('division', currentHiker.division)
+                .gt('total_km', currentTotalKm)
+
+            if (divisionRankError) {
+              setDivisionRank(null)
+            } else {
+              setDivisionRank((divisionHigherCount ?? 0) + 1)
+            }
           }
         } else {
           setDivisionRank(null)
@@ -545,8 +671,12 @@ export default function AccountPage() {
 
         setElevationPerKm(elevationPerKmValue)
 
-        setTotalElevation(totalElevationValue)
-        setHasSkyscraper(totalElevationValue >= SKYSCRAPER_THRESHOLD)
+      
+        setHasSkyscraper(
+          USE_SEASON_RANKING
+            ? currentSeasonElevation >= SKYSCRAPER_THRESHOLD
+            : totalElevationValue >= SKYSCRAPER_THRESHOLD
+        )
 
         const [activeHikersForRanking, elevationRows] = await Promise.all([
           fetchAllActiveHikersForRanking(),
@@ -1288,27 +1418,112 @@ export default function AccountPage() {
             )}
           </div>
 
+          {USE_SEASON_RANKING && seasonHistory.length > 0 ? (
+            <div className="mt-8">
+              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+                Saison
+              </div>
+
+              <div className="flex w-full items-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentIndex = seasonHistory.findIndex(
+                      (season) => season.season_year === selectedSeasonYear
+                    )
+
+                    if (currentIndex < seasonHistory.length - 1) {
+                      setSelectedSeasonYear(
+                        seasonHistory[currentIndex + 1].season_year
+                      )
+                    }
+                  }}
+                  disabled={
+                    seasonHistory.findIndex(
+                      (season) => season.season_year === selectedSeasonYear
+                    ) >= seasonHistory.length - 1
+                  }
+                  className="flex h-14 w-16 shrink-0 items-center justify-center border-r border-white/10 text-3xl text-stone-300 transition active:bg-white/10 disabled:opacity-20"
+                  aria-label="Vorherige Saison"
+                >
+                  ‹
+                </button>
+
+                <div className="flex h-14 min-w-0 flex-1 items-center justify-center">
+                  <span className="text-lg font-bold text-white">
+                    {selectedSeasonYear}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentIndex = seasonHistory.findIndex(
+                      (season) => season.season_year === selectedSeasonYear
+                    )
+
+                    if (currentIndex > 0) {
+                      setSelectedSeasonYear(
+                        seasonHistory[currentIndex - 1].season_year
+                      )
+                    }
+                  }}
+                  disabled={
+                    seasonHistory.findIndex(
+                      (season) => season.season_year === selectedSeasonYear
+                    ) <= 0
+                  }
+                  className="flex h-14 w-16 shrink-0 items-center justify-center border-l border-white/10 text-3xl text-stone-300 transition active:bg-white/10 disabled:opacity-20"
+                  aria-label="Nächste Saison"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+                    ) : null}
+
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-7">
             <StatCard
               label="Aktuelle Division"
               value={(hiker.division ?? 'silver').toUpperCase()}
               division={hiker.division}
             />
+
             <StatCard
               label="Rang Division"
               value={divisionRank ? `#${divisionRank}` : '—'}
               division={hiker.division}
             />
+
             <StatCard
               label="Rang Overall"
               value={overallRank ? `#${overallRank}` : '—'}
               division={hiker.division}
             />
+
             <StatCard
               label="Gesamt-km"
               value={`${hiker.total_km ?? '—'} km`}
               division={hiker.division}
             />
+
+            {USE_SEASON_RANKING ? (
+              <>
+                <StatCard
+                  label={`Saison-km ${selectedSeasonYear}`}
+                  value={`${selectedSeasonKm.toFixed(2)} km`}
+                  division={hiker.division}
+                />
+                <StatCard
+                  label={`Saison-Höhenmeter ${selectedSeasonYear}`}
+                  value={`${Math.round(
+                    selectedSeasonElevation
+                  ).toLocaleString('de-DE')} hm`}
+                  division={hiker.division}
+                />
+              </>
+            ) : null}
+
             <StatCard
               label="Ø Speed"
               value={`${hiker.avg_speed ?? '—'} km/h`}
@@ -1321,7 +1536,7 @@ export default function AccountPage() {
             />
             <StatCard
               label="Höhenmeter"
-              value={`${Math.round(totalElevation).toLocaleString('de-DE')} hm`}
+              value={`${Math.round(hiker.total_elevation_gain ?? 0).toLocaleString('de-DE')} hm`}
               division={hiker.division}
             />
             <StatCard
@@ -1467,12 +1682,12 @@ export default function AccountPage() {
           </div>
 
           <div className="space-y-4">
-            {records.length === 0 ? (
+            {displayedRecords.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-stone-400">
                 Noch keine Records gefunden.
               </div>
             ) : (
-              records.map((record) => (
+              displayedRecords.map((record) => (
                 <div
                   key={record.id}
                   className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.055] hover:shadow-2xl"
