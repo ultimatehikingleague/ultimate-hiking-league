@@ -82,8 +82,10 @@ export default function DatenschutzPage() {
 
           <p>
             Wenn du einen Garmin-Connect-Screenshot zum Import auswählst, liest
-            eine automatische Texterkennung in deinem Browser mögliche Werte für
-            das Formular aus. Du kannst die Vorschläge prüfen und korrigieren.
+            Tesseract.js mögliche Werte für das Formular direkt in deinem Browser
+            aus. Dabei wird das Bild an keinen externen OCR- oder KI-Dienst
+            gesendet. Für diesen Import brauchst du keine Kontoverknüpfung mit
+            Garmin. Du kannst die Vorschläge prüfen und korrigieren.
             Beim Absenden werden die bestätigten Originalbilder in einem privaten
             Speicherbereich bei Supabase abgelegt und mit der Einreichung
             verknüpft. Zugriff auf diese Originale haben dein Konto und
@@ -139,6 +141,75 @@ export default function DatenschutzPage() {
           </p>
 
                     </>)}
+          <h2 id="garmin-connect" className="scroll-mt-8 text-lg font-semibold text-white">
+            3c. Direkte Verknüpfung mit Garmin Connect (geplant)
+          </h2>
+
+          <p>
+            Die direkte Verknüpfung über die Garmin Connect Activity API ist
+            derzeit für Nutzerinnen und Nutzer nicht aktiviert. Der oben
+            beschriebene Screenshot-Import ist bereits verfügbar.
+          </p>
+
+          <p>
+            Nach dem geplanten Start sollst du dein UHL-Konto freiwillig mit
+            Garmin Connect verbinden können. Du sollst dich dazu bei Garmin
+            anmelden und dort den Zugriff auf deine Aktivitäten freigeben.
+            Als Rechtsgrundlage für die Verknüpfung, die Übernahme der von
+            Garmin übermittelten Daten und die private Anzeige ist deine
+            Einwilligung nach Art. 6 Abs. 1
+            Buchst. a DSGVO vorgesehen. Für die Verbindung sind deine
+            Garmin-Kennung, die erteilten Berechtigungen und technische
+            Zugangstokens erforderlich.
+          </p>
+
+          <p>
+            Garmin Connect ist die Quelle der Aktivitätsdaten. Für die private
+            Auswahl in deinem UHL-Konto und die anschließende Prüfung sind
+            insbesondere Aktivitätskennung, Typ, Datum, Distanz, Gesamtzeit,
+            Höhenmeter und gegebenenfalls Angaben zur Herkunft der Daten
+            vorgesehen. Du sollst selbst auswählen, welche Aktivität du zur
+            Prüfung einreichst. Soweit die Verarbeitung für die von dir
+            gewünschte Teilnahme erforderlich ist, ist dafür Art. 6 Abs. 1
+            Buchst. b DSGVO vorgesehen.
+          </p>
+
+          <p>
+            Garmin verarbeitet Anmeldung und Freigabe nach seinen eigenen
+            Datenschutzhinweisen. Für die technische Bereitstellung der
+            Schnittstelle ist Vercel vorgesehen, für die Speicherung Supabase.
+            Berechtigte Mitglieder des Prüfteams sollen Zugriff auf eingereichte
+            Aktivitäten erhalten. Wir verkaufen keine Garmin-Daten. Eine
+            Weitergabe von API-Daten an externe OCR- oder KI-Anbieter ist
+            nicht vorgesehen.
+          </p>
+
+          <p>
+            Eine öffentliche Anzeige von Daten aus der direkten Verknüpfung
+            ist erst nach deiner gesonderten Einwilligung (Art. 6 Abs. 1
+            Buchst. a DSGVO), der Freigabe durch das Prüfteam und im Rahmen
+            der mit Garmin vereinbarten Nutzung vorgesehen. Vor der
+            Einreichung soll erkennbar sein, welche Angaben öffentlich
+            erscheinen können, etwa dein angezeigter Profilname, Distanz,
+            Gesamtzeit, Höhenmeter und Platzierung in Ranglisten oder
+            Challenges. Zugangstokens und die private Aktivitätenliste sind
+            von der Veröffentlichung ausgeschlossen.
+          </p>
+
+          <p>
+            Für den Start sind eine Trennung im UHL-Konto und die Verarbeitung
+            eines Widerrufs der Freigabe bei Garmin vorgesehen. Danach sollen
+            keine neuen Aktivitäten mehr übernommen werden. Du kannst eine
+            erteilte Einwilligung jederzeit mit Wirkung für die Zukunft
+            widerrufen. Die Rechtmäßigkeit der Verarbeitung bis zum Widerruf
+            bleibt unberührt. Die Löschfristen für Zugangstokens, nicht
+            eingereichte Aktivitäten, Einreichungen und Wertungen sowie die
+            Angaben zu etwaigen Drittlandübermittlungen werden vor der
+            Aktivierung ergänzt. Für Löschanfragen, einen Widerruf und die
+            Ausübung deiner Rechte nach Abschnitt 9 erreichst du uns unter
+            ultimatehikingleague@gmail.com.
+          </p>
+
           <h2 className="text-lg font-semibold text-white">
             4. Nutzung von Supabase
           </h2>
