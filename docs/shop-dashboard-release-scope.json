@@ -1,0 +1,11 @@
+{
+  "baseline": "dpl_6nk3NVgZJ5HAqsacSJbxFXoZEHDx",
+  "candidate": "dpl_FZv7Bt4uxjfW6gAGSNuqEvUa6ng9",
+  "runtimeFiles": 168,
+  "changed": [
+    "app/admin/shop/page.tsx",
+    "app/api/admin/shop/metrics/route.ts",
+    "app/lib/shop/admin-metrics.ts"
+  ],
+  "missing": []
+}

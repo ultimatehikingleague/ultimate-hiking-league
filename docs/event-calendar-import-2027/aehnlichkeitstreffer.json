@@ -1,0 +1,145 @@
+[
+  {
+    "kandidat": "B041",
+    "bestehende_id": 629,
+    "datum": "2027-05-01",
+    "titel": "De Tweedaagse Voettocht Blankenberge Zaterdag",
+    "ort": "Knokke",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.861,
+    "gleiche_quellseite": false,
+    "entscheidung": "Eigenständiger Sonntag laut Verbandskalender. Vorhanden ist der Samstag (M629)."
+  },
+  {
+    "kandidat": "B076",
+    "bestehende_id": 702,
+    "datum": "2027-06-12",
+    "titel": "Megamarsch Weserbergland",
+    "ort": "Rinteln",
+    "gleicher_tag": true,
+    "namensaehnlichkeit": 0.852,
+    "gleiche_quellseite": false,
+    "entscheidung": "Eigene Anmeldung für den Nachtmarsch. M702 ist die Tagesausgabe."
+  },
+  {
+    "kandidat": "B076",
+    "bestehende_id": 754,
+    "datum": "2027-08-21",
+    "titel": "Megamarsch Berlin bei Nacht",
+    "ort": "Berlin",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.836,
+    "gleiche_quellseite": false,
+    "entscheidung": "Eigene Anmeldung für den Nachtmarsch. M702 ist die Tagesausgabe."
+  },
+  {
+    "kandidat": "B072",
+    "bestehende_id": 229,
+    "datum": "2027-03-13",
+    "titel": "Mammutmarsch München",
+    "ort": "München",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.844,
+    "gleiche_quellseite": false,
+    "entscheidung": "Sommerausgabe in Krailling. M229 ist die Frühjahrsausgabe."
+  },
+  {
+    "kandidat": "B080",
+    "bestehende_id": 322,
+    "datum": "2027-03-06",
+    "titel": "Nord-Marsch Ratzeburg",
+    "ort": "Ratzeburg",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.833,
+    "gleiche_quellseite": false,
+    "entscheidung": "Offizielle Startzeiten für beide Starttage und jede Distanz überprüft. Ein Masterevent mit Beginn am 8. Oktober. Tageszuordnung in der Beschreibung."
+  },
+  {
+    "kandidat": "B075",
+    "bestehende_id": 229,
+    "datum": "2027-03-13",
+    "titel": "Mammutmarsch München",
+    "ort": "München",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.864,
+    "gleiche_quellseite": false,
+    "entscheidung": "Die Jahresübersicht nennt 2027. Die erreichbare Detailseite zeigt Oktober 2026. 2027-Startort und Eventidentität gegenüber der alten Detailseite verbindlich klären."
+  },
+  {
+    "kandidat": "B077",
+    "bestehende_id": 751,
+    "datum": "2027-07-17",
+    "titel": "Megamarsch Erfurt",
+    "ort": "Erfurt",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.857,
+    "gleiche_quellseite": false,
+    "entscheidung": "Anderer Austragungsort als Erfurt (M751). Offizielles Start- und Zielgelände ist das Brentanobad."
+  },
+  {
+    "kandidat": "B078",
+    "bestehende_id": 226,
+    "datum": "2027-03-06",
+    "titel": "Megamarsch Dresden",
+    "ort": "Dresden",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.812,
+    "gleiche_quellseite": false,
+    "entscheidung": "Konkreter Veranstaltungsort auf Rügen"
+  },
+  {
+    "kandidat": "B078",
+    "bestehende_id": 581,
+    "datum": "2027-05-15",
+    "titel": "Megamarsch München",
+    "ort": "München",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.812,
+    "gleiche_quellseite": false,
+    "entscheidung": "Konkreter Veranstaltungsort auf Rügen"
+  },
+  {
+    "kandidat": "B078",
+    "bestehende_id": 583,
+    "datum": "2027-05-22",
+    "titel": "Megamarsch Bremen",
+    "ort": "Bremen",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.839,
+    "gleiche_quellseite": false,
+    "entscheidung": "Konkreter Veranstaltungsort auf Rügen"
+  },
+  {
+    "kandidat": "B078",
+    "bestehende_id": 757,
+    "datum": "2027-09-25",
+    "titel": "Megamarsch Freiburg",
+    "ort": "Freiburg",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.788,
+    "gleiche_quellseite": false,
+    "entscheidung": "Konkreter Veranstaltungsort auf Rügen"
+  },
+  {
+    "kandidat": "B078",
+    "bestehende_id": 761,
+    "datum": "2027-07-24",
+    "titel": "Megamarsch Ruhrgebiet",
+    "ort": "Essen",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.8,
+    "gleiche_quellseite": false,
+    "entscheidung": "Konkreter Veranstaltungsort auf Rügen"
+  },
+  {
+    "kandidat": "B074",
+    "bestehende_id": 585,
+    "datum": "2027-09-04",
+    "titel": "Mammutmarsch Berlin",
+    "ort": "Berlin",
+    "gleicher_tag": false,
+    "namensaehnlichkeit": 0.818,
+    "gleiche_quellseite": false,
+    "entscheidung": "Die Jahresübersicht nennt 2027. Die Detailseite bezieht sich auf 2026. September M585 ist die Langstreckenausgabe."
+  }
+]

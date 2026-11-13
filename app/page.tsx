@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { supabase } from './lib/supabase'
 import Nav from './components/Nav'
 import { getActivePartnerBookings } from './lib/partnerBookings'
@@ -178,18 +179,21 @@ function RankingColumn({
 }
 
 export default async function Home() {
-    const { data: christmasChallenge } = await supabase
+  const [{ data: christmasChallenge }, { data: siteStatsRow, error: siteStatsError }] = await Promise.all([
+    supabase
     .from('challenges')
     .select(
       'id, slug, title, registration_start, registration_end, challenge_start, challenge_end, min_distance_km, status'
     )
     .eq('slug', 'christmas-challenge-2026')
-    .single()
-    const { data: siteStatsRow, error: siteStatsError } = await supabase
+    .single(),
+    supabase
     .from('site_stats')
     .select('key, value_numeric')
     .eq('key', 'total_km')
-    .single()
+    .single(),
+  ])
+
     const { data: christmasParticipants } = christmasChallenge
       ? await supabase
           .from('challenge_participants')
@@ -212,36 +216,35 @@ export default async function Home() {
     ? 0
     : parseFloat(String(siteStatsRow?.value_numeric ?? '0'))
 
-  const { data: globalData } = await supabase
+  const [{ data: globalData }, { data: platinumData }] = await Promise.all([
+    supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
     .eq('profile_status', 'active')
     .order('total_km', { ascending: false })
-    .limit(10)
-
-  const { data: platinumData } = await supabase
+    .limit(10),
+    supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
     .eq('profile_status', 'active')
     .eq('division', 'platinum')
-    .order('total_km', { ascending: false })
-    
+    .order('total_km', { ascending: false }),
+  ])
 
-  const { data: goldData } = await supabase
+  const [{ data: goldData }, { data: silverData }] = await Promise.all([
+    supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
     .eq('profile_status', 'active')
     .eq('division', 'gold')
-    .order('total_km', { ascending: false })
-    
-
-  const { data: silverData } = await supabase
+    .order('total_km', { ascending: false }),
+    supabase
     .from('hikers')
     .select('id, display_name, total_km, division, country')
     .eq('profile_status', 'active')
     .eq('division', 'silver')
-    .order('total_km', { ascending: false })
-    
+    .order('total_km', { ascending: false }),
+  ])
 
     let homepagePlatinumData = platinumData ?? []
     let homepageGoldData = goldData ?? []
@@ -273,9 +276,10 @@ export default async function Home() {
       homepageSilverData = applySeasonRanking(silverData ?? [])
     }
 
-  const homeEvents = await fetchUpcomingHomeEvents()
-
-  const activePartnerBookings = await getActivePartnerBookings()
+  const [homeEvents, activePartnerBookings] = await Promise.all([
+    fetchUpcomingHomeEvents(),
+    getActivePartnerBookings(),
+  ])
 
   const premiumHomepageBookings = activePartnerBookings.filter(
     (booking) =>
@@ -305,21 +309,20 @@ export default async function Home() {
     new Set((recentRecords ?? []).map((record) => record.event_id).filter(Boolean))
   )
 
-  const { data: recentHikers } =
+  const [{ data: recentHikers }, { data: recentEvents }] = await Promise.all([
     recentHikerIds.length > 0
-      ? await supabase
+      ? supabase
           .from('hikers')
           .select('id, display_name, country')
           .in('id', recentHikerIds)
-      : { data: [] as any[] }
-
-  const { data: recentEvents } =
+      : { data: [] as { id: number; display_name: string; country: string | null }[] },
     recentEventIds.length > 0
-      ? await supabase
+      ? supabase
           .from('events')
           .select('id, event_name, location, country')
           .in('id', recentEventIds)
-      : { data: [] as any[] }
+      : { data: [] as { id: number; event_name: string | null; location: string | null; country: string | null }[] },
+  ])
 
   const hikersMap = new Map((recentHikers ?? []).map((hiker) => [hiker.id, hiker]))
   const eventsMap = new Map((recentEvents ?? []).map((event) => [event.id, event]))
@@ -328,11 +331,19 @@ export default async function Home() {
     <main className="min-h-screen bg-[#141312] text-stone-100">
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img
-            src="/mountain-hero.jpg"
-            alt="Mountain hero background"
-            className="h-full w-full object-cover object-[72%_18%] md:object-[72%_16%] xl:object-[72%_14%]"
-          />
+          <picture>
+            <source type="image/avif" srcSet="/images/home/mountain-hero.avif" />
+            <source type="image/webp" srcSet="/images/home/mountain-hero.webp" />
+            <img
+              src="/mountain-hero.jpg"
+              alt="Mountain hero background"
+              width={1024}
+              height={1536}
+              loading="eager"
+              fetchPriority="high"
+              className="h-full w-full object-cover object-[72%_18%] md:object-[72%_16%] xl:object-[72%_14%]"
+            />
+          </picture>
         </div>
 
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,14,0.26)_0%,rgba(10,12,16,0.42)_28%,rgba(12,12,12,0.70)_62%,#141312_100%)]" />
@@ -366,6 +377,24 @@ export default async function Home() {
             <div className="mx-auto mt-8 max-w-7xl">
               <Nav />
             </div>
+
+            <div className="mt-7 flex justify-center">
+              <Link
+                href="/shop"
+                aria-label="ULTIMATE Outdoor Shop öffnen"
+                className="group inline-flex flex-col items-center rounded-full px-3 pb-3 outline-offset-4 transition-transform duration-300 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-cyan-300 motion-reduce:transform-none"
+              >
+                <Image
+                  src="/shop/ultimate-outdoor-shop-icon.png"
+                  alt="ULTIMATE Outdoor Shop: Ausrüstungskoffer mit Becher, Jacke und Trinkflasche vor einer Berglandschaft"
+                  width={1287}
+                  height={1222}
+                  sizes="(min-width: 768px) 210px, 170px"
+                  className="h-auto w-[170px] drop-shadow-[0_8px_24px_rgba(0,229,213,0.16)] transition-[filter] duration-300 group-hover:drop-shadow-[0_8px_32px_rgba(0,229,213,0.32)] md:w-[210px]"
+                />
+                <span className="mt-2 text-sm font-semibold tracking-wide text-cyan-200 transition-colors group-hover:text-white">Zum Outdoor Shop <span aria-hidden="true">→</span></span>
+              </Link>
+            </div>
           </header>
         </div>
       </section>
@@ -387,6 +416,8 @@ export default async function Home() {
                   <img
                     src={mediaUrl}
                     alt="Partner"
+                    loading="lazy"
+                    decoding="async"
                     className="h-32 w-full rounded-[1.75rem] border border-white/10 object-cover shadow-2xl shadow-black/20 transition hover:-translate-y-0.5 hover:border-white/20 hover:opacity-95 md:h-40"
                   />
                 )
@@ -407,7 +438,7 @@ export default async function Home() {
                     className="mb-8 overflow-hidden rounded-[2rem] border border-white/15 shadow-2xl shadow-black/30"
                     style={{
                       backgroundImage:
-                        "linear-gradient(90deg, rgba(14,13,13,0.94) 0%, rgba(18,16,17,0.82) 48%, rgba(18,16,17,0.42) 100%), url('/christmas-challenge-2026-hero.png')",
+                        "linear-gradient(90deg, rgba(14,13,13,0.94) 0%, rgba(18,16,17,0.82) 48%, rgba(18,16,17,0.42) 100%), url('/images/home/christmas-challenge-2026-hero.webp')",
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                     }}
@@ -532,6 +563,8 @@ export default async function Home() {
                       <img
                         src={mediaUrl}
                         alt="Official Partner"
+                        loading="lazy"
+                        decoding="async"
                         className="h-10 max-w-[180px] object-contain opacity-90 transition hover:opacity-100"
                       />
                     )

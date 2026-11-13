@@ -1,0 +1,19 @@
+{
+  "baseline": "dpl_6MvMCSiPk2fPu2XrS3gwS5VfNWYm",
+  "candidate": "dpl_8nmvcpirVNtNqiEZHq5Mha9f5oYR",
+  "runtimeFiles": 178,
+  "changed": [
+    "app/admin/shop/page.tsx",
+    "app/admin/shop/products/ProductShipping.tsx",
+    "app/admin/shop/products/page.tsx",
+    "app/admin/shop/products/request.ts",
+    "app/admin/shop/shipping/fields.ts",
+    "app/admin/shop/shipping/page.tsx",
+    "app/api/admin/shop/products/route.ts",
+    "app/api/admin/shop/shipping/route.ts",
+    "app/lib/shop/merchandise.ts",
+    "app/lib/shop/shipping-config.ts",
+    "app/lib/shop/shipping-quote.ts"
+  ],
+  "missing": []
+}

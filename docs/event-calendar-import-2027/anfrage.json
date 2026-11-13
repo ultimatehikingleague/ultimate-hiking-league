@@ -1,0 +1,1236 @@
+{
+  "candidates": [
+    {
+      "candidate_id": "B001",
+      "slug": "rondom-deurne-2027-01-19",
+      "title": "Rondom Deurne",
+      "city": "Deurne (Diest)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-19",
+      "brand": "Sporton vzw",
+      "official_url": "https://wandel.be/wandelkalender/8795/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        7,
+        10,
+        12,
+        15,
+        17,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B002",
+      "slug": "geeneindetocht-2027-01-17",
+      "title": "Geeneindetocht",
+      "city": "Lummen",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-17",
+      "brand": "K.W.S.V. Dragonders Hasselt vzw",
+      "official_url": "https://wandel.be/wandelkalender/8783/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        7,
+        11,
+        21
+      ]
+    },
+    {
+      "candidate_id": "B003",
+      "slug": "hugo-bonnynstocht-2027-01-16",
+      "title": "Hugo Bonnynstocht",
+      "city": "Schaffen (Diest)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-16",
+      "brand": "VOS Schaffen vzw",
+      "official_url": "https://wandel.be/wandelkalender/8772/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        9,
+        12,
+        20,
+        30
+      ]
+    },
+    {
+      "candidate_id": "B004",
+      "slug": "vriezemantocht-2027-01-14",
+      "title": "Vriezemantocht",
+      "city": "Paal (Beringen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-14",
+      "brand": "KWSV Wandelend Paal vzw",
+      "official_url": "https://wandel.be/wandelkalender/8750/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        7,
+        12,
+        16,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B005",
+      "slug": "pannenkoekentocht-2027-02-01",
+      "title": "Pannenkoekentocht",
+      "city": "Diepenbeek",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-02-01",
+      "brand": "W.S.V. De Schoverik Diepenbeek",
+      "official_url": "https://wandel.be/wandelkalender/8839/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        10,
+        18,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B006",
+      "slug": "prosper-de-maeghtwandeling-2027-01-31",
+      "title": "Prosper De Maeghtwandeling",
+      "city": "Eine (Oudenaarde)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-31",
+      "brand": "Hanske de Krijger Oudenaarde vzw",
+      "official_url": "https://wandel.be/wandelkalender/8833/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        8,
+        12,
+        18,
+        25
+      ]
+    },
+    {
+      "candidate_id": "B007",
+      "slug": "38e-sprokkeltocht-2027-01-30",
+      "title": "38e Sprokkeltocht",
+      "city": "Borsbeke (Herzele)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-30",
+      "brand": "WSV Land van Rhode vzw",
+      "official_url": "https://wandel.be/wandelkalender/8824/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        6,
+        10,
+        14,
+        18,
+        21
+      ]
+    },
+    {
+      "candidate_id": "B008",
+      "slug": "bibbertocht-2027-01-26",
+      "title": "Bibbertocht",
+      "city": "Wezemaal (Rotselaar)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-26",
+      "brand": "WK Werchter vzw",
+      "official_url": "https://wandel.be/wandelkalender/8818/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        6,
+        9,
+        12,
+        16,
+        21,
+        25,
+        30
+      ]
+    },
+    {
+      "candidate_id": "B009",
+      "slug": "winterwandeling-2027-01-24",
+      "title": "Winterwandeling",
+      "city": "Beverlo (Beringen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-24",
+      "brand": "De Mijnlamp Beringen-Mijn vzw",
+      "official_url": "https://wandel.be/wandelkalender/8807/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        7,
+        12,
+        17,
+        22,
+        27,
+        32
+      ]
+    },
+    {
+      "candidate_id": "B010",
+      "slug": "wintertocht-2027-01-31",
+      "title": "Wintertocht",
+      "city": "Heverlee (Leuven)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-31",
+      "brand": "KWSP Heverlee-Leuven vzw",
+      "official_url": "https://wandel.be/wandelkalender/8851/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        8,
+        12,
+        16,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B011",
+      "slug": "terriltocht-2027-02-06",
+      "title": "Terriltocht",
+      "city": "Houthalen-Helchteren",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-02-06",
+      "brand": "Samen Uit Samen Thuis vzw",
+      "official_url": "https://wandel.be/wandelkalender/8843/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        10,
+        12,
+        17,
+        20,
+        24
+      ]
+    },
+    {
+      "candidate_id": "B012",
+      "slug": "westerntocht-2027-02-17",
+      "title": "Westerntocht",
+      "city": "Grote-Brogel (Peer)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-02-17",
+      "brand": "Wandel Mee Brueghel vzw",
+      "official_url": "https://wandel.be/wandelkalender/8842/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        7,
+        10,
+        14,
+        17,
+        21
+      ]
+    },
+    {
+      "candidate_id": "B013",
+      "slug": "pannenkoekentocht-2027-02-02",
+      "title": "Pannenkoekentocht",
+      "city": "Leopoldsburg",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-02-02",
+      "brand": "W.S.V. De Kampse Wandelaars",
+      "official_url": "https://wandel.be/wandelkalender/8840/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        5,
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        17,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B014",
+      "slug": "sint-vincentiustocht-2027-03-11",
+      "title": "Sint-Vincentiustocht",
+      "city": "Zonhoven",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-11",
+      "brand": "KWSV OK50 Zonhoven vzw",
+      "official_url": "https://wandel.be/wandelkalender/8982/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        7,
+        8,
+        13,
+        17,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B015",
+      "slug": "27e-wintertocht-2027-02-13",
+      "title": "27e Wintertocht",
+      "city": "Geel",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-02-13",
+      "brand": "W.C. De Bavostappers Zittaart vzw",
+      "official_url": "https://wandel.be/wandelkalender/8871/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        3,
+        4,
+        7,
+        9,
+        14,
+        18,
+        25,
+        27,
+        33
+      ]
+    },
+    {
+      "candidate_id": "B016",
+      "slug": "47e-wandeling-koersels-fonteintje-2027-02-11",
+      "title": "47e Wandeling Koersels Fonteintje",
+      "city": "Koersel (Beringen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-02-11",
+      "brand": "KWSV Wandelend Paal vzw",
+      "official_url": "https://wandel.be/wandelkalender/8866/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        7,
+        12,
+        16,
+        20,
+        24
+      ]
+    },
+    {
+      "candidate_id": "B017",
+      "slug": "krokustocht-2027-02-08",
+      "title": "Krokustocht",
+      "city": "Hasselt",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-02-08",
+      "brand": "Terug Op Stap Post vzw",
+      "official_url": "https://wandel.be/wandelkalender/8864/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        8,
+        10,
+        13,
+        19
+      ]
+    },
+    {
+      "candidate_id": "B018",
+      "slug": "marathonwandeling-2027-04-03",
+      "title": "Marathonwandeling",
+      "city": "Kasterlee",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-04-03",
+      "brand": "De Pompoenstappers vzw",
+      "official_url": "https://wandel.be/wandelkalender/9084/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        5,
+        6,
+        10,
+        15,
+        20,
+        25,
+        30,
+        42
+      ]
+    },
+    {
+      "candidate_id": "B019",
+      "slug": "lentetocht-2027-03-29",
+      "title": "Lentetocht",
+      "city": "Geetbets",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-29",
+      "brand": "VZW Koninklijke Wandelklub Halewijn",
+      "official_url": "https://wandel.be/wandelkalender/9068/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        8,
+        10
+      ]
+    },
+    {
+      "candidate_id": "B020",
+      "slug": "41e-parel-van-het-hageland-2027-03-28",
+      "title": "41e Parel van het Hageland",
+      "city": "Nieuwrode (Holsbeek)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-28",
+      "brand": "Globetrotters Hageland vzw",
+      "official_url": "https://wandel.be/wandelkalender/9055/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        12,
+        16,
+        20,
+        25
+      ]
+    },
+    {
+      "candidate_id": "B021",
+      "slug": "voorjaarstocht-2027-03-25",
+      "title": "Voorjaarstocht",
+      "city": "Oostham (Ham)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-25",
+      "brand": "Torenvrienden Oostham",
+      "official_url": "https://wandel.be/wandelkalender/9037/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        10,
+        16
+      ]
+    },
+    {
+      "candidate_id": "B022",
+      "slug": "wittebergwandeling-2027-03-23",
+      "title": "Wittebergwandeling",
+      "city": "Achel (Hamont-Achel)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-23",
+      "brand": "WSV De Grevenbroekers vzw",
+      "official_url": "https://wandel.be/wandelkalender/9034/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        9,
+        11,
+        13,
+        14,
+        15,
+        18
+      ]
+    },
+    {
+      "candidate_id": "B023",
+      "slug": "midden-limburgtocht-2027-03-21",
+      "title": "Midden-Limburgtocht",
+      "city": "Houthalen-Helchteren",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-21",
+      "brand": "Samen Uit Samen Thuis vzw",
+      "official_url": "https://wandel.be/wandelkalender/9023/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        8,
+        12,
+        16,
+        20,
+        24,
+        32
+      ]
+    },
+    {
+      "candidate_id": "B024",
+      "slug": "lentetocht-2027-03-20",
+      "title": "Lentetocht",
+      "city": "Beverlo (Beringen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-20",
+      "brand": "De Mijnlamp Beringen-Mijn vzw",
+      "official_url": "https://wandel.be/wandelkalender/9015/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        8,
+        12,
+        20,
+        22,
+        30
+      ]
+    },
+    {
+      "candidate_id": "B025",
+      "slug": "lentetocht-2027-03-17",
+      "title": "Lentetocht",
+      "city": "Eksel (Hechtel-Eksel)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-17",
+      "brand": "W.S.V. De Bosdravers Eksel",
+      "official_url": "https://wandel.be/wandelkalender/9012/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        7,
+        10,
+        11,
+        17
+      ]
+    },
+    {
+      "candidate_id": "B026",
+      "slug": "pijnventocht-2027-03-16",
+      "title": "Pijnventocht",
+      "city": "Lommel",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-16",
+      "brand": "W.S.V. Milieu 2000 Lommel",
+      "official_url": "https://wandel.be/wandelkalender/9008/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        8,
+        10,
+        13,
+        18,
+        23
+      ]
+    },
+    {
+      "candidate_id": "B027",
+      "slug": "lentetocht-2027-03-15",
+      "title": "Lentetocht",
+      "city": "Wintershoven (Kortessem)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-15",
+      "brand": "W.S.V. Iris Kortessem",
+      "official_url": "https://wandel.be/wandelkalender/9007/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        5,
+        7,
+        9,
+        11,
+        16,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B028",
+      "slug": "sint-joris-tochten-2027-03-14",
+      "title": "Sint-Joris Tochten",
+      "city": "Landen",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-14",
+      "brand": "Sint-Joris Scouts Landen",
+      "official_url": "https://wandel.be/wandelkalender/8995/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        11,
+        16,
+        24,
+        42
+      ]
+    },
+    {
+      "candidate_id": "B029",
+      "slug": "voorjaarstocht-2027-03-13",
+      "title": "Voorjaarstocht",
+      "city": "Koersel (Beringen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-13",
+      "brand": "Wandelclub Paul Gerard Beringen",
+      "official_url": "https://wandel.be/wandelkalender/8984/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "candidate_id": "B030",
+      "slug": "47e-internationale-wandeltocht-walk-2-gether-tocht-2027-04-11",
+      "title": "47e Internationale Wandeltocht - Walk 2 Gether-tocht",
+      "city": "Schilde",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-04-11",
+      "brand": "Wsv De Ranstuilen Ranst vzw",
+      "official_url": "https://wandel.be/wandelkalender/9136/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        8,
+        13,
+        20,
+        28,
+        35,
+        43,
+        50
+      ]
+    },
+    {
+      "candidate_id": "B031",
+      "slug": "lentetocht-2027-04-10",
+      "title": "Lentetocht",
+      "city": "Mechelen",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-04-10",
+      "brand": "De Vaartlandstappers",
+      "official_url": "https://wandel.be/wandelkalender/9121/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        10,
+        15,
+        20,
+        25
+      ]
+    },
+    {
+      "candidate_id": "B032",
+      "slug": "lentewandeling-2027-04-08",
+      "title": "Lentewandeling",
+      "city": "Oevel (Westerlo)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-04-08",
+      "brand": "Wsc De Blauwvoet",
+      "official_url": "https://wandel.be/wandelkalender/9114/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        10
+      ]
+    },
+    {
+      "candidate_id": "B033",
+      "slug": "lentetocht-in-de-brabantse-ardennen-2027-03-29",
+      "title": "Lentetocht in de Brabantse Ardennen",
+      "city": "Ottenburg (Huldenberg)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-03-29",
+      "brand": "IJsetrippers vzw",
+      "official_url": "https://wandel.be/wandelkalender/9099/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        6,
+        12,
+        18,
+        25
+      ]
+    },
+    {
+      "candidate_id": "B034",
+      "slug": "grillentocht-2027-04-14",
+      "title": "Grillentocht",
+      "city": "Neerharen (Lanaken)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-04-14",
+      "brand": "W.S.V. De Sparrentrippers",
+      "official_url": "https://wandel.be/wandelkalender/9108/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        7,
+        10,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B035",
+      "slug": "wintertocht-2027-01-25",
+      "title": "Wintertocht",
+      "city": "Sint-Truiden",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-25",
+      "brand": "Koninklijke Wandelclub AVIAT Sint-Truiden vzw",
+      "official_url": "https://wandel.be/wandelkalender/8817/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        7,
+        8,
+        9,
+        10,
+        13,
+        15,
+        17,
+        19,
+        21
+      ]
+    },
+    {
+      "candidate_id": "B036",
+      "slug": "sint-theunistocht-2027-01-15",
+      "title": "Sint-Theunistocht",
+      "city": "Eksel (Hechtel-Eksel)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-01-15",
+      "brand": "W.S.V. De Bosdravers Eksel",
+      "official_url": "https://wandel.be/wandelkalender/8770/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        10,
+        15,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B037",
+      "slug": "6e-dottertocht-dpw-tocht-2027-04-15",
+      "title": "6e Dottertocht - DPW-tocht",
+      "city": "Olmen (Balen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-04-15",
+      "brand": "W.C. De Bavostappers Zittaart vzw",
+      "official_url": "https://wandel.be/wandelkalender/9148/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        7,
+        11,
+        18,
+        25,
+        36
+      ]
+    },
+    {
+      "candidate_id": "B038",
+      "slug": "mars-van-het-elfde-2027-04-13",
+      "title": "Mars van het Elfde",
+      "city": "Kuringen (Hasselt)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-04-13",
+      "brand": "K.W.S.V. Dragonders Hasselt vzw",
+      "official_url": "https://wandel.be/wandelkalender/9182/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        32,
+        42
+      ]
+    },
+    {
+      "candidate_id": "B039",
+      "slug": "paddenkoppenland-trail-2027-08-22",
+      "title": "Paddenkoppenland Trail",
+      "city": "Evergem",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-08-22",
+      "brand": "Flanders Trails",
+      "official_url": "https://wandel.be/wandelkalender/9762/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        15,
+        25,
+        35,
+        50
+      ]
+    },
+    {
+      "candidate_id": "B040",
+      "slug": "35e-krekentocht-2027-05-01",
+      "title": "35e Krekentocht",
+      "city": "Sint-Jan-in-Eremo (Sint-Laureins)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-01",
+      "brand": "Wandelclub Roal Benti vzw",
+      "official_url": "https://wandel.be/wandelkalender/9219/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        10,
+        13,
+        17,
+        20,
+        25,
+        28
+      ]
+    },
+    {
+      "candidate_id": "B041",
+      "slug": "55e-tweedaagse-voettocht-blankenberge-sonntag-2027-05-02",
+      "title": "55e Tweedaagse Voettocht Blankenberge (Sonntag)",
+      "city": "Blankenberge",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-02",
+      "brand": "Internationale Tweedaagse Blankenberge vzw",
+      "official_url": "https://wandel.be/wandelkalender/9239/",
+      "booking_url": null,
+      "description": "Sonntagsausgabe der zweitägigen Veranstaltung.",
+      "distances": [
+        7,
+        15,
+        24,
+        32
+      ]
+    },
+    {
+      "candidate_id": "B042",
+      "slug": "lentetocht-2027-05-13",
+      "title": "Lentetocht",
+      "city": "Beverlo (Beringen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-13",
+      "brand": "Wandelclub Paul Gerard Beringen",
+      "official_url": "https://wandel.be/wandelkalender/9248/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        10
+      ]
+    },
+    {
+      "candidate_id": "B043",
+      "slug": "hasti-re-dinant-maredsous-fosses-marche-en-ligne-2027-05-08",
+      "title": "Hastière-Dinant-Maredsous-Fosses - Marche en ligne",
+      "city": "Fosses-la-Ville",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-08",
+      "brand": "Footing Club Fosses Asbl",
+      "official_url": "https://wandel.be/wandelkalender/9266/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        50,
+        70
+      ]
+    },
+    {
+      "candidate_id": "B044",
+      "slug": "airportwandeling-2027-05-09",
+      "title": "Airportwandeling",
+      "city": "Nossegem (Zaventem)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-09",
+      "brand": "Wandelclub De Parkvrienden Zaventem",
+      "official_url": "https://wandel.be/wandelkalender/9275/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        8,
+        12,
+        15,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B045",
+      "slug": "straaltocht-2027-05-11",
+      "title": "Straaltocht",
+      "city": "Olmen (Balen)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-11",
+      "brand": "W.S.V. Blijf Jong Genebos vzw",
+      "official_url": "https://wandel.be/wandelkalender/9292/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        8,
+        10,
+        18,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B048",
+      "slug": "zomertocht-2027-05-22",
+      "title": "Zomertocht",
+      "city": "Houthalen-Helchteren",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-22",
+      "brand": "Samen Uit Samen Thuis vzw",
+      "official_url": "https://wandel.be/wandelkalender/9339/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        6,
+        9,
+        12,
+        17,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B049",
+      "slug": "lentekriebels-in-okkeziel-2027-05-27",
+      "title": "Lentekriebels in Okkeziel",
+      "city": "Nederokkerzeel (Kampenhout)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-05-27",
+      "brand": "De Witloofstappers en -trappers vzw",
+      "official_url": "https://wandel.be/wandelkalender/9378/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        8,
+        12,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B050",
+      "slug": "heppenertocht-2027-06-08",
+      "title": "Heppenertocht",
+      "city": "Heppen (Leopoldsburg)",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-06-08",
+      "brand": "W.S.V. De Kampse Wandelaars",
+      "official_url": "https://wandel.be/wandelkalender/9441/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        4,
+        5,
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        17,
+        20
+      ]
+    },
+    {
+      "candidate_id": "B051",
+      "slug": "grensparkwandeling-2027-07-06",
+      "title": "Grensparkwandeling",
+      "city": "Lommel",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-07-06",
+      "brand": "W.S.V. Milieu 2000 Lommel",
+      "official_url": "https://wandel.be/wandelkalender/9577/",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        5,
+        8,
+        10,
+        13,
+        18,
+        21
+      ]
+    },
+    {
+      "candidate_id": "B054",
+      "slug": "the-longest-day-walk-2027-06-19",
+      "title": "The Longest Day Walk",
+      "city": "Trois-Ponts",
+      "country": "Belgien",
+      "country_code": "BE",
+      "event_date": "2027-06-19",
+      "brand": "Passion for Sports / Pink Ribbon",
+      "official_url": "https://www.passionforsports.eu/fr-longestday",
+      "booking_url": null,
+      "description": null,
+      "distances": [
+        10,
+        24,
+        36,
+        50
+      ]
+    },
+    {
+      "candidate_id": "B057",
+      "slug": "109e-4daagse-2027-07-20",
+      "title": "109e 4Daagse",
+      "city": "Nijmegen",
+      "country": "Niederlande",
+      "country_code": "NL",
+      "event_date": "2027-07-20",
+      "brand": "Stichting DE 4DAAGSE",
+      "official_url": "https://www.4daagse.nl/en/media",
+      "booking_url": null,
+      "description": "Veranstaltungszeitraum 20.07. bis 23.07.2027. Die angegebenen Distanzen gelten pro Tag.",
+      "distances": [
+        30,
+        40,
+        50
+      ]
+    },
+    {
+      "candidate_id": "B058",
+      "slug": "63e-kennedymars-someren-2027-07-03",
+      "title": "63e Kennedymars Someren",
+      "city": "Someren",
+      "country": "Niederlande",
+      "country_code": "NL",
+      "event_date": "2027-07-03",
+      "brand": "JOEK",
+      "official_url": "https://www.kennedymars.nl/",
+      "booking_url": null,
+      "description": "Veranstaltungszeitraum 03.07. bis 04.07.2027.",
+      "distances": [
+        8,
+        40,
+        80
+      ]
+    },
+    {
+      "candidate_id": "B061",
+      "slug": "karwendelmarsch-2027-08-28",
+      "title": "Karwendelmarsch",
+      "city": "Scharnitz",
+      "country": "Österreich",
+      "country_code": "AT",
+      "event_date": "2027-08-28",
+      "brand": "Achensee Tourismus und Region Seefeld",
+      "official_url": "https://www.karwendelmarsch.info/wichtige-informationen/",
+      "booking_url": null,
+      "description": "35 km mit Ziel in der Eng oder 52 km mit Ziel in Pertisau.",
+      "distances": [
+        35,
+        52
+      ]
+    },
+    {
+      "candidate_id": "B062",
+      "slug": "57-ebbser-koasamarsch-2027-06-12",
+      "title": "57. Ebbser Koasamarsch",
+      "city": "Ebbs",
+      "country": "Österreich",
+      "country_code": "AT",
+      "event_date": "2027-06-12",
+      "brand": "Tourismusverband Kufsteinerland / WSV Ebbs",
+      "official_url": "https://www.koasamarsch.at/",
+      "booking_url": null,
+      "description": "Aufgeführt sind die offiziell ausgeschriebenen Wanderstrecken.",
+      "distances": [
+        5,
+        8,
+        20,
+        33
+      ]
+    },
+    {
+      "candidate_id": "B068",
+      "slug": "2-tegernsee-marsch-2027-06-20",
+      "title": "2. Tegernsee Marsch",
+      "city": "Gmund am Tegernsee",
+      "country": "Deutschland",
+      "country_code": "DE",
+      "event_date": "2027-06-20",
+      "brand": "flowmotion GmbH",
+      "official_url": "https://tegernseemarsch.de/anmeldung/",
+      "booking_url": "https://tegernseemarsch.de/anmeldung/",
+      "description": null,
+      "distances": [
+        30,
+        50
+      ]
+    },
+    {
+      "candidate_id": "B072",
+      "slug": "mammutmarsch-m-nchen-75-100-km-2027-07-31",
+      "title": "Mammutmarsch München – 75/100 KM",
+      "city": "Krailling",
+      "country": "Deutschland",
+      "country_code": "DE",
+      "event_date": "2027-07-31",
+      "brand": "Mammutmarsch UG (haftungsbeschränkt)",
+      "official_url": "https://mammutmarsch.de/events/muenchen",
+      "booking_url": "https://mammutmarsch.de/events/muenchen",
+      "description": null,
+      "distances": [
+        75,
+        100
+      ]
+    },
+    {
+      "candidate_id": "B073",
+      "slug": "mammutmarsch-wiesbaden-30-42-55-km-2027-10-16",
+      "title": "Mammutmarsch Wiesbaden – 30/42/55 KM",
+      "city": "Wiesbaden",
+      "country": "Deutschland",
+      "country_code": "DE",
+      "event_date": "2027-10-16",
+      "brand": "Mammutmarsch UG (haftungsbeschränkt)",
+      "official_url": "https://mammutmarsch.de/events/mammutmarsch-wiesbaden",
+      "booking_url": "https://mammutmarsch.de/events/mammutmarsch-wiesbaden",
+      "description": null,
+      "distances": [
+        30,
+        42,
+        55
+      ]
+    },
+    {
+      "candidate_id": "B076",
+      "slug": "megamarsch-weserbergland-bei-nacht-2027-06-12",
+      "title": "Megamarsch Weserbergland bei Nacht",
+      "city": "Rinteln",
+      "country": "Deutschland",
+      "country_code": "DE",
+      "event_date": "2027-06-12",
+      "brand": "Megamarsch",
+      "official_url": "https://www.megamarsch.de/weserbergland-bei-nacht",
+      "booking_url": "https://megamarsch-weserbergland-bei-nacht-2027-50km.eventbrite.de/",
+      "description": "Veranstaltungszeitraum 12.06. bis 13.06.2027.",
+      "distances": [
+        50
+      ]
+    },
+    {
+      "candidate_id": "B077",
+      "slug": "megamarsch-frankfurt-2027-10-09",
+      "title": "Megamarsch Frankfurt",
+      "city": "Frankfurt am Main",
+      "country": "Deutschland",
+      "country_code": "DE",
+      "event_date": "2027-10-09",
+      "brand": "Hundert24 GmbH",
+      "official_url": "https://www.megamarsch.de/frankfurt",
+      "booking_url": "https://megamarsch-frankfurt-2027-100km.eventbrite.de/",
+      "description": "Veranstaltungszeitraum 09.10. bis 10.10.2027.",
+      "distances": [
+        100
+      ]
+    },
+    {
+      "candidate_id": "B079",
+      "slug": "megamarsch-schaffhausen-2027-10-23",
+      "title": "Megamarsch Schaffhausen",
+      "city": "Schaffhausen",
+      "country": "Schweiz",
+      "country_code": "CH",
+      "event_date": "2027-10-23",
+      "brand": "Hundert24 GmbH",
+      "official_url": "https://www.megamarsch.de/schaffhausen",
+      "booking_url": "https://megamarsch-schaffhausen-2027-100km.eventbrite.de/",
+      "description": "Veranstaltungszeitraum 23.10. bis 24.10.2027. Die 50 km sind ein offizielles Zwischenziel des 100-km-Marschs.",
+      "distances": [
+        50,
+        100
+      ]
+    },
+    {
+      "candidate_id": "B080",
+      "slug": "nord-marsch-hamburg-2027-10-08",
+      "title": "Nord-Marsch Hamburg",
+      "city": "Hamburg",
+      "country": "Deutschland",
+      "country_code": "DE",
+      "event_date": "2027-10-08",
+      "brand": "Nord-Marsch",
+      "official_url": "https://www.nord-marsch.de/event-details/nord-marsch-hamburg",
+      "booking_url": "https://www.nord-marsch.de/event-details/nord-marsch-hamburg",
+      "description": "Veranstaltungszeitraum 08.10. bis 10.10.2027. Start am 08.10.2027 um 21:00 Uhr für 55 km bei Nacht, 85 km, 100 km und 110 km (Chauken-Marsch). Start am 09.10.2027 für 60 km um 07:30 Uhr, 43 km um 08:30 Uhr, 16 km um 09:30 Uhr und 30 km um 10:00 oder 10:30 Uhr. Start und Ziel Hagenbeckstraße 39, Hamburg. Die Website nennt als Veranstaltungsende sowohl 00:00 als auch 01:00 Uhr am 10.10.2027. Maßgeblich sind die Veranstalterinformationen.",
+      "distances": [
+        16,
+        30,
+        43,
+        55,
+        60,
+        85,
+        100,
+        110
+      ]
+    }
+  ],
+  "reviewed_fingerprint": "b26b0ae677be4eeda3dfac4694fa3104"
+}

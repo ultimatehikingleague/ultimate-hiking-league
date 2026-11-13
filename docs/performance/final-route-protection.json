@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-11-06T19:00:10.829Z",
+  "results": [
+    {
+      "pathname": "/account",
+      "status": 200
+    },
+    {
+      "pathname": "/login",
+      "status": 200
+    },
+    {
+      "pathname": "/api/shop/jobs",
+      "status": 401
+    },
+    {
+      "pathname": "/api/shop/status-jobs",
+      "status": 404
+    }
+  ]
+}

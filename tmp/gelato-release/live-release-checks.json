@@ -1,0 +1,55 @@
+{
+  "checkedAt": "2026-11-07T09:59:17.894Z",
+  "checks": [
+    {
+      "route": "/",
+      "status": 200
+    },
+    {
+      "route": "/images/home/mountain-hero.avif",
+      "status": 200
+    },
+    {
+      "route": "/shop/checkout",
+      "status": 200
+    },
+    {
+      "route": "/admin/shop",
+      "status": 200
+    },
+    {
+      "route": "/admin/shop/orders",
+      "status": 200
+    },
+    {
+      "route": "/api/admin/shop/orders",
+      "status": 403
+    },
+    {
+      "route": "/api/admin/shop/tracking",
+      "status": 403
+    },
+    {
+      "route": "/api/admin/shop/invoice-backup",
+      "status": 403
+    },
+    {
+      "route": "/api/shop/jobs",
+      "status": 401
+    },
+    {
+      "route": "/api/shop/status-jobs",
+      "status": 401
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/shop/jobs",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/shop/status-jobs",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

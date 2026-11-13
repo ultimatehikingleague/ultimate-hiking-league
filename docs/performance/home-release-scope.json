@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-11-06T18:51:48.015Z",
+  "baseline": "dpl_9qa6nVHy1kCGfmUJkCyWoo1JNZgJ",
+  "candidate": "dpl_8gUxPfwSUPg1bg3M6jhLD5TCnN3p",
+  "runtimeFiles": 146,
+  "changed": [
+    "app/page.tsx"
+  ],
+  "missing": []
+}

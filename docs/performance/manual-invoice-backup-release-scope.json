@@ -1,0 +1,12 @@
+{
+  "baseline": "dpl_DwbD5YcLudhK49NEjc72Nf3rAjJb",
+  "candidate": "dpl_6oA29jwa7ai8usbTHKDbYQBJh3vF",
+  "runtimeFiles": 153,
+  "changed": [
+    "app/admin/shop/InvoiceBackupButton.tsx",
+    "app/admin/shop/page.tsx",
+    "app/api/admin/shop/invoice-backup/route.ts",
+    "app/lib/shop/invoice-backup.ts"
+  ],
+  "missing": []
+}

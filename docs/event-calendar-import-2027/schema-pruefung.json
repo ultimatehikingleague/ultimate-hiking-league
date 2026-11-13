@@ -1,0 +1,145 @@
+{
+  "constraints": [
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "events_master_pkey",
+      "table": "events_master"
+    },
+    {
+      "definition": "UNIQUE (slug)",
+      "name": "events_master_slug_key",
+      "table": "events_master"
+    },
+    {
+      "definition": "FOREIGN KEY (event_id) REFERENCES events_master(id) ON DELETE CASCADE",
+      "name": "event_distances_event_id_fkey",
+      "table": "event_distances"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "event_distances_pkey",
+      "table": "event_distances"
+    }
+  ],
+  "custom_triggers": null,
+  "policies": [
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Admins can insert admin_users",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "schemaname": "public",
+      "tablename": "admin_users",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM admin_users au\n  WHERE (au.user_id = auth.uid())))"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "Admins can view own admin row",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "schemaname": "public",
+      "tablename": "admin_users",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "public can read event_distances",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "schemaname": "public",
+      "tablename": "event_distances",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "authenticated can read event_distances",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "schemaname": "public",
+      "tablename": "event_distances",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "authenticated can insert event_distances",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "schemaname": "public",
+      "tablename": "event_distances",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "public can read events_master",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "schemaname": "public",
+      "tablename": "events_master",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "permissive": "PERMISSIVE",
+      "policyname": "only admins can insert events_master",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "schemaname": "public",
+      "tablename": "events_master",
+      "with_check": "(auth.uid() IN ( SELECT admin_users.user_id\n   FROM admin_users))"
+    },
+    {
+      "cmd": "SELECT",
+      "permissive": "PERMISSIVE",
+      "policyname": "authenticated can read events_master",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "schemaname": "public",
+      "tablename": "events_master",
+      "with_check": null
+    }
+  ],
+  "read_only": "on",
+  "server_version": "PostgreSQL 17.6 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+  "tables": [
+    {
+      "insert_allowed": true,
+      "lock_allowed": true,
+      "rls": true,
+      "table": "admin_users"
+    },
+    {
+      "insert_allowed": true,
+      "lock_allowed": true,
+      "rls": true,
+      "table": "event_distances"
+    },
+    {
+      "insert_allowed": true,
+      "lock_allowed": true,
+      "rls": true,
+      "table": "events_master"
+    }
+  ]
+}

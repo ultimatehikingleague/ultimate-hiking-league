@@ -1,0 +1,57 @@
+{
+  "seconds": 262.669,
+  "from": "2026-11-06T18:41:03.173Z",
+  "to": "2026-11-06T18:45:25.842Z",
+  "delta": [
+    {
+      "metric": "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}",
+      "delta": 47874048,
+      "perSecond": 182259.98500013325
+    },
+    {
+      "metric": "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}",
+      "delta": 17977344,
+      "perSecond": 68441.0569956866
+    },
+    {
+      "metric": "node_vmstat_pswpout{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"}",
+      "delta": 9957,
+      "perSecond": 37.907023668571476
+    },
+    {
+      "metric": "node_vmstat_pswpin{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"}",
+      "delta": 963,
+      "perSecond": 3.6662110869573494
+    },
+    {
+      "metric": "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}",
+      "delta": 606543872,
+      "perSecond": 2309156.664851962
+    },
+    {
+      "metric": "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}",
+      "delta": 5124096,
+      "perSecond": 19507.806402735
+    },
+    {
+      "metric": "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}",
+      "delta": 12368,
+      "perSecond": 47.08587614069418
+    },
+    {
+      "metric": "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}",
+      "delta": 261,
+      "perSecond": 0.9936459955304966
+    },
+    {
+      "metric": "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}",
+      "delta": 1050,
+      "perSecond": 3.9974264188008486
+    },
+    {
+      "metric": "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}",
+      "delta": 189,
+      "perSecond": 0.7195367553841527
+    }
+  ]
+}

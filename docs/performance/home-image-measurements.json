@@ -1,0 +1,568 @@
+{
+  "setup": {
+    "networkMbps": 10,
+    "latencyMs": 40,
+    "browserCache": "disabled",
+    "runsPerViewportPerPhase": 2
+  },
+  "summary": [
+    {
+      "label": "desktop",
+      "before": {
+        "lcpMs": 4892,
+        "heroRequestMs": 2621.5,
+        "trackedImageBytes": 3879007
+      },
+      "after": {
+        "lcpMs": 2176,
+        "heroRequestMs": 446.5,
+        "trackedImageBytes": 899552
+      }
+    },
+    {
+      "label": "mobile",
+      "before": {
+        "lcpMs": 2836,
+        "heroRequestMs": 2282,
+        "trackedImageBytes": 3906327
+      },
+      "after": {
+        "lcpMs": 1902,
+        "heroRequestMs": 555,
+        "trackedImageBytes": 926872
+      }
+    }
+  ],
+  "before": {
+    "capturedAt": "2026-11-07T09:02:14.695Z",
+    "origin": "https://www.ultimatehikingleague.com",
+    "results": [
+      {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "run": 1,
+        "ttfbMs": 108,
+        "lcp": {
+          "ms": 5124,
+          "tag": "IMG",
+          "path": "/mountain-hero.jpg"
+        },
+        "hero": {
+          "src": "/mountain-hero.jpg",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            1440,
+            891.328125
+          ],
+          "fit": "cover",
+          "position": "72% 14%"
+        },
+        "challenge": [
+          120,
+          891.328125,
+          1200,
+          402
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/mountain-hero.jpg",
+            "query": "",
+            "bytes": 1272589,
+            "startMs": 2547,
+            "durationMs": 2561
+          },
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 2547,
+            "durationMs": 302
+          },
+          {
+            "path": "/christmas-challenge-2026-hero.png",
+            "query": "",
+            "bytes": 2534575,
+            "startMs": 2564,
+            "durationMs": 4024
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=256&q=75&dpl=dpl_BncuaV8UZRr1dZEVUiAmw1v4zZkb",
+            "bytes": 28854,
+            "startMs": 2636,
+            "durationMs": 344
+          }
+        ]
+      },
+      {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "run": 2,
+        "ttfbMs": 19,
+        "lcp": {
+          "ms": 4660,
+          "tag": "IMG",
+          "path": "/mountain-hero.jpg"
+        },
+        "hero": {
+          "src": "/mountain-hero.jpg",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            1440,
+            891.328125
+          ],
+          "fit": "cover",
+          "position": "72% 14%"
+        },
+        "challenge": [
+          120,
+          891.328125,
+          1200,
+          402
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/mountain-hero.jpg",
+            "query": "",
+            "bytes": 1272589,
+            "startMs": 1965,
+            "durationMs": 2682
+          },
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 1965,
+            "durationMs": 476
+          },
+          {
+            "path": "/christmas-challenge-2026-hero.png",
+            "query": "",
+            "bytes": 2534575,
+            "startMs": 1975,
+            "durationMs": 4004
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=256&q=75&dpl=dpl_BncuaV8UZRr1dZEVUiAmw1v4zZkb",
+            "bytes": 28854,
+            "startMs": 2000,
+            "durationMs": 1003
+          }
+        ]
+      },
+      {
+        "label": "mobile",
+        "width": 390,
+        "height": 844,
+        "dpr": 2,
+        "run": 1,
+        "ttfbMs": 93,
+        "lcp": {
+          "ms": 2616,
+          "tag": "IMG",
+          "path": "/ultimate-logo-transparent-weiss.png"
+        },
+        "hero": {
+          "src": "/mountain-hero.jpg",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            390,
+            1395.578125
+          ],
+          "fit": "cover",
+          "position": "72% 18%"
+        },
+        "challenge": [
+          24,
+          1395.578125,
+          342,
+          708
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/mountain-hero.jpg",
+            "query": "",
+            "bytes": 1272589,
+            "startMs": 2458,
+            "durationMs": 2182
+          },
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 2458,
+            "durationMs": 155
+          },
+          {
+            "path": "/christmas-challenge-2026-hero.png",
+            "query": "",
+            "bytes": 2534575,
+            "startMs": 2487,
+            "durationMs": 3368
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=384&q=75&dpl=dpl_BncuaV8UZRr1dZEVUiAmw1v4zZkb",
+            "bytes": 56174,
+            "startMs": 2544,
+            "durationMs": 883
+          }
+        ]
+      },
+      {
+        "label": "mobile",
+        "width": 390,
+        "height": 844,
+        "dpr": 2,
+        "run": 2,
+        "ttfbMs": 90,
+        "lcp": {
+          "ms": 3056,
+          "tag": "IMG",
+          "path": "/ultimate-logo-transparent-weiss.png"
+        },
+        "hero": {
+          "src": "/mountain-hero.jpg",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            390,
+            1395.578125
+          ],
+          "fit": "cover",
+          "position": "72% 18%"
+        },
+        "challenge": [
+          24,
+          1395.578125,
+          342,
+          708
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 2821,
+            "durationMs": 228
+          },
+          {
+            "path": "/mountain-hero.jpg",
+            "query": "",
+            "bytes": 1272589,
+            "startMs": 2821,
+            "durationMs": 2382
+          },
+          {
+            "path": "/christmas-challenge-2026-hero.png",
+            "query": "",
+            "bytes": 2534575,
+            "startMs": 2926,
+            "durationMs": 3348
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=384&q=75&dpl=dpl_BncuaV8UZRr1dZEVUiAmw1v4zZkb",
+            "bytes": 56174,
+            "startMs": 2960,
+            "durationMs": 354
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "capturedAt": "2026-11-07T09:05:44.092Z",
+    "origin": "https://www.ultimatehikingleague.com",
+    "results": [
+      {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "run": 1,
+        "ttfbMs": 114,
+        "lcp": {
+          "ms": 2092,
+          "tag": "IMG",
+          "path": "/images/home/mountain-hero.avif"
+        },
+        "hero": {
+          "src": "/images/home/mountain-hero.avif",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            1440,
+            891.328125
+          ],
+          "fit": "cover",
+          "position": "72% 14%"
+        },
+        "challenge": [
+          120,
+          891.328125,
+          1200,
+          402
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 1771,
+            "durationMs": 564
+          },
+          {
+            "path": "/images/home/mountain-hero.avif",
+            "query": "",
+            "bytes": 186491,
+            "startMs": 1772,
+            "durationMs": 297
+          },
+          {
+            "path": "/images/home/christmas-challenge-2026-hero.webp",
+            "query": "",
+            "bytes": 641218,
+            "startMs": 1890,
+            "durationMs": 928
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=256&q=75&dpl=dpl_DwbD5YcLudhK49NEjc72Nf3rAjJb",
+            "bytes": 28854,
+            "startMs": 1956,
+            "durationMs": 328
+          }
+        ]
+      },
+      {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "run": 2,
+        "ttfbMs": 21,
+        "lcp": {
+          "ms": 2260,
+          "tag": "IMG",
+          "path": "/images/home/mountain-hero.avif"
+        },
+        "hero": {
+          "src": "/images/home/mountain-hero.avif",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            1425,
+            891.328125
+          ],
+          "fit": "cover",
+          "position": "72% 14%"
+        },
+        "challenge": [
+          112.5,
+          891.328125,
+          1200,
+          402
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 1635,
+            "durationMs": 233
+          },
+          {
+            "path": "/images/home/mountain-hero.avif",
+            "query": "",
+            "bytes": 186491,
+            "startMs": 1635,
+            "durationMs": 596
+          },
+          {
+            "path": "/images/home/christmas-challenge-2026-hero.webp",
+            "query": "",
+            "bytes": 641218,
+            "startMs": 1662,
+            "durationMs": 1782
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=256&q=75&dpl=dpl_DwbD5YcLudhK49NEjc72Nf3rAjJb",
+            "bytes": 28854,
+            "startMs": 1695,
+            "durationMs": 277
+          }
+        ]
+      },
+      {
+        "label": "mobile",
+        "width": 390,
+        "height": 844,
+        "dpr": 2,
+        "run": 1,
+        "ttfbMs": 22,
+        "lcp": {
+          "ms": 1988,
+          "tag": "IMG",
+          "path": "/ultimate-logo-transparent-weiss.png"
+        },
+        "hero": {
+          "src": "/images/home/mountain-hero.avif",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            390,
+            1395.578125
+          ],
+          "fit": "cover",
+          "position": "72% 18%"
+        },
+        "challenge": [
+          24,
+          1395.578125,
+          342,
+          708
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 1673,
+            "durationMs": 307
+          },
+          {
+            "path": "/images/home/mountain-hero.avif",
+            "query": "",
+            "bytes": 186491,
+            "startMs": 1673,
+            "durationMs": 641
+          },
+          {
+            "path": "/images/home/christmas-challenge-2026-hero.webp",
+            "query": "",
+            "bytes": 641218,
+            "startMs": 1799,
+            "durationMs": 919
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=384&q=75&dpl=dpl_DwbD5YcLudhK49NEjc72Nf3rAjJb",
+            "bytes": 56174,
+            "startMs": 1834,
+            "durationMs": 320
+          }
+        ]
+      },
+      {
+        "label": "mobile",
+        "width": 390,
+        "height": 844,
+        "dpr": 2,
+        "run": 2,
+        "ttfbMs": 659,
+        "lcp": {
+          "ms": 1816,
+          "tag": "IMG",
+          "path": "/ultimate-logo-transparent-weiss.png"
+        },
+        "hero": {
+          "src": "/images/home/mountain-hero.avif",
+          "natural": [
+            1024,
+            1536
+          ],
+          "rect": [
+            0,
+            0,
+            390,
+            1395.578125
+          ],
+          "fit": "cover",
+          "position": "72% 18%"
+        },
+        "challenge": [
+          24,
+          1395.578125,
+          342,
+          708
+        ],
+        "heading": "Show us who you are.",
+        "resources": [
+          {
+            "path": "/ultimate-logo-transparent-weiss.png",
+            "query": "",
+            "bytes": 42989,
+            "startMs": 1625,
+            "durationMs": 181
+          },
+          {
+            "path": "/images/home/mountain-hero.avif",
+            "query": "",
+            "bytes": 186491,
+            "startMs": 1625,
+            "durationMs": 469
+          },
+          {
+            "path": "/images/home/christmas-challenge-2026-hero.webp",
+            "query": "",
+            "bytes": 641218,
+            "startMs": 1732,
+            "durationMs": 958
+          },
+          {
+            "path": "/_next/image",
+            "query": "?url=%2Fshop%2Fultimate-outdoor-shop-icon.png&w=384&q=75&dpl=dpl_DwbD5YcLudhK49NEjc72Nf3rAjJb",
+            "bytes": 56174,
+            "startMs": 1766,
+            "durationMs": 633
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@source "./milestone-shop";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -35,3 +37,4 @@ body {
 .btn:hover {
   background-color: #f3f4f6;
 }
+

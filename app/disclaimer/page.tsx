@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function DisclaimerPage() {
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
@@ -40,6 +42,16 @@ export default function DisclaimerPage() {
             </p>
           </div>
         </section>
+        {process.env.NODE_ENV !== 'production' && (
+        <section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
+          <h2 className="text-2xl font-bold text-white">Milestone-Shop: Leistungen der Händler</h2>
+          <div className="mt-4 space-y-4 text-sm leading-7 text-stone-300">
+            <p>Für die Einlösung eines Partnercodes und die Erfüllung der im Angebot beschriebenen Gutschein- oder Rabattleistung ist der dort genannte Händler verantwortlich. ULTIMATE Hiking League betreibt das Milestone-System und verwaltet Guthaben und Codezuteilung.</p>
+            <p>Bei technischen Problemen mit dem Milestone-Konto oder der Codezuteilung ist ULTIMATE dein Ansprechpartner. Die gesetzliche Haftung für eigene Pflichtverletzungen und zwingende gesetzliche Ansprüche bleiben unberührt.</p>
+            <p>Weitere Informationen findest du unter <Link href="/milestone-shop/regeln" className="text-white underline underline-offset-4">Milestone-Regeln &amp; Einlösung</Link>.</p>
+          </div>
+        </section>
+        )}
       </div>
     </main>
   );

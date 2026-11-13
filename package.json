@@ -4,28 +4,39 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/prepare-activity-ocr.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@garmin/fitsdk": "^21.221.0",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.99.2",
     "@types/papaparse": "^5.5.2",
     "lucide-react": "^1.46.0",
     "next": "16.1.7",
     "papaparse": "^5.5.3",
+    "pdf-lib": "^1.17.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^6.9.4"
+    "resend": "^6.9.4",
+    "saxes": "^6.0.0",
+    "sharp": "0.34.5",
+    "stripe": "^23.1.0",
+    "tesseract.js": "6.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tesseract.js-data/deu": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.7",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

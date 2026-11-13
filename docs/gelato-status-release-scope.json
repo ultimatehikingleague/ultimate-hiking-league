@@ -1,0 +1,19 @@
+{
+  "baseline": "dpl_Auc4qeJosz7EUacguaENH4MUKyni",
+  "candidate": "dpl_DDeaB7swu9QzzCqMfmmZFfWyEUpF",
+  "runtimeFiles": 162,
+  "changed": [
+    "app/admin/shop/orders/Tracking.tsx",
+    "app/admin/shop/orders/page.tsx",
+    "app/admin/shop/page.tsx",
+    "app/api/admin/shop/orders/route.ts",
+    "app/api/admin/shop/tracking/route.ts",
+    "app/api/shop/status-jobs/route.ts",
+    "app/lib/shop/admin-orders.ts",
+    "app/lib/shop/gelato-status.ts",
+    "app/lib/shop/status-sync.ts",
+    "app/lib/shop/tracking-url.ts",
+    "vercel.json"
+  ],
+  "missing": []
+}

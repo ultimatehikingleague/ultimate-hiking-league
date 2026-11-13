@@ -1,0 +1,87 @@
+{
+  "sourceSha256": "d42ee835e4e82f5fb05f02073583f7f1aa4f8e7cc4ca6ee2f12ddb88707656c8",
+  "trimMm": [
+    297,
+    420
+  ],
+  "images": [
+    {
+      "page": 1,
+      "file": "cover-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 2,
+      "file": "month-1-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 3,
+      "file": "month-2-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 4,
+      "file": "month-3-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 5,
+      "file": "month-4-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 6,
+      "file": "month-5-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 7,
+      "file": "month-6-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 8,
+      "file": "month-7-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 9,
+      "file": "month-8-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 10,
+      "file": "month-9-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 11,
+      "file": "month-10-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 12,
+      "file": "month-11-final.webp",
+      "width": 1754,
+      "height": 2480
+    },
+    {
+      "page": 13,
+      "file": "month-12-final.webp",
+      "width": 1754,
+      "height": 2480
+    }
+  ]
+}

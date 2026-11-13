@@ -1,0 +1,26 @@
+{
+  "capturedAt": "2026-11-06T18:41:07.931Z",
+  "results": [
+    {
+      "pathname": "/",
+      "status": 200,
+      "headersMs": 4161,
+      "totalMs": 4254,
+      "cache": "MISS"
+    },
+    {
+      "pathname": "/leaderboard/overall",
+      "status": 200,
+      "headersMs": 212,
+      "totalMs": 213,
+      "cache": "HIT"
+    },
+    {
+      "pathname": "/shop",
+      "status": 200,
+      "headersMs": 207,
+      "totalMs": 208,
+      "cache": "HIT"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { supabase } from './supabase'
+
+// One database switch controls routes, profile visibility and redemption.
+export function useMilestoneLaunch() {
+  const [live, setLive] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    async function refresh() {
+      const { data, error } = await supabase.rpc('milestone_shop_is_live')
+      if (!cancelled) setLive(!error && data === true)
+    }
+    void refresh()
+    const timer = window.setInterval(() => void refresh(), 30000)
+    const onFocus = () => void refresh()
+    window.addEventListener('focus', onFocus)
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener('focus', onFocus) }
+  }, [])
+  return live
+}

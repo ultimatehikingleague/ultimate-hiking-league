@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-11-07T09:56:40.392Z",
+  "processed": 1,
+  "calls": {
+    "supabase": 3,
+    "gelatoGet": 1
+  },
+  "units": [
+    {
+      "status": "in_transit",
+      "production": "unknown",
+      "shipping": "in_transit",
+      "delivery": "unknown",
+      "lastSuccess": "2026-11-07T09:56:40.195419+00:00",
+      "packages": 1,
+      "trackingPresent": true,
+      "nextAttempt": "2026-11-07T15:56:40.195419+00:00"
+    }
+  ]
+}

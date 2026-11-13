@@ -1,0 +1,10 @@
+{
+  "baseline": "dpl_6oA29jwa7ai8usbTHKDbYQBJh3vF",
+  "candidate": "dpl_Auc4qeJosz7EUacguaENH4MUKyni",
+  "runtimeFiles": 153,
+  "changed": [
+    "app/shop/lib/products.ts",
+    "app/shop/schorschys-wanderkalender-2027/page.tsx"
+  ],
+  "missing": []
+}

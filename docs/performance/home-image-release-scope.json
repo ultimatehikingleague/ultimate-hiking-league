@@ -1,0 +1,12 @@
+{
+  "baseline": "dpl_BncuaV8UZRr1dZEVUiAmw1v4zZkb",
+  "candidate": "dpl_DwbD5YcLudhK49NEjc72Nf3rAjJb",
+  "runtimeFiles": 150,
+  "changed": [
+    "app/page.tsx",
+    "public/images/home/christmas-challenge-2026-hero.webp",
+    "public/images/home/mountain-hero.avif",
+    "public/images/home/mountain-hero.webp"
+  ],
+  "missing": []
+}

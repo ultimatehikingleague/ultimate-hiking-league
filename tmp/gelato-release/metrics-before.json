@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-11-07T09:52:23.748Z",
+  "counters": [
+    "node_vmstat_pswpin{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 50231",
+    "node_memory_SwapTotal_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 1.073737728e+09",
+    "node_vmstat_pswpout{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 102657",
+    "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 75013",
+    "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 3083",
+    "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 751879",
+    "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 6686",
+    "node_memory_MemAvailable_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 5.55216896e+08",
+    "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 1.398780416e+09",
+    "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 4.83037184e+08",
+    "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 3.2168764416e+10",
+    "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 1.49358592e+08",
+    "node_memory_SwapFree_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 8.81209344e+08",
+    "node_memory_MemTotal_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 9.48191232e+08"
+  ]
+}

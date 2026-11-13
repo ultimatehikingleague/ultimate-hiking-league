@@ -1,0 +1,36 @@
+[
+  {
+    "from": "2026-11-06T18:41:03.173Z",
+    "to": "2026-11-06T18:45:25.842Z",
+    "seconds": 262.669,
+    "rates": {
+      "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 182259.98500013325,
+      "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 68441.0569956866,
+      "node_vmstat_pswpout{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"}": 37.907023668571476,
+      "node_vmstat_pswpin{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"}": 3.6662110869573494,
+      "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 2309156.664851962,
+      "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 19507.806402735,
+      "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 47.08587614069418,
+      "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 0.9936459955304966,
+      "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 3.9974264188008486,
+      "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 0.7195367553841527
+    }
+  },
+  {
+    "from": "2026-11-06T18:45:25.842Z",
+    "to": "2026-11-06T18:56:07.430Z",
+    "seconds": 641.588,
+    "rates": {
+      "node_vmstat_pswpout{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"}": 23.338965192615824,
+      "node_vmstat_pswpin{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"}": 15.541126080911738,
+      "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 2.7634556756049053,
+      "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 0.11533881556388212,
+      "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 753407.4078692246,
+      "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 1883.3269948939196,
+      "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 26.094627705006953,
+      "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 0.095076591208065,
+      "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"}": 112705.94836561782,
+      "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"}": 26251.66306102982
+    }
+  }
+]

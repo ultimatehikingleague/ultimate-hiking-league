@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-11-06T18:54:57.807Z",
+  "baseline": "dpl_8gUxPfwSUPg1bg3M6jhLD5TCnN3p",
+  "candidate": "dpl_BncuaV8UZRr1dZEVUiAmw1v4zZkb",
+  "changed": [
+    "app/lib/useMilestoneLaunch.ts",
+    "app/lib/visiblePolling.ts"
+  ],
+  "runtimeFiles": 147,
+  "missing": []
+}

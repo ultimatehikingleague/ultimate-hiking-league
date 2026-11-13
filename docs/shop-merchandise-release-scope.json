@@ -1,0 +1,15 @@
+{
+  "baseline": "dpl_DDeaB7swu9QzzCqMfmmZFfWyEUpF",
+  "candidate": "dpl_6nk3NVgZJ5HAqsacSJbxFXoZEHDx",
+  "runtimeFiles": 166,
+  "changed": [
+    "app/admin/shop/orders/SelfShipping.tsx",
+    "app/admin/shop/orders/Tracking.tsx",
+    "app/admin/shop/products/page.tsx",
+    "app/admin/shop/products/request.ts",
+    "app/api/admin/shop/products/route.ts",
+    "app/lib/requireShopAdmin.ts",
+    "app/lib/shop/merchandise.ts"
+  ],
+  "missing": []
+}

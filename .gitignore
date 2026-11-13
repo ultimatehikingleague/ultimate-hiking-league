@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local fulfillment receipts and operation locks
+/.shop-private/
+
+# Intermediate PDF renderings
+/tmp/pdfs/
+
+# Locally prepared Activity Connect OCR assets
+/public/activity-ocr/

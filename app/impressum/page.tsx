@@ -5,7 +5,7 @@ export default function ImpressumPage() {
         <h1 className="text-3xl font-bold text-white">Impressum</h1>
 
         <div className="mt-6 space-y-4 text-sm text-stone-300 leading-6">
-          <p>Angaben gemäß § 5 TMG</p>
+          <p>Angaben gemäß § 5 DDG</p>
 
           <p>
             Ultimate Hiking League<br />
@@ -20,7 +20,7 @@ export default function ImpressumPage() {
           </p>
 
           <p>
-            Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:
+            Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:
           </p>
 
           <p>

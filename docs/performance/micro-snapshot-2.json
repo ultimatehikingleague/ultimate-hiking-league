@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-11-06T18:45:25.842Z",
+  "counters": [
+    "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 2.8738816e+08",
+    "node_disk_written_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 5.4964224e+07",
+    "node_memory_MemTotal_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 9.48191232e+08",
+    "node_vmstat_pswpout{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 50651",
+    "node_memory_SwapFree_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 9.59561728e+08",
+    "node_vmstat_pswpin{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 18099",
+    "node_memory_SwapTotal_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 1.073737728e+09",
+    "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 2.003575808e+09",
+    "node_disk_read_bytes_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 4.1900032e+07",
+    "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 52198",
+    "node_disk_reads_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 1828",
+    "node_memory_MemAvailable_bytes{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\"} 5.66607872e+08",
+    "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme0n1\"} 4140",
+    "node_disk_writes_completed_total{supabase_project_ref=\"astdepkrdkmufsydxviz\",supabase_identifier=\"astdepkrdkmufsydxviz\",service_type=\"db\",device=\"nvme1n1\"} 465"
+  ]
+}

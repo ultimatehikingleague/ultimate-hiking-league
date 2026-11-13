@@ -1,4 +1,10 @@
 'use client'
+import PrivateScreenshotProof from '../components/PrivateScreenshotProof'
+import { privateScreenshotPaths, privateScreenshotPrefix } from '../lib/activity/screenshot-proof'
+import { screenshotProofPrefix, screenshotProofUrls } from '../lib/activity/screenshot'
+import { ActivityOriginal } from '../components/ActivityImportPreview'
+import { eligibility } from '../lib/activity/normalize'
+
 
 import Link from 'next/link'
 import Papa from 'papaparse'
@@ -2571,6 +2577,26 @@ async function handleDeletePartnerBooking(bookingId: string) {
               Eingeloggt als{' '}
               <span className="font-semibold text-stone-200">{userEmail}</span>
             </p>
+
+            {/* SHOP-ADMINISTRATION */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/admin/shop"
+                className="inline-flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-6 py-4 text-sm font-semibold text-emerald-200 transition hover:border-emerald-400/50 hover:bg-emerald-500/20"
+              >
+                <span className="text-lg">↗</span>
+                ULTIMATE Outdoor Store verwalten
+              </Link>
+              {(
+              <Link
+                href="/admin/milestone-shop"
+                className="inline-flex items-center gap-3 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-6 py-4 text-sm font-semibold text-cyan-200 transition hover:border-cyan-400/50 hover:bg-cyan-400/20"
+              >
+                <span className="text-lg">↗</span>
+                Milestone-Shop verwalten
+              </Link>
+              )}
+            </div>
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-4">
@@ -4397,14 +4423,33 @@ async function handleDeletePartnerBooking(bookingId: string) {
                         </div>
 
                         <div className="mt-3">
-                          <a
+                          {eligibility(submission.actual_distance_km ?? submission.distance_km, submission.elevation_gain) === 'exception' && (
+                            <p className="mb-3 font-semibold text-amber-300">Außerhalb der regulären Zulassungsgrenzen · Kulanzentscheidung möglich</p>
+                          )}
+                          {submission.proof_image_url?.startsWith('activity-original:') ? (
+                            <ActivityOriginal id={submission.id} submission={submission} />
+                          ) : submission.proof_image_url?.startsWith(privateScreenshotPrefix) ? (
+                            <div className="space-y-2">
+                              {privateScreenshotPaths(submission.proof_image_url, submission.user_id).map((path, index) => (
+                                <PrivateScreenshotProof key={path} path={path} index={index} />
+                              ))}
+                            </div>
+                          ) : submission.proof_image_url?.startsWith(screenshotProofPrefix) ? (
+                            <ul className="space-y-2">
+                              {screenshotProofUrls(submission.proof_image_url).map((url, index) => (
+                                <li key={url}><a href={url} target="_blank" rel="noreferrer" className="text-sm text-white underline">
+                                  Original-Screenshot {index + 1} öffnen
+                                </a></li>
+                              ))}
+                            </ul>
+                          ) : <a
                             href={submission.proof_image_url}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-block text-sm font-medium text-white underline underline-offset-4 transition hover:text-stone-300"
                           >
                             Nachweis öffnen
-                          </a>
+                          </a>}
                         </div>
 
                         {(draft.admin_note || submission.reviewed_at) && (

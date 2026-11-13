@@ -1,0 +1,21 @@
+{
+  "baseline": {
+    "fingerprint": "b26b0ae677be4eeda3dfac4694fa3104",
+    "event_count": 214
+  },
+  "rolesDenied": [
+    "anon",
+    "service_role",
+    "authenticated without UID",
+    "non-admin"
+  ],
+  "badFingerprintAndPayloadRejected": true,
+  "masterAndDistancesRolledBack": true,
+  "plannedEvents": 61,
+  "plannedDistances": 316,
+  "repeatSkipped": 61,
+  "occupiedSlugRejected": true,
+  "finalCalendarCount": 275,
+  "originalCalendarUnchanged": true,
+  "contentDuplicateRejected": true
+}

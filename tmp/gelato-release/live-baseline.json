@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-11-07T09:49:16.147Z",
+  "counts": {
+    "shop_orders": 7,
+    "shop_payments": 4,
+    "shop_invoices": 2,
+    "shop_fulfillment": 2
+  },
+  "trackingSchema": "present",
+  "currentLive": {
+    "status": "in_transit",
+    "production": "unknown",
+    "shipping": "in_transit",
+    "delivery": "unknown",
+    "packages": 1,
+    "trackingPresent": true,
+    "connectedOrders": 0
+  }
+}

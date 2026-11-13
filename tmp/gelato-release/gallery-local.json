@@ -1,0 +1,44 @@
+{
+  "capturedAt": "2026-11-07T09:47:21.217Z",
+  "origin": "http://127.0.0.1:3417",
+  "results": [
+    {
+      "label": "desktop",
+      "width": 1440,
+      "height": 900,
+      "images": [
+        "cover-final.webp",
+        "month-1-final.webp",
+        "month-8-final.webp",
+        "month-12-final.webp"
+      ],
+      "seen": [
+        "cover-final.webp",
+        "month-1-final.webp",
+        "month-8-final.webp",
+        "month-12-final.webp",
+        "cover-final.webp"
+      ],
+      "checkoutLink": false
+    },
+    {
+      "label": "mobile",
+      "width": 390,
+      "height": 844,
+      "images": [
+        "cover-final.webp",
+        "month-1-final.webp",
+        "month-8-final.webp",
+        "month-12-final.webp"
+      ],
+      "seen": [
+        "cover-final.webp",
+        "month-1-final.webp",
+        "month-8-final.webp",
+        "month-12-final.webp",
+        "cover-final.webp"
+      ],
+      "checkoutLink": false
+    }
+  ]
+}

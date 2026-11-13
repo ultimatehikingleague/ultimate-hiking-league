@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 import GoogleAnalyticsLoader from "./components/GoogleAnalyticsLoader";
-import PartnershipFooter from "./components/PartnershipFooter";
+import SiteFooter from "./components/SiteFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,29 +50,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <CookieConsentBanner />
           <GoogleAnalyticsLoader />
-          <PartnershipFooter />
-
-         <footer className="border-t border-white/10 px-6 py-6 text-sm text-stone-500">
-            <div className="mx-auto max-w-6xl">
-              <div className="flex flex-wrap items-center gap-6">
-                <a href="/impressum" className="hover:text-white transition">
-                  Impressum
-                </a>
-                <a href="/datenschutz" className="hover:text-white transition">
-                  Datenschutz
-                </a>
-                <a href="/kontakt" className="hover:text-white transition">
-                  Kontakt
-                </a>
-                <a href="/disclaimer" className="hover:text-white transition">
-                  Disclaimer
-                </a>
-                <a href="/cookie-einstellungen" className="hover:text-white transition">
-                  Cookie-Einstellungen
-                </a>
-              </div>
-            </div>
-          </footer>
+          <SiteFooter />
         </div>
       </body>
     </html>

@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-11-06T18:56:16.645Z",
+  "origin": "https://www.ultimatehikingleague.com",
+  "results": [
+    {
+      "pathname": "/",
+      "status": 200,
+      "headersMs": 2950,
+      "totalMs": 2993,
+      "bytes": 116107,
+      "cache": "MISS"
+    },
+    {
+      "pathname": "/",
+      "status": 200,
+      "headersMs": 2501,
+      "totalMs": 2510,
+      "bytes": 116107,
+      "cache": "MISS"
+    },
+    {
+      "pathname": "/",
+      "status": 200,
+      "headersMs": 2040,
+      "totalMs": 2072,
+      "bytes": 116107,
+      "cache": "MISS"
+    },
+    {
+      "pathname": "/leaderboard/overall",
+      "status": 200,
+      "headersMs": 413,
+      "totalMs": 416,
+      "bytes": 19087,
+      "cache": "PRERENDER"
+    },
+    {
+      "pathname": "/division/gold",
+      "status": 200,
+      "headersMs": 545,
+      "totalMs": 547,
+      "bytes": 18552,
+      "cache": "PRERENDER"
+    },
+    {
+      "pathname": "/shop",
+      "status": 200,
+      "headersMs": 294,
+      "totalMs": 296,
+      "bytes": 37495,
+      "cache": "PRERENDER"
+    },
+    {
+      "pathname": "/shop/schorschys-wanderkalender-2027",
+      "status": 200,
+      "headersMs": 317,
+      "totalMs": 319,
+      "bytes": 39017,
+      "cache": "MISS"
+    }
+  ]
+}

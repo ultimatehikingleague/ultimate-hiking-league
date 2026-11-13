@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-11-06T18:50:35.168Z",
+  "flags": {
+    "SHOP_CHECKOUT_ENABLED": "true",
+    "SHOP_LIVE_APPROVED": "true",
+    "SHOP_FULFILLMENT_ENABLED": "true",
+    "SHOP_CONFIRMATIONS_ENABLED": "true",
+    "SHOP_STATUS_SYNC_ENABLED": "(not set)",
+    "SHOP_PAYMENT_MODE": "live"
+  }
+}

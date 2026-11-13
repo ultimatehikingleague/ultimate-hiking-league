@@ -1,0 +1,18 @@
+{
+  "baseline": "dpl_FZv7Bt4uxjfW6gAGSNuqEvUa6ng9",
+  "candidate": "dpl_HSvCXDa1dsEW4m2BWPNQvTtKzj5g",
+  "runtimeFiles": 172,
+  "changed": [
+    "app/admin/shop/products/ProductImages.tsx",
+    "app/admin/shop/products/page.tsx",
+    "app/api/admin/shop/products/images/route.ts",
+    "app/api/admin/shop/products/route.ts",
+    "app/lib/shop/confirmation-content.ts",
+    "app/lib/shop/confirmations.ts",
+    "app/lib/shop/invoices.ts",
+    "app/lib/shop/product-images.ts",
+    "package-lock.json",
+    "package.json"
+  ],
+  "missing": []
+}

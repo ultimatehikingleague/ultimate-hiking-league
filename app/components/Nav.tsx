@@ -38,9 +38,11 @@ function NavItem({ href, title, subtitle, active }: NavItemProps) {
 
 export default function Nav() {
   const pathname = usePathname()
+  const isShop = pathname === '/shop' || pathname.startsWith('/shop/')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
+    if (isShop) return
     async function loadSession() {
       const { data } = await supabase.auth.getSession()
       setIsLoggedIn(!!data.session)
@@ -57,7 +59,13 @@ export default function Nav() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [isShop])
+
+  if (isShop) return (
+    <nav aria-label="Shop-Navigation" className="grid w-full max-w-[180px] gap-3">
+      <NavItem href="/" title="Startseite" subtitle="Home" />
+    </nav>
+  )
 
   return (
     <nav className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">

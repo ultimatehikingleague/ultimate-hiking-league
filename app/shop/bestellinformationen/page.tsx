@@ -1,0 +1,3 @@
+import Link from 'next/link'
+import { PURCHASE_TEXT } from '../../lib/shop/legal'
+export default function PurchasePage(){return <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100"><div className="mx-auto max-w-3xl"><Link href="/shop" className="text-emerald-300">← Zum Shop</Link><h1 className="my-7 text-3xl font-bold">Bestellung, Zahlung und Lieferung</h1><div className="whitespace-pre-line text-sm leading-7 text-stone-300">{PURCHASE_TEXT}</div><Link href="/shop/widerruf" className="mt-7 inline-block text-emerald-300 underline">Widerrufsbelehrung und Musterformular</Link></div></main>}
