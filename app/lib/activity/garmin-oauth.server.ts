@@ -1,10 +1,17 @@
 import { createHash, randomBytes } from 'node:crypto'
 
+const primaryGarminOrigin = 'https://www.ultimatehikingleague.com'
+export const europeanGarminStatePrefix = 'ehl_'
+
+export function europeanGarminOrigin(callbackOrigin: string) {
+  return callbackOrigin === primaryGarminOrigin ? 'https://www.europeanhikingleague.com' : null
+}
+
 /**
  * Creates the authorization redirect and the values for a short-lived,
  * single-use server-side attempt bound to the authenticated UHL user.
  */
-export function createGarminAuthorization(clientId: string, redirectUri: string) {
+export function createGarminAuthorization(clientId: string, redirectUri: string, returnToEuropeanDomain = false) {
   const callback = new URL(redirectUri)
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(callback.hostname)
 
@@ -15,7 +22,7 @@ export function createGarminAuthorization(clientId: string, redirectUri: string)
     throw new Error('Invalid Garmin OAuth configuration')
   }
 
-  const state = randomBytes(32).toString('base64url')
+  const state = (returnToEuropeanDomain ? europeanGarminStatePrefix : '') + randomBytes(32).toString('base64url')
   const verifier = randomBytes(32).toString('base64url')
   const challenge = createHash('sha256').update(verifier).digest('base64url')
   const url = new URL('https://connect.garmin.com/oauth2Confirm')

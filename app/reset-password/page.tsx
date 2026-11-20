@@ -1,14 +1,26 @@
 'use client'
 
-import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
+import { isWave1Locale } from '@/i18n/wave1'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function ResetPasswordPage() {
+  const t = useTranslations('resetPassword')
+  const ui = useTranslations('ui')
+  const locale = useLocale()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<'' | 'expired' | 'invalid' | 'minLength' | 'mismatch' | 'updated' | { providerError: string }>('')
+  function displayMessage() {
+    if (typeof message !== 'object') return message ? t(message) : ''
+    if (!isWave1Locale(locale)) return t('providerError', { message: message.providerError })
+    return ui('authSavePasswordFailed')
+  }
+
+  const messageText = displayMessage()
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -27,12 +39,12 @@ export default function ResetPasswordPage() {
         })
 
         if (error) {
-          setMessage('Der Wiederherstellungslink ist ungültig oder abgelaufen.')
+          setMessage('expired')
         } else {
           setReady(true)
         }
       } else {
-        setMessage('Ungültiger oder unvollständiger Wiederherstellungslink.')
+        setMessage('invalid')
       }
     }
 
@@ -44,12 +56,12 @@ export default function ResetPasswordPage() {
     setMessage('')
 
     if (password.length < 6) {
-      setMessage('Das neue Passwort muss mindestens 6 Zeichen lang sein.')
+      setMessage('minLength')
       return
     }
 
     if (password !== confirmPassword) {
-      setMessage('Die Passwörter stimmen nicht überein.')
+      setMessage('mismatch')
       return
     }
 
@@ -60,9 +72,9 @@ export default function ResetPasswordPage() {
     })
 
     if (error) {
-      setMessage(`Fehler: ${error.message}`)
+      setMessage({ providerError: error.message })
     } else {
-      setMessage('Dein Passwort wurde erfolgreich geändert. Du kannst dich jetzt neu einloggen.')
+      setMessage('updated')
       setPassword('')
       setConfirmPassword('')
     }
@@ -77,7 +89,7 @@ export default function ResetPasswordPage() {
           href="/login"
           className="text-sm text-stone-400 transition hover:text-white"
         >
-          ← Zurück zum Login
+          {t('backArrow')}
         </Link>
 
         <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
@@ -88,10 +100,10 @@ export default function ResetPasswordPage() {
               className="mx-auto h-24 w-24 object-contain opacity-95"
             />
             <h1 className="mt-4 text-3xl font-bold text-white">
-              Passwort zurücksetzen
+              {t('title')}
             </h1>
             <p className="mt-2 text-sm text-stone-400">
-              Vergib hier dein neues Passwort für deinen Zugang zur Liga.
+              {t('intro')}
             </p>
           </div>
 
@@ -99,7 +111,7 @@ export default function ResetPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-medium text-stone-300">
-                  Neues Passwort
+                  {t('newPassword')}
                 </label>
                 <input
                   type="password"
@@ -112,7 +124,7 @@ export default function ResetPasswordPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-stone-300">
-                  Passwort bestätigen
+                  {t('confirmPassword')}
                 </label>
                 <input
                   type="password"
@@ -128,18 +140,18 @@ export default function ResetPasswordPage() {
                 disabled={loading}
                 className="w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
               >
-                {loading ? 'Speichert...' : 'Neues Passwort speichern'}
+                {loading ? t('saving') : t('save')}
               </button>
             </form>
           ) : (
             <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-stone-300">
-              {message || 'Wiederherstellungslink wird geprüft...'}
+              {messageText || t('checking')}
             </div>
           )}
 
           {ready && message && (
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-stone-300">
-              {message}
+              {messageText}
             </div>
           )}
 
@@ -148,7 +160,7 @@ export default function ResetPasswordPage() {
               href="/login"
               className="text-white underline transition hover:text-stone-300"
             >
-              Zurück zum Login
+              {t('back')}
             </Link>
           </div>
         </div>

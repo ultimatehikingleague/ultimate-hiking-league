@@ -1,5 +1,7 @@
+import { getLocale, getTranslations } from 'next-intl/server'
 import { LiveBrandPlacement } from '../components/PartnerPlacements'
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
+import { formatRankingDistance } from '../../i18n/display'
 import BrandHeader from '../components/BrandHeader'
 import { supabase } from '../lib/supabase'
 import PastEventLeaderboardFilters from '../components/PastEventLeaderboardFilters'
@@ -40,33 +42,33 @@ type PastEventCard = {
 
 const rankingCards = [
   {
-    title: 'Overall Ranking',
+    title: "overallRanking",
     href: '/leaderboard/overall',
     description:
-      'Die allgemeine Liga-Rangliste aller Hiker nach insgesamt gewerteten Kilometern.',
-    badge: 'Overall',
+      "overallDescription",
+    badge: 'overall',
     badgeClass:
       'border border-stone-300/25 bg-stone-300/10 text-stone-100',
   },
   {
-    title: 'Länderrangliste',
+    title: "countryRanking",
     href: '/leaderboard/country',
     description:
-      'Vergleiche Hiker innerhalb ihrer Nationalität. Länder mit echten Daten erscheinen automatisch.',
-    badge: 'Country',
+      "countryDescription",
+    badge: 'country',
     badgeClass:
       'border border-emerald-400/30 bg-emerald-400/12 text-emerald-200',
   },
   {
-    title: 'Skyscraper Ranking',
+    title: "skyscraperRanking",
     href: '/skyscraper',
     description:
-      'Die Höhenmeter-Rangliste der Liga. Sichtbar ab mindestens 1500 hm Gesamtleistung.',
-    badge: 'Elevation',
+      "elevationDescription",
+    badge: 'elevation',
     badgeClass:
       'border border-sky-400/30 bg-sky-400/12 text-sky-200',
   },
-]
+] as const
 
 function getTodayStart() {
   const now = new Date()
@@ -100,7 +102,7 @@ function getBrand(event: EventRow) {
   return 'Event'
 }
 
-async function getPastEvents() {
+async function getPastEvents(locale: string, unknownLabel: string) {
   const { data, error } = await supabase
     .from('events_master')
     .select('id, slug, title, city, country, country_code, event_date, brand, event_distances(id, label, distance_km)')
@@ -124,23 +126,23 @@ async function getPastEvents() {
         countryCode: event.country_code ?? '',
         brand: getBrand(event),
         date: eventDate
-          ? eventDate.toLocaleDateString('de-DE')
+          ? eventDate.toLocaleDateString(locale)
           : '—',
         monthKey: eventDate
           ? `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}`
           : 'unknown',
         monthLabel: eventDate
-          ? eventDate.toLocaleDateString('de-DE', {
+          ? eventDate.toLocaleDateString(locale, {
               month: 'long',
               year: 'numeric',
             })
-          : 'Unbekannt',
+          : unknownLabel,
         distances:
           event.event_distances && event.event_distances.length > 0
             ? event.event_distances
                 .slice()
                 .sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0))
-                .map((d) => d.label ?? `${d.distance_km} km`)
+                .map((d) => d.label ?? `${formatRankingDistance(d.distance_km, locale) ?? '—'} km`)
                 .join(' / ')
             : '—',
       }
@@ -152,7 +154,8 @@ async function getPastEvents() {
 
 
 export default async function LeaderboardHubPage() {
-  const pastEvents = await getPastEvents()
+  const [t, locale] = await Promise.all([getTranslations('ui'), getLocale()])
+  const pastEvents = await getPastEvents(locale, t('unknown'))
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
@@ -171,22 +174,14 @@ export default async function LeaderboardHubPage() {
           <Link
             href="/"
             className="inline-block text-sm text-stone-300 transition hover:text-white"
-          >
-            ← Zurück
-          </Link>
+          >{t("backArrow")}</Link>
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
-            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">
-              Ranglisten
-            </div>
+            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">{t("rankings")}</div>
 
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Ranking Hub
-            </h1>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">{t("rankingHub")}</h1>
 
-            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">
-              Wähle eine Rangliste, um die Liga nach Kilometern, Nationalität, Höhenmetern oder vergangenen Event-Rankings zu erkunden.
-            </p>
+            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">{t("rankingChoices")}</p>
           </div>
         </div>
       </section>
@@ -196,15 +191,11 @@ export default async function LeaderboardHubPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Verfügbare Rankings</h2>
-              <p className="mt-1 text-sm text-stone-400">
-                Weitere Filter-Rankings wie Geschlecht oder Recent Events folgen später.
-              </p>
+              <h2 className="text-2xl font-bold text-white">{t("availableRankings")}</h2>
+              <p className="mt-1 text-sm text-stone-400">{t("futureRankings")}</p>
             </div>
 
-            <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
-              Rankings
-            </div>
+            <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">{t("rankingsShort")}</div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -217,20 +208,18 @@ export default async function LeaderboardHubPage() {
                 <div
                   className={`inline-flex rounded-full px-3 py-1.5 text-sm ${card.badgeClass}`}
                 >
-                  {card.badge}
+                  {t(card.badge)}
                 </div>
 
                 <h3 className="mt-4 text-2xl font-bold text-white">
-                  {card.title}
+                  {t(card.title)}
                 </h3>
 
                 <p className="mt-3 text-sm leading-6 text-stone-400">
-                  {card.description}
+                  {t(card.description)}
                 </p>
 
-                <div className="mt-5 text-sm font-medium text-stone-300 transition group-hover:text-white">
-                  Zur Rangliste →
-                </div>
+                <div className="mt-5 text-sm font-medium text-stone-300 transition group-hover:text-white">{t("viewRanking")}</div>
               </Link>
             ))}
           </div>
@@ -241,23 +230,17 @@ export default async function LeaderboardHubPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Vergangene Event-Rankings</h2>
-              <p className="mt-1 text-sm text-stone-400">
-                Abgeschlossene Events erscheinen hier mit ihrem jeweiligen Event-Ranking.
-              </p>
+              <h2 className="text-2xl font-bold text-white">{t("pastRankings")}</h2>
+              <p className="mt-1 text-sm text-stone-400">{t("pastRankingsDescription")}</p>
             </div>
 
-            <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
-              Event Leaderboards
-            </div>
+            <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">{t("eventLeaderboards")}</div>
           </div>
 
           {pastEvents.length > 0 ? (
             <PastEventLeaderboardFilters pastEvents={pastEvents} />
           ) : (
-            <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">
-              Aktuell gibt es noch keine vergangenen Events mit Ranking-Anzeige.
-            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">{t("noPastRankings")}</div>
           )}
         </div>
       </section>

@@ -1,4 +1,6 @@
-import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
+import Link from '@/i18n/prototype/LocalizedLink'
+import { formatDistanceKm } from '../lib/activity/display'
 import { supabase } from '../lib/supabase'
 
 type SearchPageProps = {
@@ -59,7 +61,7 @@ function formatDistances(distances: EventDistanceResult[] | undefined) {
       }
 
       if (typeof distance.distance_km === 'number') {
-        return `${distance.distance_km} km`
+        return `${formatDistanceKm(distance.distance_km) ?? '—'} km`
       }
 
       return null
@@ -71,6 +73,7 @@ function formatDistances(distances: EventDistanceResult[] | undefined) {
 export default async function SearchPage({
   searchParams,
 }: SearchPageProps) {
+  const [t, ui] = await Promise.all([getTranslations('publicSearch'), getTranslations('ui')])
   const params = await searchParams
   const query = params.q?.trim() ?? ''
 
@@ -109,16 +112,16 @@ export default async function SearchPage({
           href="/"
           className="mb-6 inline-block text-sm text-stone-400 transition hover:text-white"
         >
-          ← Zurück zur Startseite
+          {t('back')}
         </Link>
 
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
           <div className="mb-6">
             <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-400">
-              Suche
+              {t('title')}
             </div>
             <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">
-              Profile & Events finden
+              {t('intro')}
             </h1>
           </div>
 
@@ -128,29 +131,29 @@ export default async function SearchPage({
                 type="text"
                 name="q"
                 defaultValue={query}
-                placeholder="Nach Hiker, Event, Ort oder Veranstalter suchen…"
+                placeholder={t('placeholder')}
                 className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
               />
               <button
                 type="submit"
                 className="rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white"
               >
-                Suche
+                {ui('searchSubmit')}
               </button>
             </div>
           </form>
 
           {!query ? (
             <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-stone-400">
-              Gib einen Namen, ein Event, einen Ort oder einen Veranstalter ein.
+              {t('prompt')}
             </div>
           ) : (
             <div className="space-y-8">
               <section>
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-white">Profile</h2>
+                  <h2 className="text-xl font-bold text-white">{t('profiles')}</h2>
                   <div className="text-sm text-stone-500">
-                    {(hikers ?? []).length} Treffer
+                    {(hikers ?? []).length} {t('results')}
                   </div>
                 </div>
 
@@ -168,10 +171,10 @@ export default async function SearchPage({
 
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-semibold text-white">
-                            {hiker.display_name ?? 'Unbekannt'}
+                            {hiker.display_name ?? t('unknown')}
                           </div>
                           <div className="mt-1 text-sm text-stone-400">
-                            {hiker.total_km ?? 0} km
+                            {formatDistanceKm(hiker.total_km ?? 0)} km
                             {hiker.division ? ` · ${hiker.division}` : ''}
                           </div>
                         </div>
@@ -180,16 +183,16 @@ export default async function SearchPage({
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-stone-400">
-                    Keine Profile gefunden.
+                    {t('noProfiles')}
                   </div>
                 )}
               </section>
 
               <section>
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-white">Events</h2>
+                  <h2 className="text-xl font-bold text-white">{t('events')}</h2>
                   <div className="text-sm text-stone-500">
-                    {(events ?? []).length} Treffer
+                    {(events ?? []).length} {ui('eventSearchResult')}
                   </div>
                 </div>
 
@@ -204,12 +207,12 @@ export default async function SearchPage({
                         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                           <div className="min-w-0">
                             <div className="truncate font-semibold text-white">
-                              {event.city ?? 'Unbekannter Ort'}
+                              {event.city ?? t('unknownLocation')}
                               {event.brand ? ` · ${event.brand}` : ''}
                             </div>
 
                             <div className="mt-1 text-sm text-stone-400">
-                              {event.title ?? 'Unbekanntes Event'}
+                              {event.title ?? t('untitledEvent')}
                             </div>
 
                             <div className="mt-1 text-sm text-stone-400">
@@ -232,7 +235,7 @@ export default async function SearchPage({
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-stone-400">
-                    Keine Events gefunden.
+                    {t('noEvents')}
                   </div>
                 )}
               </section>

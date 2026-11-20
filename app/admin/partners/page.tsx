@@ -72,6 +72,16 @@ type PartnerFormState = {
   notes: string
 }
 
+const emptyPartnerForm: PartnerFormState = {
+  name: '',
+  partner_type: 'event_partner',
+  contact_name: '',
+  contact_email: '',
+  website_url: '',
+  logo_url: '',
+  notes: '',
+}
+
 type PartnerBookingFormState = {
   partner_id: string
   booking_type: 'event_partner' | 'brand_partner'
@@ -116,15 +126,8 @@ export default function PartnerAdminPage() {
     notes: '',
   })
 
-  const [partnerForm, setPartnerForm] = useState<PartnerFormState>({
-    name: '',
-    partner_type: 'event_partner',
-    contact_name: '',
-    contact_email: '',
-    website_url: '',
-    logo_url: '',
-    notes: '',
-  })
+  const [partnerForm, setPartnerForm] = useState(emptyPartnerForm)
+  const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null)
 
   const [partnerBookingForm, setPartnerBookingForm] =
     useState<PartnerBookingFormState>({
@@ -317,7 +320,26 @@ export default function PartnerAdminPage() {
   }
 }
 
-  async function handleCreatePartner() {
+  function startEditPartner(partner: Partner) {
+    setEditingPartnerId(partner.id)
+    setPartnerForm({
+      name: partner.name,
+      partner_type: partner.partner_type,
+      contact_name: partner.contact_name ?? '',
+      contact_email: partner.contact_email ?? '',
+      website_url: partner.website_url ?? '',
+      logo_url: partner.logo_url ?? '',
+      notes: partner.notes ?? '',
+    })
+    document.getElementById('partner-form')?.scrollIntoView({ block: 'start' })
+  }
+
+  function resetPartnerForm() {
+    setEditingPartnerId(null)
+    setPartnerForm(emptyPartnerForm)
+  }
+
+  async function handleSavePartner() {
     setPartnerLoading(true)
     setPartnerMessage('')
 
@@ -327,40 +349,34 @@ export default function PartnerAdminPage() {
         return
       }
 
-      const { data, error } = await supabase
-        .from('partners')
-        .insert({
-          name: partnerForm.name.trim(),
-          partner_type: partnerForm.partner_type,
-          contact_name: partnerForm.contact_name.trim() || null,
-          contact_email: partnerForm.contact_email.trim() || null,
-          website_url: partnerForm.website_url.trim() || null,
-          logo_url: partnerForm.logo_url.trim() || null,
-          notes: partnerForm.notes.trim() || null,
-        })
-        .select(
-          'id, name, partner_type, contact_name, contact_email, website_url, logo_url, notes, created_at'
-        )
+      const values = {
+        name: partnerForm.name.trim(),
+        partner_type: partnerForm.partner_type,
+        contact_name: partnerForm.contact_name.trim() || null,
+        contact_email: partnerForm.contact_email.trim() || null,
+        website_url: partnerForm.website_url.trim() || null,
+        logo_url: partnerForm.logo_url.trim() || null,
+        notes: partnerForm.notes.trim() || null,
+      }
+      const table = supabase.from('partners')
+      const save = editingPartnerId ? table.update(values).eq('id', editingPartnerId) : table.insert(values)
+      const { data, error } = await save
+        .select('id, name, partner_type, contact_name, contact_email, website_url, logo_url, notes, created_at')
         .single()
 
       if (error || !data) {
-        setPartnerMessage(`Fehler beim Anlegen des Partners: ${error?.message ?? 'Unbekannt'}`)
+        setPartnerMessage(`Fehler beim Speichern des Partners: ${error?.message ?? 'Unbekannt'}`)
         return
       }
 
-      setPartners((prev) => [data as Partner, ...prev])
-
-      setPartnerForm({
-        name: '',
-        partner_type: 'event_partner',
-        contact_name: '',
-        contact_email: '',
-        website_url: '',
-        logo_url: '',
-        notes: '',
-      })
-
-      setPartnerMessage('Partner wurde angelegt.')
+      const saved = data as Partner
+      setPartners(prev => editingPartnerId ? prev.map(partner => partner.id === saved.id ? saved : partner) : [saved, ...prev])
+      if (editingPartnerId) {
+        setPartnerBookings(prev => prev.map(booking => booking.partner_id === saved.id
+          ? { ...booking, partners: { name: saved.name } } : booking))
+      }
+      resetPartnerForm()
+      setPartnerMessage(editingPartnerId ? 'Partner wurde aktualisiert.' : 'Partner wurde angelegt.')
     } catch (error) {
       setPartnerMessage(`Fehler: ${errorMessage(error)}`)
     } finally {
@@ -682,9 +698,9 @@ async function handleDeletePartnerBooking(bookingId: string) {
           ) : null}
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/10 p-5">
+            <div id="partner-form" className="rounded-[1.5rem] border border-white/10 bg-black/10 p-5">
               <h3 className="text-xl font-semibold text-white">
-                Partner anlegen
+                {editingPartnerId ? 'Partner bearbeiten' : 'Partner anlegen'}
               </h3>
 
               <div className="mt-4 space-y-4">
@@ -834,12 +850,18 @@ async function handleDeletePartnerBooking(bookingId: string) {
 
                 <button
                   type="button"
-                  onClick={handleCreatePartner}
+                  onClick={handleSavePartner}
                   disabled={partnerLoading}
                   className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {partnerLoading ? 'Speichert…' : 'Partner anlegen'}
+                  {partnerLoading ? 'Speichert…' : editingPartnerId ? 'Änderungen speichern' : 'Partner anlegen'}
                 </button>
+                {editingPartnerId && (
+                  <button type="button" onClick={resetPartnerForm} disabled={partnerLoading || logoUploading}
+                    className="ml-3 text-sm text-stone-300 hover:text-white">
+                    Abbrechen
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1147,7 +1169,7 @@ async function handleDeletePartnerBooking(bookingId: string) {
                     Noch keine Partner angelegt.
                   </div>
                 ) : (
-                  partners.slice(0, 8).map((partner) => (
+                  partners.map((partner) => (
                     <div
                       key={partner.id}
                       className="rounded-2xl border border-white/10 bg-black/10 p-4"
@@ -1175,6 +1197,11 @@ async function handleDeletePartnerBooking(bookingId: string) {
                           <span className="text-xs text-stone-600">Kein Logo</span>
                         )}
                       </div>
+
+                      <button type="button" disabled={partnerLoading || logoUploading} onClick={() => startEditPartner(partner)}
+                        className="mt-3 text-sm text-stone-300 underline underline-offset-4 hover:text-white">
+                        Partner bearbeiten
+                      </button>
 
                       {partner.contact_email ? (
                         <div className="mt-2 text-sm text-stone-400">

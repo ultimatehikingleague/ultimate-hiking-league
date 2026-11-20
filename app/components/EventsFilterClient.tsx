@@ -1,7 +1,8 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { CalendarDays } from 'lucide-react'
 import { EventSponsors } from './PartnerPlacements'
 import { eventAdIndex, type PartnerAd } from '../lib/partnerBookings'
@@ -40,11 +41,11 @@ function countryToFlag(countryCode: string | null) {
   )
 }
 
-function countryNameFromCode(countryCode: string | null) {
+function countryNameFromCode(countryCode: string | null, locale = 'de') {
   if (!countryCode) return 'Unbekannt'
   const code = countryCode.trim().toUpperCase()
 
-  const names = new Intl.DisplayNames(['de'], { type: 'region' })
+  const names = new Intl.DisplayNames([locale], { type: 'region' })
   return names.of(code) ?? code
 }
 
@@ -70,11 +71,11 @@ function getMonthKey(dateString: string) {
   return `${year}-${month}`
 }
 
-function getMonthLabel(dateString: string) {
+function getMonthLabel(dateString: string, locale: string, missing: string) {
   const date = parseGermanDate(dateString)
-  if (!date) return 'Ohne Datum'
+  if (!date) return missing
 
-  return new Intl.DateTimeFormat('de-DE', {
+  return new Intl.DateTimeFormat(locale, {
     month: 'long',
     year: 'numeric',
   }).format(date)
@@ -95,6 +96,8 @@ function EventCard({
   onAddToCalendar: (eventId: number) => Promise<void>
   ads?: PartnerAd[]
 }) {
+  const t = useTranslations('eventCalendar')
+  const locale = useLocale()
   return (
     <div className={'rounded-3xl border p-5 shadow-xl shadow-black/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 ' +
       (ads?.[0]?.package_code === 'D' ? 'border-amber-200/50 bg-[#372e1d]' : ads ? 'border-emerald-200/35 bg-[#213125]' : 'border-white/10 bg-white/[0.05] hover:bg-white/[0.08]')}>
@@ -123,14 +126,14 @@ function EventCard({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-            Datum
+            {t('date')}
           </div>
-          <div className="mt-1 font-semibold text-white">{event.date}</div>
+          <div className="mt-1 font-semibold text-white">{locale === 'de' ? event.date : parseGermanDate(event.date)?.toLocaleDateString(locale === 'en' ? 'en-GB' : locale) ?? event.date}</div>
         </div>
 
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-            Distanzen
+            {t('distances')}
           </div>
           <div className="mt-1 break-words font-semibold text-white">
             {event.distances}
@@ -149,7 +152,7 @@ function EventCard({
           href={`/events/${event.slug}`}
           className="inline-flex items-center rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-stone-100 transition hover:bg-white/10"
         >
-          Event öffnen
+          {t('openEvent')}
         </Link>
 
         {userId ? (
@@ -164,10 +167,10 @@ function EventCard({
             } disabled:cursor-default`}
           >
             {calendarLoading
-              ? 'Kalender wird geladen…'
+              ? t('loadingCalendar')
               : isSaved
-                ? '✓ Im Kalender'
-                : 'Zu meinem Kalender'}
+                ? t('saved')
+                : t('addToCalendar')}
           </button>
         ) : null}
       </div>
@@ -182,6 +185,8 @@ export default function EventsFilterClient({
   events: EventItem[]
   partnerAds?: PartnerAd[]
 }) {
+  const t = useTranslations('eventCalendar')
+  const locale = useLocale()
   const [selectedCountry, setSelectedCountry] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
@@ -291,7 +296,7 @@ export default function EventsFilterClient({
     filteredEvents.forEach((event) => {
       if (adsByEvent.has(event.id)) return
       const key = getMonthKey(event.date)
-      const label = getMonthLabel(event.date)
+      const label = getMonthLabel(event.date, locale, t('noDate'))
 
       if (!groups.has(key)) {
         groups.set(key, {
@@ -307,7 +312,7 @@ export default function EventsFilterClient({
     return Array.from(groups.values()).sort((a, b) =>
       a.key.localeCompare(b.key)
     )
-  }, [filteredEvents, adsByEvent])
+  }, [filteredEvents, adsByEvent, locale, t])
 
   return (
     <>
@@ -318,7 +323,7 @@ export default function EventsFilterClient({
             className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-semibold text-stone-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.12] hover:shadow-lg active:translate-y-0 active:scale-[0.98]"
           >
             <CalendarDays className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-            Mein Kalender
+            {t('myCalendar')}
           </Link>
         </div>
       ) : null}
@@ -326,13 +331,13 @@ export default function EventsFilterClient({
       <div className="mb-6 flex flex-col gap-4">
         <div>
           <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">
-            Events suchen
+            {t('searchEvents')}
           </label>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Nach Stadt, Veranstalter oder Distanz suchen…"
+            placeholder={t('searchPlaceholder')}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
           />
         </div>
@@ -348,7 +353,7 @@ export default function EventsFilterClient({
                   : 'border-white/10 bg-white/[0.04] text-stone-200 hover:border-white/20 hover:bg-white/[0.06]'
               }`}
             >
-              <span>Alle Länder</span>
+              <span>{t('allCountries')}</span>
             </button>
 
             {countries.map((country) => (
@@ -363,7 +368,7 @@ export default function EventsFilterClient({
                 }`}
               >
                 <span className="text-base">{countryToFlag(country.code)}</span>
-                <span>{country.label}</span>
+                <span>{countryNameFromCode(country.code, locale)}</span>
               </button>
             ))}
           </div>
@@ -372,9 +377,9 @@ export default function EventsFilterClient({
 
       <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-stone-500">
         <span>
-          {selectedCountry ? countryNameFromCode(selectedCountry) : 'Alle Länder'}
+          {selectedCountry ? countryNameFromCode(selectedCountry, locale) : t('allCountries')}
         </span>
-        <span>{filteredEvents.length} Events</span>
+        <span>{t('eventCount', { count: filteredEvents.length })}</span>
       </div>
 
       {featuredEvents.length > 0 && (
@@ -416,7 +421,7 @@ export default function EventsFilterClient({
                     {group.label}
                   </h3>
                   <span className="text-xs uppercase tracking-[0.2em] text-stone-500">
-                    {group.events.length} Events
+                    {t('eventCount', { count: group.events.length })}
                   </span>
                 </div>
 
@@ -438,7 +443,7 @@ export default function EventsFilterClient({
         </>
       ) : featuredEvents.length === 0 ? (
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
-          Keine passenden kommenden Events gefunden.
+          {t('noneMatch')}
         </div>
       ) : null}
     </>

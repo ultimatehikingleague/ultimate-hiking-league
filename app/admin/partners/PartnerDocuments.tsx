@@ -11,6 +11,8 @@ type Dossier = {
   payment_requested_at: string | null
   payment_due_on: string | null
   paid_on: string | null
+  cancellation_at: string | null
+  cancellation_reason: string | null
   invoice_number: string | null
   invoice_archived: boolean
 }
@@ -23,7 +25,7 @@ type Cooperation = {
   effective_end: string | null
   fulfilled_on: string | null
 }
-type DocumentKind = 'offer' | 'contract' | 'payment' | 'invoice'
+type DocumentKind = 'offer' | 'contract' | 'payment' | 'invoice-draft' | 'invoice'
 const field = 'mt-1 block w-full rounded-lg border border-white/20 bg-[#221f1b] px-3 py-2 text-white'
 const button = 'rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white disabled:opacity-50'
 const currency = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
@@ -70,7 +72,6 @@ export default function PartnerDocuments({ bookingId, status, bookingType, packa
   const [approval, setApproval] = useState<Approval | null>(null)
   const [social, setSocial] = useState<SocialMention | null>(null)
   const [cooperation, setCooperation] = useState<Cooperation | null>(null)
-  const [showCooperation, setShowCooperation] = useState(false)
   const [termKind, setTermKind] = useState('fixed')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -87,8 +88,8 @@ export default function PartnerDocuments({ bookingId, status, bookingType, packa
 
   useEffect(() => { void load().catch(error => setMessage(error.message)) }, [bookingId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const action = (cooperation || showCooperation || free) ? (cooperation ? 'fulfill-cooperation' : 'record-cooperation')
-    : !dossier ? 'offer' : !dossier.accepted_on ? 'accept'
+  const action = cooperation ? 'fulfill-cooperation'
+    : !dossier ? (free ? 'record-cooperation' : 'offer') : !dossier.accepted_on ? 'accept'
     : !dossier.payment_requested_at ? 'request-payment' : !dossier.paid_on ? 'confirm-payment' : 'invoice'
 
   async function submit(event: FormEvent<HTMLFormElement>, operation: string = action) {
@@ -149,7 +150,7 @@ export default function PartnerDocuments({ bookingId, status, bookingType, packa
   const documentButton = (kind: DocumentKind, label: string, reference = label + '-' + bookingId) => (
     <button type="button" className={button} disabled={busy} onClick={() => void download(kind, reference)}>{label} ↓</button>
   )
-  const overdue = dossier?.payment_due_on && dossier.payment_due_on < today && !dossier.paid_on
+  const overdue = dossier?.payment_due_on && dossier.payment_due_on < today && !dossier.paid_on && !dossier.cancellation_at
 
   return (
     <section className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4 text-sm">
@@ -158,6 +159,10 @@ export default function PartnerDocuments({ bookingId, status, bookingType, packa
       {dossier && <>
         <p>{dossier.terms.packageName} · {currency.format(dossier.terms.amountCents / 100)} · {dossier.terms.start} bis {dossier.terms.end}</p>
         {dossier.accepted_on && <p>Vertrag angenommen am {dossier.accepted_on}</p>}
+        {dossier.cancellation_at && <p>
+          Beendigung dokumentiert am {new Date(dossier.cancellation_at).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin' })}
+          {' · '}{dossier.cancellation_reason}
+        </p>}
         {dossier.payment_due_on && <p className={overdue ? 'text-amber-200' : undefined}>
           {dossier.paid_on ? 'Zahlung bestätigt am ' + dossier.paid_on : 'Fällig am ' + dossier.payment_due_on}
           {overdue && ' · Überfällig, Vertragsstatus prüfen'}
@@ -166,14 +171,21 @@ export default function PartnerDocuments({ bookingId, status, bookingType, packa
           {documentButton('offer', 'Angebot', 'ANG-' + bookingId)}
           {dossier.accepted_on && documentButton('contract', 'Vertrag')}
           {dossier.payment_requested_at && documentButton('payment', 'Zahlungsanforderung', 'ZA-' + bookingId)}
+          {dossier.paid_on && !dossier.invoice_number && documentButton('invoice-draft', 'Rechnungsentwurf')}
           {dossier.invoice_archived && documentButton('invoice', 'Rechnung', dossier.invoice_number ?? 'Rechnung')}
         </div>
+        {overdue && (
+          <details className="rounded-lg border border-white/10 p-3">
+            <summary className="cursor-pointer">Bereits erklärte Beendigung dokumentieren</summary>
+            <form onSubmit={event => void submit(event, 'record-cancellation')} className="mt-3 grid max-w-xl gap-2">
+              <label>Begründung oder Nachweis<textarea className={field} name="reason" required maxLength={500} /></label>
+              <button type="submit" className={button + ' justify-self-start'} disabled={busy}>Beendigung archivieren</button>
+            </form>
+          </details>
+        )}
       </>}
-      {dossier === null && !cooperation && isDraft && !free && !milestone && agreedPrice === null && (
-        <button className={button + ' justify-self-start'} type="button" disabled={busy}
-          onClick={() => setShowCooperation(!showCooperation)}>
-          {showCooperation ? 'Zu Angebot und Vorkasse' : 'Kooperation oder Kulanz erfassen'}
-        </button>
+      {dossier === null && !cooperation && isDraft && !milestone && agreedPrice === null && (
+        <p>Bitte zuerst in der Buchung einen vereinbarten Preis speichern. Für eine kostenlose Kooperation 0,00 € eintragen.</p>
       )}
       {cooperation && <>
         <p>{{ in_kind: 'Sachleistungskooperation', goodwill: 'Kulanz', unpaid_milestone: 'Unentgeltliche Milestone-Partnerschaft' }[cooperation.kind]} · {cooperation.explanation}</p>
@@ -188,11 +200,11 @@ export default function PartnerDocuments({ bookingId, status, bookingType, packa
           </form>
         )}
       </>}
-      {!milestone && dossier !== undefined && (dossier || cooperation || isDraft) && !dossier?.invoice_archived
+      {!milestone && dossier !== undefined && (dossier || cooperation || (isDraft && agreedPrice !== null)) && !dossier?.invoice_archived && !dossier?.cancellation_at
         && !((cooperation && cooperation.kind !== 'in_kind') || cooperation?.fulfilled_on) && (
         <form key={action} onSubmit={event => void submit(event)} className="grid max-w-xl gap-3">
           {action === 'record-cooperation' && <>
-            <label>Art<select className={field} name="kind" defaultValue={free ? 'goodwill' : 'unpaid_milestone'}><option value="unpaid_milestone">Unentgeltliche Milestone-Partnerschaft</option><option value="in_kind">Sachleistung</option><option value="goodwill">Kulanz</option></select></label>
+            <label>Art<select className={field} name="kind" defaultValue="goodwill"><option value="unpaid_milestone">Unentgeltliche Milestone-Partnerschaft</option><option value="in_kind">Sachleistung</option><option value="goodwill">Kulanz</option></select></label>
             <label>Vereinbarung, Gegenleistung oder Kulanzgrund<textarea className={field} name="explanation" required maxLength={2000} /></label>
             <label>Laufzeit<select className={field} name="termKind" value={termKind} onChange={event => setTermKind(event.target.value)}>
               <option value="fixed">Festes Ende</option><option value="partnership">Bis Partnerschaftsende</option>

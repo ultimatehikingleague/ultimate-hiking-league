@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useEffect, useState } from 'react'
 
 const CONSENT_KEY = 'uhl_cookie_consent'
@@ -7,6 +9,7 @@ const CONSENT_KEY = 'uhl_cookie_consent'
 type ConsentValue = 'accepted_all' | 'necessary_only' | null
 
 export default function CookieConsentBanner() {
+  const t = useTranslations('ui')
   const [consent, setConsent] = useState<ConsentValue>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -85,9 +88,7 @@ export default function CookieConsentBanner() {
               textTransform: 'uppercase',
               color: '#a8a29e',
             }}
-          >
-            Datenschutz
-          </div>
+          >{t("privacy")}</div>
 
           <h2
             style={{
@@ -97,9 +98,7 @@ export default function CookieConsentBanner() {
               fontWeight: 700,
               letterSpacing: '-0.02em',
             }}
-          >
-            Deine Privatsphäre ist uns wichtig.
-          </h2>
+          >{t("privacyHeading")}</h2>
 
           <p
             style={{
@@ -108,11 +107,7 @@ export default function CookieConsentBanner() {
               lineHeight: 1.7,
               color: '#e7e5e4',
             }}
-          >
-            Wir verwenden notwendige Technologien für den Betrieb der Website.
-            Mit deiner Zustimmung nutzen wir zusätzlich Statistik, um Ultimate
-            Hiking League zu analysieren und zu verbessern.
-          </p>
+          >{t("cookieIntroduction")}</p>
 
           <p
             style={{
@@ -121,10 +116,7 @@ export default function CookieConsentBanner() {
               lineHeight: 1.7,
               color: '#d6d3d1',
             }}
-          >
-            Bitte triff jetzt eine Auswahl. Deine Entscheidung kannst du später
-            jederzeit wieder ändern.
-          </p>
+          >{t("cookieChoice")}</p>
 
           <div
             style={{
@@ -151,9 +143,7 @@ export default function CookieConsentBanner() {
                     fontWeight: 600,
                     color: '#ffffff',
                   }}
-                >
-                  Notwendige Technologien
-                </div>
+                >{t("essentialTech")}</div>
                 <div
                   style={{
                     marginTop: '6px',
@@ -161,9 +151,7 @@ export default function CookieConsentBanner() {
                     lineHeight: 1.6,
                     color: '#a8a29e',
                   }}
-                >
-                  Erforderlich für Grundfunktionen der Website und immer aktiv.
-                </div>
+                >{t("essentialDescription")}</div>
               </div>
 
               <div
@@ -177,9 +165,7 @@ export default function CookieConsentBanner() {
                   fontSize: '12px',
                   fontWeight: 600,
                 }}
-              >
-                Immer aktiv
-              </div>
+              >{t("alwaysActive")}</div>
             </div>
           </div>
 
@@ -198,9 +184,7 @@ export default function CookieConsentBanner() {
                 fontWeight: 600,
                 color: '#ffffff',
               }}
-            >
-              Statistik
-            </div>
+            >{t("analytics")}</div>
             <div
               style={{
                 marginTop: '6px',
@@ -208,10 +192,7 @@ export default function CookieConsentBanner() {
                 lineHeight: 1.6,
                 color: '#a8a29e',
               }}
-            >
-              Hilft uns zu verstehen, wie die Plattform genutzt wird und wo wir
-              sie verbessern können.
-            </div>
+            >{t("analyticsDescription")}</div>
           </div>
 
           <div
@@ -237,9 +218,7 @@ export default function CookieConsentBanner() {
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
-            >
-              Nur notwendige
-            </button>
+            >{t("essentialOnly")}</button>
 
             <button
               type="button"
@@ -256,9 +235,7 @@ export default function CookieConsentBanner() {
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
-            >
-              Alle akzeptieren
-            </button>
+            >{t("acceptAll")}</button>
           </div>
 
           <p
@@ -268,18 +245,15 @@ export default function CookieConsentBanner() {
               lineHeight: 1.7,
               color: '#78716c',
             }}
-          >
-            Mehr Informationen findest du in unserer{' '}
-            <a
+          >{t("privacyInfo")}{' '}
+            <Link
               href="/datenschutz"
               style={{
                 color: '#d6d3d1',
                 textDecoration: 'underline',
                 textUnderlineOffset: '3px',
               }}
-            >
-              Datenschutzerklärung
-            </a>
+            >{t("privacyPolicy")}</Link>
             .
           </p>
         </div>

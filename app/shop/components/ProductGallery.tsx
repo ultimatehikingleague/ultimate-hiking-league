@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react'
 
@@ -11,6 +12,7 @@ type ProductGalleryProps = {
 }
 
 export default function ProductGallery({ images }: ProductGalleryProps) {
+  const t = useTranslations('productGallery')
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
@@ -74,7 +76,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
           type="button"
           onClick={() => setLightboxOpen(true)}
           className="group relative flex items-center justify-center"
-          aria-label="Produktbild vergrößern"
+          aria-label={t('zoom')}
         >
           <img
             src={activeImage.src}
@@ -105,7 +107,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
                 ? 'border-[#244B36]'
                 : 'border-transparent hover:border-[#A9C68B]'
             }`}
-            aria-label={`Bild ${index + 1} vergrößern`}
+            aria-label={t('enlargeImage', { number: index + 1 })}
           >
             <img
               src={image.src}
@@ -118,7 +120,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
       </div>
 
       <p className="mt-4 text-center text-xs text-[#777B73]">
-        Bild {activeIndex + 1} von {images.length} · Zum Vergrößern anklicken
+        {t('image')} {activeIndex + 1} {t('of')} {images.length} {t('clickToZoom')}
       </p>
 
       {/* LIGHTBOX */}
@@ -126,7 +128,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Produktbilder"
+          aria-label={t('products')}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-4"
           onClick={() => setLightboxOpen(false)}
         >
@@ -136,7 +138,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
             type="button"
             onClick={() => setLightboxOpen(false)}
             className="absolute right-5 top-5 z-20 flex h-12 w-12 items-center justify-center rounded-md bg-white/10 text-white transition hover:bg-white/20"
-            aria-label="Galerie schließen"
+            aria-label={t('close')}
           >
             <X size={26} />
           </button>
@@ -149,7 +151,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
               previousImage()
             }}
             className="absolute left-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-md bg-white/10 text-white transition hover:bg-white/20 md:left-8"
-            aria-label="Vorheriges Bild"
+            aria-label={t('previous')}
           >
             <ChevronLeft size={30} />
           </button>
@@ -174,7 +176,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
               nextImage()
             }}
             className="absolute right-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-md bg-white/10 text-white transition hover:bg-white/20 md:right-8"
-            aria-label="Nächstes Bild"
+            aria-label={t('next')}
           >
             <ChevronRight size={30} />
           </button>

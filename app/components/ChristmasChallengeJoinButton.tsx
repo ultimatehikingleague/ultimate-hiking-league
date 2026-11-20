@@ -1,6 +1,7 @@
 'use client'
 
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -13,6 +14,7 @@ export default function ChristmasChallengeJoinButton({
   challengeId,
   challengeStatus,
 }: Props) {
+  const t = useTranslations('ui')
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -75,7 +77,7 @@ export default function ChristmasChallengeJoinButton({
 
     if (error) {
       setMessage(
-        'Die Anmeldung konnte nicht durchgeführt werden. Bitte versuche es erneut.'
+        t('joinError')
       )
       setJoining(false)
       return
@@ -88,7 +90,7 @@ export default function ChristmasChallengeJoinButton({
   if (loading) {
     return (
       <div className="mt-6 text-sm text-stone-400">
-        Anmeldung wird geprüft …
+        {t('checkingRegistration')}
       </div>
     )
   }
@@ -96,7 +98,7 @@ export default function ChristmasChallengeJoinButton({
   if (hasJoined) {
     return (
       <div className="inline-flex min-h-[50px] items-center rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-6 py-3 font-semibold text-emerald-200">
-        Du bist dabei ✓
+        {t('registered')}
       </div>
     )
   }
@@ -108,7 +110,7 @@ export default function ChristmasChallengeJoinButton({
         href="/login"
         className="inline-flex min-h-[50px] items-center justify-center rounded-2xl bg-red-600 px-7 py-3 font-semibold text-white transition hover:bg-red-500"
       >
-        Einloggen & anmelden
+        {t('signInJoin')}
       </Link>
     </div>
   )
@@ -118,15 +120,14 @@ export default function ChristmasChallengeJoinButton({
     return (
       <div className="mt-6">
         <p className="text-sm text-amber-200">
-          Erstelle zuerst dein Liga-Profil, um an der Christmas Challenge
-          teilzunehmen.
+          {t('profileFirst')}
         </p>
 
         <Link
           href="/account"
           className="mt-3 inline-flex min-h-[50px] items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
         >
-          Liga-Profil erstellen
+          {t('createProfile')}
         </Link>
       </div>
     )
@@ -135,7 +136,7 @@ export default function ChristmasChallengeJoinButton({
   if (challengeStatus === 'draft') {
     return (
       <div className="mt-6 text-sm text-stone-400">
-        Die Anmeldung ist aktuell noch nicht geöffnet.
+        {t('registrationNotOpen')}
       </div>
     )
   }
@@ -143,7 +144,7 @@ export default function ChristmasChallengeJoinButton({
   if (challengeStatus === 'active' || challengeStatus === 'finished') {
     return (
       <div className="mt-6 text-sm text-stone-400">
-        Die Anmeldephase ist beendet.
+        {t('registrationClosed')}
       </div>
     )
   }
@@ -161,8 +162,8 @@ export default function ChristmasChallengeJoinButton({
         className="inline-flex min-h-[50px] items-center justify-center rounded-2xl bg-red-600 px-7 py-3 font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {joining
-          ? 'Anmeldung läuft …'
-          : 'Jetzt zur Christmas Challenge anmelden'}
+          ? t('joining')
+          : t('registerChallenge')}
       </button>
 
       {message ? (

@@ -1,6 +1,9 @@
+import { getLocale, getTranslations } from 'next-intl/server'
 import { EventSponsors } from '../../components/PartnerPlacements'
 import { eventAdIndex, getPartnerAds } from '../../lib/partnerBookings'
-import Link from 'next/link'
+import { garminAttribution, type GarminRecordAttribution } from '../../lib/activity/garmin-attribution'
+import Link from '@/i18n/prototype/LocalizedLink'
+import { formatDistanceKm } from '../../lib/activity/display'
 import { supabase } from '../../lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -33,6 +36,8 @@ type RecordRow = {
   time_hours: number | null
   verified: boolean | null
   record_status: string | null
+  garmin_verified: boolean | null
+  garmin_record_attributions: GarminRecordAttribution
 }
 
 type HikerRow = {
@@ -50,9 +55,8 @@ function countryToFlag(countryCode?: string | null) {
   )
 }
 
-function formatDate(dateString?: string | null) {
-  if (!dateString) return 'Noch offen'
-  return new Date(dateString).toLocaleDateString('de-DE')
+function formatDate(dateString: string, locale: string) {
+  return new Date(dateString).toLocaleDateString(locale === 'de' ? 'de-DE' : locale === 'en' ? 'en-GB' : locale)
 }
 
 function getHikerName(hikerId: number | null, hikersMap: Map<number, HikerRow>) {
@@ -86,7 +90,7 @@ async function getEventBySlug(slug: string): Promise<EventDetail | null> {
 async function getEventRecords(eventMasterId: number): Promise<RecordRow[]> {
   const { data, error } = await supabase
     .from('records')
-    .select('id,hiker_id,event_distance_id,time_text,time_hours,verified,record_status')
+    .select('id,hiker_id,event_distance_id,time_text,time_hours,verified,record_status,garmin_verified,garmin_record_attributions(device_model)')
     .eq('event_master_id', eventMasterId)
     .order('time_hours', { ascending: true })
 
@@ -122,6 +126,7 @@ export default async function EventDetailPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
+  const [t, locale, ui] = await Promise.all([getTranslations('eventDetail'), getLocale(), getTranslations('ui')])
   const { slug } = await params
   const event = await getEventBySlug(slug)
 
@@ -134,28 +139,28 @@ export default async function EventDetailPage({
               href="/"
               className="text-sm text-stone-400 transition hover:text-white"
             >
-              ← Zurück zur Startseite
+              {t('backHome')}
             </Link>
 
             <Link
               href="/leaderboard"
               className="text-sm text-stone-400 transition hover:text-white"
             >
-              ← Zurück zu Ranglisten
+              {t('backRankings')}
             </Link>
 
             <Link
               href="/events"
               className="text-sm text-stone-400 transition hover:text-white"
             >
-              ← Zurück zu Events
+              {t('backEvents')}
             </Link>
           </div>
 
           <div className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
-            <h1 className="text-3xl font-bold text-white">Event nicht gefunden</h1>
+            <h1 className="text-3xl font-bold text-white">{t('notFound')}</h1>
             <p className="mt-3 text-stone-400">
-              Für diesen Link gibt es aktuell noch keine Event-Detailseite.
+              {t('notFoundDescription')}
             </p>
           </div>
         </div>
@@ -208,7 +213,7 @@ export default async function EventDetailPage({
         })
 
       return {
-        distance: distance.label || `${distance.distance_km} km`,
+        distance: distance.label || `${formatDistanceKm(distance.distance_km) ?? '—'} km`,
         timed,
         finishers,
       }
@@ -235,21 +240,21 @@ export default async function EventDetailPage({
               href="/"
               className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
             >
-              ← Zurück zur Startseite
+              {t('backHome')}
             </Link>
 
             <Link
               href="/leaderboard"
               className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
             >
-              ← Zurück zu Ranglisten
+              {t('backRankings')}
             </Link>
 
             <Link
               href="/events"
               className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
             >
-              ← Zurück zu Events
+              {t('backEvents')}
             </Link>
           </div>
 
@@ -274,9 +279,9 @@ export default async function EventDetailPage({
         <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10 backdrop-blur-sm">
             <div className="mb-5">
-              <h2 className="text-2xl font-bold text-white">Event-Details</h2>
+              <h2 className="text-2xl font-bold text-white">{t('details')}</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Alle Eckdaten für dieses Event auf einen Blick.
+                {t('overview')}
               </p>
             </div>
 
@@ -284,35 +289,35 @@ export default async function EventDetailPage({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                  Stadt
+                  {t('city')}
                 </div>
                 <div className="mt-2 font-semibold text-white">
-                  {event.city ?? 'Noch offen'}
+                  {event.city ?? t('notDecided')}
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                  Land
+                  {t('country')}
                 </div>
                 <div className="mt-2 font-semibold text-white">
-                  {event.country ?? 'Noch offen'}
+                  {event.country ?? t('toBeAnnounced')}
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                  Datum
+                  {t('date')}
                 </div>
                 <div className="mt-2 font-semibold text-white">
-                  {formatDate(event.event_date)}
+                  {event.event_date ? formatDate(event.event_date, locale) : t('toBeAnnounced')}
                 </div>
               </div>
 
              {event.description ? (
                <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 sm:col-span-2">
                  <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                   Beschreibung
+                   {t('description')}
                  </div>
                  <div className="mt-2 text-sm text-stone-200">
                    {event.description}
@@ -323,7 +328,7 @@ export default async function EventDetailPage({
              {event.official_url ? (
                <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 sm:col-span-2">
                  <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                   Offizielle Eventseite
+                   {t('officialPage')}
                  </div>
                  <a
                    href={event.official_url}
@@ -331,7 +336,7 @@ export default async function EventDetailPage({
                    rel="noreferrer"
                    className="mt-3 inline-block rounded-xl bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-stone-200"
                  >
-                   Zur Anmeldung / Eventseite
+                   {t('registrationPage')}
                  </a>
                </div>
              ) : null}
@@ -340,9 +345,9 @@ export default async function EventDetailPage({
 
           <div className="rounded-[2rem] border border-white/10 bg-gradient-to-b from-[#26231f] to-[#1c1a17] p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
             <div className="mb-5">
-              <h2 className="text-2xl font-bold text-white">Distanzen</h2>
+              <h2 className="text-2xl font-bold text-white">{t('distances')}</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Wertungsrelevante Strecken dieses Events.
+                {t('rankedRoutes')}
               </p>
             </div>
 
@@ -364,7 +369,7 @@ export default async function EventDetailPage({
                 href="/events"
                 className="inline-block rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:-translate-y-0.5 hover:bg-white"
               >
-                Zurück zur Event-Übersicht
+                {t('backOverview')}
               </Link>
             </div>
           </div>
@@ -373,15 +378,14 @@ export default async function EventDetailPage({
         <section className="mt-6 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10 backdrop-blur-sm">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Event-Ranking</h2>
+              <h2 className="text-2xl font-bold text-white">{t('ranking')}</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Nur verifizierte Zeiten erscheinen im Ranking. Weitere Finisher
-                werden separat aufgeführt.
+                {t('verifiedTimes')}
               </p>
             </div>
 
             <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
-              Ranking
+              {t('rankings')}
             </div>
           </div>
 
@@ -398,7 +402,7 @@ export default async function EventDetailPage({
                 <div className="grid gap-6 lg:grid-cols-2">
                   <div>
                     <div className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-stone-400">
-                      Ranking
+                      {ui('eventRankingLabel')}
                     </div>
 
                     {group.timed.length > 0 ? (
@@ -423,19 +427,22 @@ export default async function EventDetailPage({
                                    href={`/${entry.hiker_id}`}
                                    className="truncate font-semibold text-white transition hover:text-stone-300"
                                  >
-                                   {getHikerName(entry.hiker_id, hikersMap)}
+                                   {entry.hiker_id === null ? t('unknownHiker') : getHikerName(entry.hiker_id, hikersMap)}
                                  </Link>
                                ) : (
                                  <div className="truncate font-semibold text-white">
-                                   {getHikerName(entry.hiker_id, hikersMap)}
+                                   {entry.hiker_id === null ? t('unknownHiker') : getHikerName(entry.hiker_id, hikersMap)}
                                  </div>
                                )}
-                             </div> 
+                               {entry.garmin_verified && (
+                                 <div className="mt-1 text-sm text-stone-300">{garminAttribution(entry)}</div>
+                               )}
+                             </div>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 md:justify-end">
                               <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-sm text-stone-200">
-                                Zeit {entry.time_text}
+                                {t('timeLabel')} {entry.time_text}
                               </div>
                             </div>
                           </div>
@@ -443,14 +450,14 @@ export default async function EventDetailPage({
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">
-                        Noch keine verifizierten Zeiten für diese Distanz hinterlegt.
+                        {t('noTimes')}
                       </div>
                     )}
                   </div>
 
                   <div>
                     <div className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-stone-400">
-                      Weitere Finisher
+                      {t('otherFinishers')}
                     </div>
 
                     {group.finishers.length > 0 ? (
@@ -467,20 +474,20 @@ export default async function EventDetailPage({
 
                               <div className="min-w-0">
                                 <div className="truncate font-semibold text-white">
-                                  {getHikerName(entry.hiker_id, hikersMap)}
+                                  {entry.hiker_id === null ? t('unknownHiker') : getHikerName(entry.hiker_id, hikersMap)}
                                 </div>
                               </div>
                             </div>
 
                             <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-xs text-stone-300">
-                              Finisher
+                              {t('finishers')}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">
-                        Keine weiteren Finisher für diese Distanz.
+                        {t('noOtherFinishers')}
                       </div>
                     )}
                   </div>

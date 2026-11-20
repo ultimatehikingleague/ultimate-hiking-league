@@ -1,7 +1,31 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { authLanguageCookie, authLanguageHint } from './i18n/auth-language'
+import { isLocale } from './i18n/locales'
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/shop/checkout') {
+    const url = request.nextUrl.clone()
+    const hints = url.searchParams.getAll(authLanguageHint)
+    if (!hints.length) return NextResponse.next()
+
+    url.searchParams.delete(authLanguageHint)
+    const response = NextResponse.redirect(url, {
+      status: 307,
+      headers: { 'Cache-Control': 'private, no-store' },
+    })
+    if (hints.length === 1 && isLocale(hints[0]) &&
+        (url.pathname === '/login' || hints[0] === 'pl' || hints[0] === 'it' || hints[0] === 'es' || hints[0] === 'cs')) {
+      response.cookies.set(authLanguageCookie, hints[0], {
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'lax',
+      })
+    }
+    return response
+  }
+
   if (/^\/(?:activity-ocr|api\/(?:activity-ocr|ocr))(?:\/|$)/.test(request.nextUrl.pathname)) {
     return new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
   }
@@ -20,5 +44,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/activity-ocr/:path*', '/api/activity-ocr/:path*', '/api/ocr/:path*', '/admin/milestone-shop/:path*', '/milestone-shop/:path*', '/account/rewards/:path*'],
+  matcher: ['/login', '/shop/checkout', '/activity-ocr/:path*', '/api/activity-ocr/:path*', '/api/ocr/:path*', '/admin/milestone-shop/:path*', '/milestone-shop/:path*', '/account/rewards/:path*'],
 }

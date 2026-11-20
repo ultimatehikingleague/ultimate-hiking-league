@@ -1,10 +1,18 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
+import type { UiFeedback } from '../../i18n/feedback'
 import { LiveBrandPlacement } from '../components/PartnerPlacements'
-import Link from 'next/link'
+import { garminAttribution, type GarminRecordAttribution } from '../lib/activity/garmin-attribution'
+import { formatDistanceKm, formatElevationMeters, formatElapsedTime } from '../lib/activity/display'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useMilestoneLaunch } from '../lib/useMilestoneLaunch'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { formatRankingDistance } from '@/i18n/display'
+import { FIRST_SEASON_YEAR, getSeasonYear, SEASON_RANKINGS_START } from '../lib/season'
+import { fetchProfileRanking } from '../lib/rankings'
+import SeasonRefresh from '../components/SeasonRefresh'
 import ProfileBrandBar from '../components/ProfileBrandBar'
 import RecordSubmissionPanel from '../components/RecordSubmissionPanel'
 import GarminActivityConnect from '../components/GarminActivityConnect'
@@ -51,6 +59,8 @@ type RawRecord = {
   is_corrected: boolean | null
   elevation_gain: number | null
   garmin_verified: boolean
+  garmin_record_attributions: GarminRecordAttribution
+  custom_description: string | null
   custom_title?: string | null
   custom_location?: string | null
   custom_country?: string | null
@@ -83,7 +93,10 @@ type RecordItem = {
   is_corrected: boolean | null
   elevation_gain: number | null
   garmin_verified: boolean
+  garmin_record_attributions: GarminRecordAttribution
+  custom_description: string | null
   event_name: string
+  displayEventName?: string | null
   location: string
   country: string
   country_code: string | null
@@ -122,11 +135,6 @@ type RejectedCorrectionNotice = {
   admin_note: string | null
   reviewed_at: string | null
 }
-
-const SKYSCRAPER_THRESHOLD = 1500
-
-const USE_SEASON_RANKING =
-  new Date() >= new Date('2027-01-01T00:00:00')
 
 const COUNTRY_OPTIONS = [
   { value: 'DE', label: 'Deutschland' },
@@ -183,18 +191,19 @@ const GENDER_OPTIONS = [
 
 
 
-function getCountryLabel(countryCode: string | null) {
+function getCountryLabel(countryCode: string | null, countryNames?: Intl.DisplayNames) {
   if (!countryCode) return '—'
   return (
+    (countryNames && /^[A-Z]{2}$/.test(countryCode) ? countryNames.of(countryCode) : undefined) ??
     COUNTRY_OPTIONS.find((option) => option.value === countryCode)?.label ??
     countryCode
   )
 }
 
-function getGenderLabel(gender: string | null) {
+function getGenderLabel(gender: string | null, t: ReturnType<typeof useTranslations<'account'>>) {
   if (!gender) return '—'
   return (
-    GENDER_OPTIONS.find((option) => option.value === gender)?.label ?? gender
+    GENDER_OPTIONS.find((option) => option.value === gender) ? t(gender === 'W' ? 'female' : gender === 'M' ? 'male' : 'diverse') : gender
   )
 }
 
@@ -230,15 +239,15 @@ function getClaimStatusClass(status: string | null) {
   }
 }
 
-function formatClaimStatus(status: string | null) {
+function formatClaimStatus(status: string | null, t: ReturnType<typeof useTranslations<'account'>>) {
   switch (status) {
     case 'approved':
-      return 'Genehmigt'
+      return t('approved')
     case 'rejected':
-      return 'Abgelehnt'
+      return t('rejected')
     case 'pending':
     default:
-      return 'Offen'
+      return t('pending')
   }
 }
 
@@ -277,18 +286,6 @@ function StatCard({
   )
 }
 
-function formatTime(timeText: string | null, timeHours: number | null) {
-  if (timeText && timeText.trim().length > 0) return timeText
-
-  if (timeHours === null || timeHours === undefined) return '—'
-
-  const totalMinutes = Math.round(timeHours * 60)
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-
-  return `${hours}:${minutes.toString().padStart(2, '0')}`
-}
-
 function formatDate(date: string | null) {
   if (!date) return '—'
   const [year, month, day] = date.split('-')
@@ -296,14 +293,14 @@ function formatDate(date: string | null) {
   return `${day}.${month}.${year}`
 }
 
-function getRecordStatusLabel(status: string | null) {
+function getRecordStatusLabel(status: string | null, t: ReturnType<typeof useTranslations<'account'>>) {
   switch (status) {
     case 'verified_admin_submission':
-      return 'verified'
+      return t('verified')
     case 'verified_elapsed':
-      return 'Verifiziert'
+      return t('verifiedRecord')
     case 'user_submission':
-      return 'In Prüfung'
+      return t('inReview')
     default:
       return status ?? '—'
   }
@@ -311,75 +308,16 @@ function getRecordStatusLabel(status: string | null) {
 
 const REJECTION_NOTICE_START_DATE = '2026-04-08'
 
-async function fetchAllActiveHikersForRanking() {
-  const pageSize = 1000
-  let from = 0
-  let allRows: any[] = []
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('hikers')
-      .select('id, total_km, division, display_name, profile_status')
-      .eq('profile_status', 'active')
-      .range(from, from + pageSize - 1)
-
-    if (error || !data || data.length === 0) break
-
-    allRows = allRows.concat(data)
-
-    if (data.length < pageSize) break
-
-    from += pageSize
-  }
-
-  return allRows
-}
-
-async function fetchAllElevationRecords() {
-  const pageSize = 1000
-  let from = 0
-  let allRows: any[] = []
-
-  while (true) {
-    let query
-
-    if (USE_SEASON_RANKING) {
-      query = supabase
-        .from('hiker_season_stats')
-        .select('hiker_id, season_elevation_gain')
-        .eq('season_year', new Date().getFullYear())
-        .range(from, from + pageSize - 1)
-    } else {
-      query = supabase
-        .from('records')
-        .select('hiker_id, elevation_gain')
-        .range(from, from + pageSize - 1)
-    }
-
-    const { data, error } = await query
-
-    if (error || !data || data.length === 0) break
-
-    allRows = allRows.concat(
-      data.map((row: any) => ({
-        hiker_id: row.hiker_id,
-        elevation_gain: USE_SEASON_RANKING
-          ? row.season_elevation_gain
-          : row.elevation_gain,
-      }))
-    )
-
-    if (data.length < pageSize) break
-
-    from += pageSize
-  }
-
-  return allRows
-}
-
-
-
 export default function AccountPage() {
+  const t = useTranslations('account')
+  const ui = useTranslations('ui')
+  const year = getSeasonYear()
+  const useSeason = year >= SEASON_RANKINGS_START
+  const locale = useLocale()
+  const feedbackText = (feedback: UiFeedback<'account'>) =>
+    locale === 'de' && feedback.detail ? feedback.detail : t(feedback.key)
+  const countryNames = new Intl.DisplayNames(locale, { type: 'region' })
+
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserState | null>(null)
   const [hiker, setHiker] = useState<Hiker | null>(null)
@@ -392,10 +330,8 @@ export default function AccountPage() {
   const [dismissedCorrectionNoticeIds, setDismissedCorrectionNoticeIds] = useState<number[]>([])
   const [overallRank, setOverallRank] = useState<number | null>(null)
   const [divisionRank, setDivisionRank] = useState<number | null>(null)
-  const [totalElevation, setTotalElevation] = useState<number>(0)
   const [eventAvgSpeed, setEventAvgSpeed] = useState<number | null>(null)
-  const [seasonKm, setSeasonKm] = useState<number>(0)
-  const [seasonElevation, setSeasonElevation] = useState<number>(0)
+  const [seasonUnavailable, setSeasonUnavailable] = useState(false)
   const [seasonHistory, setSeasonHistory] = useState<SeasonStat[]>([])
   const milestoneLive = useMilestoneLaunch()
   const [milestoneBalance, setMilestoneBalance] = useState<number | null>(null)
@@ -407,44 +343,37 @@ export default function AccountPage() {
     })
     return () => { cancelled = true }
   }, [milestoneLive])
-  const [selectedSeasonYear, setSelectedSeasonYear] = useState<number>(
-    new Date().getFullYear()
-  )
-  const selectedSeason = seasonHistory.find(
-    (season) => season.season_year === selectedSeasonYear
-  )
-
+  const [pickedSeasonYear, setPickedSeasonYear] = useState<number | null>(null)
+  const seasonYears = [year, ...seasonHistory
+    .map(season => season.season_year)
+    .filter(seasonYear => seasonYear >= FIRST_SEASON_YEAR && seasonYear < year)]
+  const selectedSeasonYear = pickedSeasonYear && seasonYears.includes(pickedSeasonYear) ? pickedSeasonYear : year
+  const seasonIndex = seasonYears.indexOf(selectedSeasonYear)
+  const selectedSeason = seasonHistory.find(season => season.season_year === selectedSeasonYear)
   const selectedSeasonKm = selectedSeason?.season_km ?? 0
   const selectedSeasonElevation = selectedSeason?.season_elevation_gain ?? 0
 
-  const displayedRecords = USE_SEASON_RANKING
-  ? records.filter((record) => {
-      if (!record.activity_date) return false
-
-      return (
-        new Date(`${record.activity_date}T00:00:00`).getFullYear() ===
-        selectedSeasonYear
-      )
-    })
-  : records
+  const displayedRecords = useSeason
+    ? records.filter(record => record.activity_date?.slice(0, 4) === String(selectedSeasonYear))
+    : records
   const [elevationPerKm, setElevationPerKm] = useState<number | null>(null)
-  const [hasSkyscraper, setHasSkyscraper] = useState(false)
+  const [skyscraperUnavailable, setSkyscraperUnavailable] = useState(false)
   const [skyscraperRank, setSkyscraperRank] = useState<number | null>(null)
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
-  const [createError, setCreateError] = useState('')
+  const [createError, setCreateError] = useState<UiFeedback<'account'> | null>(null)
 
   const [profileCountry, setProfileCountry] = useState('')
   const [profileGender, setProfileGender] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
-  const [profileSaveMessage, setProfileSaveMessage] = useState('')
-  const [profileSaveError, setProfileSaveError] = useState('')
+  const [profileSaveMessage, setProfileSaveMessage] = useState<UiFeedback<'account'> | null>(null)
+  const [profileSaveError, setProfileSaveError] = useState<UiFeedback<'account'> | null>(null)
   const [showProfileMetaForm, setShowProfileMetaForm] = useState(false)
 
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [newEmail, setNewEmail] = useState('')
   const [emailChanging, setEmailChanging] = useState(false)
-  const [emailChangeError, setEmailChangeError] = useState('')
+  const [emailChangeError, setEmailChangeError] = useState<UiFeedback<'account'> | null>(null)
   const [emailChangeSuccess, setEmailChangeSuccess] = useState(false)
 
   useEffect(() => {
@@ -529,124 +458,35 @@ export default function AccountPage() {
         setProfileGender(currentHiker.gender ?? '')
         setShowProfileMetaForm(!currentHiker.country || !currentHiker.gender)
 
-        const currentYear = new Date().getFullYear()
-
-        const { data: seasonRows, error: seasonError } = await supabase
-          .from('hiker_season_stats')
-          .select('season_year, season_km, season_elevation_gain')
-          .eq('hiker_id', currentHiker.id)
-          .order('season_year', { ascending: false })
-
-        let currentSeasonKm = 0
-        let currentSeasonElevation = 0
-
-        if (seasonError) {
-          console.error('Season stats load error:', seasonError)
-          setSeasonKm(0)
-          setSeasonElevation(0)
-          setSeasonHistory([])
-        } else {
-          const history = (seasonRows ?? []).map((row: any) => ({
-            season_year: Number(row.season_year),
-            season_km: Number(row.season_km ?? 0),
-            season_elevation_gain: Number(row.season_elevation_gain ?? 0),
-          }))
-
-          setSeasonHistory(history)
-
-          const currentSeason = history.find(
-            (season) => season.season_year === currentYear
-          )
-
-          currentSeasonKm = currentSeason?.season_km ?? 0
-          currentSeasonElevation = currentSeason?.season_elevation_gain ?? 0
-
-          setSeasonKm(currentSeasonKm)
-          setSeasonElevation(currentSeasonElevation)
-        }
-
-        const currentTotalKm =
-          typeof currentHiker.total_km === 'number' ? currentHiker.total_km : 0
-
-        const { count: overallHigherCount, error: overallRankError } = await supabase
-          .from('hikers')
-          .select('*', { count: 'exact', head: true })
-          .eq('profile_status', 'active')
-          .gt('total_km', currentTotalKm)
-
-        if (overallRankError) {
-          setOverallRank(null)
-        } else {
-          setOverallRank((overallHigherCount ?? 0) + 1)
-        }
-
-        if (currentHiker.division) {
-          if (USE_SEASON_RANKING) {
-            const activeHikers = await fetchAllActiveHikersForRanking()
-
-            const divisionHikerIds = activeHikers
-              .filter((row: any) => row.division === currentHiker.division)
-              .map((row: any) => row.id)
-
-            if (divisionHikerIds.length === 0) {
-              setDivisionRank(null)
-            } else {
-              const { data: divisionSeasonRows, error: divisionRankError } =
-                await supabase
-                  .from('hiker_season_stats')
-                  .select('hiker_id, season_km')
-                  .eq('season_year', currentYear)
-                  .in('hiker_id', divisionHikerIds)
-
-              if (divisionRankError) {
-                setDivisionRank(null)
-              } else {
-                const seasonKmByHiker = new Map(
-                  (divisionSeasonRows ?? []).map((row: any) => [
-                    row.hiker_id,
-                    typeof row.season_km === 'number' ? row.season_km : 0,
-                  ])
-                )
-
-                const higherCount = divisionHikerIds.filter(
-                  (id: number) =>
-                    (seasonKmByHiker.get(id) ?? 0) > currentSeasonKm
-                ).length
-
-                setDivisionRank(higherCount + 1)
-              }
-            }
-          } else {
-            const { count: divisionHigherCount, error: divisionRankError } =
-              await supabase
-                .from('hikers')
-                .select('*', { count: 'exact', head: true })
-                .eq('profile_status', 'active')
-                .eq('division', currentHiker.division)
-                .gt('total_km', currentTotalKm)
-
-            if (divisionRankError) {
-              setDivisionRank(null)
-            } else {
-              setDivisionRank((divisionHigherCount ?? 0) + 1)
-            }
-          }
-        } else {
-          setDivisionRank(null)
-        }
+        const [seasonStats, ranks] = await Promise.all([
+          supabase.from('hiker_season_stats')
+            .select('season_year, season_km, season_elevation_gain')
+            .eq('hiker_id', currentHiker.id)
+            .order('season_year', { ascending: false }),
+          fetchProfileRanking(currentHiker.id, year),
+        ])
+        setSeasonUnavailable(!!seasonStats.error)
+        if (seasonStats.error) console.error('Season stats load error:', seasonStats.error)
+        setSeasonHistory((seasonStats.data ?? []).map(row => ({
+          season_year: Number(row.season_year),
+          season_km: Number(row.season_km ?? 0),
+          season_elevation_gain: Number(row.season_elevation_gain ?? 0),
+        })))
+        setOverallRank(ranks.overall)
+        setDivisionRank(ranks.division)
+        setSkyscraperRank(ranks.skyscraper)
+        setSkyscraperUnavailable(ranks.skyscraperUnavailable)
 
         const { data: recordRows, error: recordsError } = await supabase
           .from('records')
           .select(
-            'id, event_id, event_master_id, is_public, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain, custom_title, custom_location, custom_country, garmin_verified'
+            'id, event_id, event_master_id, is_public, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain, custom_title, custom_location, custom_country, garmin_verified, garmin_record_attributions(device_model), custom_description'
           )
           .eq('hiker_id', currentHiker.id)
           .order('activity_date', { ascending: false })
 
         if (recordsError || !recordRows || recordRows.length === 0) {
           setRecords([])
-          setTotalElevation(0)
-          setHasSkyscraper(false)
           setLoading(false)
           return
         }
@@ -700,49 +540,6 @@ export default function AccountPage() {
         setElevationPerKm(elevationPerKmValue)
 
       
-        setHasSkyscraper(
-          USE_SEASON_RANKING
-            ? currentSeasonElevation >= SKYSCRAPER_THRESHOLD
-            : totalElevationValue >= SKYSCRAPER_THRESHOLD
-        )
-
-        const [activeHikersForRanking, elevationRows] = await Promise.all([
-          fetchAllActiveHikersForRanking(),
-          fetchAllElevationRecords(),
-        ])
-
-        const activeHikerIds = new Set(
-          activeHikersForRanking
-            .map((row: any) => row.id)
-            .filter((id: any) => typeof id === 'number')
-        )
-
-        const elevationMap = new Map<number, number>()
-
-        elevationRows.forEach((row: any) => {
-          if (typeof row.hiker_id !== 'number') return
-          if (!activeHikerIds.has(row.hiker_id)) return
-
-          const current = elevationMap.get(row.hiker_id) ?? 0
-          const nextGain =
-            typeof row.elevation_gain === 'number' && !Number.isNaN(row.elevation_gain)
-              ? row.elevation_gain
-              : 0
-
-          elevationMap.set(row.hiker_id, current + nextGain)
-        })
-
-        const skyscraperRanking = Array.from(elevationMap.entries())
-          .map(([id, elevation]) => ({ id, elevation }))
-          .filter((entry) => entry.elevation >= SKYSCRAPER_THRESHOLD)
-          .sort((a, b) => b.elevation - a.elevation)
-
-        const index = skyscraperRanking.findIndex(
-          (entry) => entry.id === currentHiker.id
-        )
-
-        setSkyscraperRank(index >= 0 ? index + 1 : null)
-
         const eventMasterIds = Array.from(
           new Set(
             rawRecords
@@ -802,6 +599,7 @@ export default function AccountPage() {
             ...record,
             event_master_id: record.event_master_id,
             event_name: event?.title ?? record.custom_title ?? 'Privater Eintrag',
+            displayEventName: event?.title ?? record.custom_title,
             location: event?.city ?? record.custom_location ?? '—',
             country: event?.country ?? record.custom_country ?? '—',
             country_code: event?.country_code ?? normalizeCountryCode(record.custom_country),
@@ -815,8 +613,6 @@ export default function AccountPage() {
         console.error('AccountPage loadData error:', error)
         setOverallRank(null)
         setDivisionRank(null)
-        setTotalElevation(0)
-        setHasSkyscraper(false)
         setSkyscraperRank(null)
       } finally {
         setLoading(false)
@@ -824,7 +620,7 @@ export default function AccountPage() {
     }
 
     void loadData()
-  }, [recordRefresh])
+  }, [recordRefresh, year])
 
   useEffect(() => {
   try {
@@ -874,7 +670,7 @@ export default function AccountPage() {
 
       if (uploadError) {
         console.error('Upload error:', uploadError)
-        alert('Upload fehlgeschlagen')
+        alert(locale === 'en' || locale === 'de' ? 'Upload fehlgeschlagen' : t('uploadFailed'))
         return
       }
 
@@ -891,7 +687,7 @@ export default function AccountPage() {
 
       if (updateError) {
         console.error('DB update error:', updateError)
-        alert('Speichern fehlgeschlagen')
+        alert(t('couldNotSave'))
         return
       }
 
@@ -900,7 +696,7 @@ export default function AccountPage() {
       )
     } catch (err) {
       console.error(err)
-      alert('Fehler beim Upload')
+      alert(t('uploadFailed'))
     }
   }
 
@@ -908,8 +704,8 @@ export default function AccountPage() {
     if (!hiker) return
 
     setProfileSaving(true)
-    setProfileSaveMessage('')
-    setProfileSaveError('')
+    setProfileSaveMessage(null)
+    setProfileSaveError(null)
 
     try {
       const nextCountry = profileCountry || null
@@ -924,7 +720,7 @@ export default function AccountPage() {
         .eq('id', hiker.id)
 
       if (error) {
-        setProfileSaveError(error.message)
+        setProfileSaveError({ key: 'profileCouldNotBeSaved', detail: error.message })
         return
       }
 
@@ -938,10 +734,10 @@ export default function AccountPage() {
           : prev
       )
 
-      setProfileSaveMessage('Profilangaben wurden gespeichert.')
+      setProfileSaveMessage({ key: 'yourProfileDetailsWereSaved' })
       setShowProfileMetaForm(false)
     } catch (error: any) {
-      setProfileSaveError(error?.message ?? 'Unbekannter Fehler')
+      setProfileSaveError({ key: 'profileCouldNotBeSaved', detail: error?.message })
     } finally {
       setProfileSaving(false)
     }
@@ -986,17 +782,17 @@ export default function AccountPage() {
     const email = newEmail.trim().toLowerCase()
 
     if (!email) {
-      setEmailChangeError('Bitte gib eine neue E-Mail-Adresse ein.')
+      setEmailChangeError({ key: 'enterANewEmailAddress' })
       return
     }
 
     if (email === user?.email?.toLowerCase()) {
-      setEmailChangeError('Die neue E-Mail-Adresse entspricht deiner aktuellen Adresse.')
+      setEmailChangeError({ key: 'theNewEmailAddressMatchesYour' })
       return
     }
 
     setEmailChanging(true)
-    setEmailChangeError('')
+    setEmailChangeError(null)
     setEmailChangeSuccess(false)
 
     const { error } = await supabase.auth.updateUser({
@@ -1005,9 +801,7 @@ export default function AccountPage() {
 
     if (error) {
       console.error('Email change failed:', error)
-      setEmailChangeError(
-        'Die E-Mail-Adresse konnte nicht geändert werden. Bitte versuche es später erneut.'
-      )
+      setEmailChangeError({ key: 'emailChangeFailed' })
       setEmailChanging(false)
       return
     }
@@ -1020,7 +814,7 @@ export default function AccountPage() {
     if (!newName.trim()) return
 
     setCreating(true)
-    setCreateError('')
+    setCreateError(null)
 
     try {
       const {
@@ -1028,7 +822,7 @@ export default function AccountPage() {
       } = await supabase.auth.getSession()
 
       if (!session?.user) {
-        setCreateError('Keine aktive Session gefunden.')
+        setCreateError({ key: 'yourSessionHasExpiredPleaseSign' })
         return
       }
 
@@ -1044,13 +838,13 @@ export default function AccountPage() {
       })
 
       if (error) {
-        setCreateError(error.message)
+        setCreateError({ key: 'profileCouldNotBeCreated', detail: error.message })
         return
       }
 
       window.location.reload()
     } catch (error: any) {
-      setCreateError(error?.message ?? 'Unbekannter Fehler')
+      setCreateError({ key: 'profileCouldNotBeCreated', detail: error?.message })
     } finally {
       setCreating(false)
     }
@@ -1059,11 +853,12 @@ export default function AccountPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+      <SeasonRefresh year={year} />
         <div className="mx-auto max-w-6xl rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
           <h1 className="text-2xl font-bold text-white">
-            Liga-Profil wird geladen…
+            {t('loadingLeagueProfile')}
           </h1>
-          <p className="mt-3 text-stone-400">Einen Moment bitte.</p>
+          <p className="mt-3 text-stone-400">{t('pleaseWaitAMoment')}</p>
         </div>
       </main>
     )
@@ -1072,24 +867,25 @@ export default function AccountPage() {
   if (!hiker) {
     return (
       <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+      <SeasonRefresh year={year} />
         <div className="mx-auto max-w-xl">
-          <BackToHomeButton />
+          <BackToHomeButton label={t('backToTheHomepage')} />
 
           <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
-            <h1 className="text-2xl font-bold text-white">Profil erstellen</h1>
+            <h1 className="text-2xl font-bold text-white">{t('createProfile')}</h1>
             <p className="mt-3 text-stone-400">
-              Bitte gib deinen bürgerlichen Namen ein, um dein Profil anzulegen.
+              {t('enterYourLegalNameToCreate')}
             </p>
 
             <div className="mt-6">
               <label className="mb-2 block text-sm font-medium text-stone-300">
-                Bürgerlicher Name
+                {t('legalName')}
               </label>
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Dein Name"
+                placeholder={t('yourName')}
                 className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-white/25"
               />
             </div>
@@ -1100,12 +896,12 @@ export default function AccountPage() {
               disabled={creating}
               className="mt-4 w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
             >
-              {creating ? 'Wird erstellt…' : 'Profil erstellen'}
+              {creating ? t('creating') : t('createProfile')}
             </button>
 
             {createError && (
               <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                {createError}
+                {feedbackText(createError)}
               </div>
             )}
 
@@ -1115,7 +911,7 @@ export default function AccountPage() {
                 onClick={handleLogout}
                 className="w-full rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-stone-100 transition hover:bg-white/10"
               >
-                Abmelden
+                {t('signOut')}
               </button>
             </div>
           </div>
@@ -1129,6 +925,7 @@ export default function AccountPage() {
 
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+      <SeasonRefresh year={year} />
       <div className="mx-auto max-w-6xl">
         <ProfileBrandBar />
 
@@ -1136,7 +933,7 @@ export default function AccountPage() {
           href="/"
           className="text-sm text-stone-400 transition hover:text-white"
         >
-          ← Zurück zur Startseite
+          {t('backToTheHomepage')}
         </Link>
 
         <section
@@ -1154,7 +951,7 @@ export default function AccountPage() {
                 {hiker.profile_image ? (
                   <img
                     src={hiker.profile_image}
-                    alt="Profilbild"
+                    alt={t('profilePicture')}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -1173,18 +970,18 @@ export default function AccountPage() {
 
                 {!hiker.profile_image && (
                   <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-xs text-white">
-                    ändern
+                    {t('changePicture')}
                   </div>
                 )}
               </label>
 
               <div className="min-w-0">
                 <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-400">
-                  Mein Liga-Profil
+                  {t('myLeagueProfile')}
                 </div>
 
                 <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-                  {hiker.display_name ?? 'Noch kein Profil'}
+                  {hiker.display_name ?? t('noProfileYet')}
                 </h1>
 
                 {milestoneLive && (<>
@@ -1212,14 +1009,14 @@ export default function AccountPage() {
                       href="/milestone-shop"
                       className="rounded-xl bg-[#67DCE8] px-4 py-2.5 text-sm font-bold text-[#07111a] transition hover:bg-[#8CEAF2]"
                     >
-                      Zum Shop →
+                      {t('goToTheShop')}
                     </Link>
 
                     <Link
                       href="/account/rewards"
                       className="rounded-xl border border-[#67DCE8]/30 bg-[#67DCE8]/10 px-4 py-2.5 text-sm font-semibold text-[#67DCE8] transition hover:bg-[#67DCE8]/20"
                     >
-                      Meine Belohnungen →
+                      {t('myRewards')}
                     </Link>
                   </div>
                 </div>
@@ -1231,11 +1028,11 @@ export default function AccountPage() {
                     <span className="text-base">
                       {countryToFlag(hiker.country ?? null)}
                     </span>
-                    <span>{getCountryLabel(hiker.country ?? null)}</span>
+                    <span>{getCountryLabel(hiker.country ?? null, locale === 'de' ? undefined : countryNames)}</span>
                   </div>
 
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-sm text-stone-200">
-                    <span>{getGenderLabel(hiker.gender)}</span>
+                    <span>{getGenderLabel(hiker.gender, t)}</span>
                   </div>
 
                   <div
@@ -1248,19 +1045,19 @@ export default function AccountPage() {
 
                   {hiker.claimed_profile ? (
                     <div className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/12 px-3 py-1.5 text-sm text-emerald-200">
-                      verified profile
+                      {t('verifiedProfile')}
                     </div>
                   ) : null}
 
-                  {hasSkyscraper ? (
+                  {skyscraperRank ? (
                     <div className="inline-flex rounded-full border border-sky-400/30 bg-sky-400/12 px-3 py-1.5 text-sm text-sky-200">
-                      skyscraper achieved
+                      {t('skyscraperAchieved')}
                     </div>
                   ) : null}
                 </div>
 
                 <p className="mt-4 text-sm text-stone-400">
-                  Eingeloggt als{' '}
+                  {t('signedInAs')}{' '}
                   <span className="font-semibold text-stone-200">
                     {user?.email}
                   </span>
@@ -1274,7 +1071,7 @@ export default function AccountPage() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10"
               >
                 <CalendarDays className="h-4 w-4" />
-                Mein Kalender
+                {t('myCalendar')}
               </Link>
 
               <button
@@ -1282,7 +1079,7 @@ export default function AccountPage() {
                 onClick={handleLogout}
                 className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10"
               >
-                Abmelden
+                {t('signOut')}
               </button>
             </div>
           </div>
@@ -1297,19 +1094,19 @@ export default function AccountPage() {
             {!showProfileMetaForm ? (
               <div className="mt-1 flex items-center justify-between gap-3 text-sm">
                 <span className="text-stone-500">
-                  Profilangaben gespeichert
+                  {t('profileDetailsSaved')}
                 </span>
 
                 <button
                   type="button"
                   onClick={() => {
-                    setProfileSaveMessage('')
-                    setProfileSaveError('')
+                    setProfileSaveMessage(null)
+                    setProfileSaveError(null)
                     setShowProfileMetaForm(true)
                   }}
                   className="text-sm font-medium text-stone-300 underline underline-offset-4 transition hover:text-white"
                 >
-                  Profil bearbeiten
+                  {t('editProfile')}
                 </button>
               </div>
             ) : (
@@ -1318,17 +1115,17 @@ export default function AccountPage() {
                   <div className="grid flex-1 gap-4 md:grid-cols-2 xl:max-w-3xl">
                     <div>
                       <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
-                        Staatsangehörigkeit
+                        {t('nationality')}
                       </label>
                       <select
                         value={profileCountry}
                         onChange={(e) => setProfileCountry(e.target.value)}
                         className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
                       >
-                        <option value="">Bitte auswählen</option>
+                        <option value="">{t('pleaseSelect')}</option>
                         {COUNTRY_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
-                            {option.label}
+                            {locale === 'de' ? option.label : countryNames.of(option.value) ?? option.label}
                           </option>
                         ))}
                       </select>
@@ -1336,17 +1133,17 @@ export default function AccountPage() {
 
                     <div>
                       <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
-                        Geschlecht
+                        {t('gender')}
                       </label>
                       <select
                         value={profileGender}
                         onChange={(e) => setProfileGender(e.target.value)}
                         className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
                       >
-                        <option value="">Bitte auswählen</option>
+                        <option value="">{t('pleaseSelect')}</option>
                         {GENDER_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
-                            {option.label}
+                            {getGenderLabel(option.value, t)}
                           </option>
                         ))}
                       </select>
@@ -1357,10 +1154,10 @@ export default function AccountPage() {
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <div className="text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
-                          E-Mail-Adresse
+                          {t('emailAddress')}
                         </div>
                         <div className="mt-1 text-sm text-stone-200">
-                          {user?.email ?? 'Unbekannt'}
+                          {user?.email && user.email !== 'Unbekannt' ? user.email : t('unknown')}
                         </div>
                       </div>
 
@@ -1370,12 +1167,12 @@ export default function AccountPage() {
                           onClick={() => {
                             setShowEmailForm(true)
                             setNewEmail('')
-                            setEmailChangeError('')
+                            setEmailChangeError(null)
                             setEmailChangeSuccess(false)
                           }}
                           className="shrink-0 text-sm font-medium text-stone-300 underline underline-offset-4 transition hover:text-white"
                         >
-                          Ändern
+                          {t('changeEmail')}
                         </button>
                       ) : null}
                     </div>
@@ -1383,22 +1180,19 @@ export default function AccountPage() {
                     {showEmailForm ? (
                       <div className="mt-4 border-t border-white/10 pt-4">
                         <p className="text-xs leading-5 text-stone-400">
-                          <span className="font-medium text-stone-200">Wichtig:</span>{' '}
-                          Aus Sicherheitsgründen musst du die Änderung sowohl über deine
-                          bisherige als auch über deine neue E-Mail-Adresse bestätigen. Erst
-                          nachdem beide Bestätigungen erfolgt sind, wird die neue
-                          E-Mail-Adresse übernommen.
+                          <span className="font-medium text-stone-200">{t('important')}</span>{' '}
+                          {t('forSecurityConfirmTheChangeFrom')}
                         </p>
 
                         <label className="mt-4 mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
-                          Neue E-Mail-Adresse
+                          {t('newEmailAddress')}
                         </label>
 
                         <input
                           type="email"
                           value={newEmail}
                           onChange={(e) => setNewEmail(e.target.value)}
-                          placeholder="name@beispiel.de"
+                          placeholder={t('emailPlaceholder')}
                           autoComplete="email"
                           className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition focus:border-white/25"
                         />
@@ -1411,8 +1205,8 @@ export default function AccountPage() {
                             className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/10 disabled:opacity-60"
                           >
                             {emailChanging
-                              ? 'Änderung wird angefordert…'
-                              : 'E-Mail-Änderung anfordern'}
+                              ? t('requestingChange')
+                              : t('requestEmailChange')}
                           </button>
 
                           <button
@@ -1420,27 +1214,25 @@ export default function AccountPage() {
                             onClick={() => {
                               setShowEmailForm(false)
                               setNewEmail('')
-                              setEmailChangeError('')
+                              setEmailChangeError(null)
                               setEmailChangeSuccess(false)
                             }}
                             disabled={emailChanging}
                             className="rounded-2xl border border-white/10 px-5 py-3 text-sm text-stone-400 transition hover:text-white disabled:opacity-60"
                           >
-                            Abbrechen
+                            {t('cancel')}
                           </button>
                         </div>
 
                         {emailChangeError ? (
                           <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-200">
-                            {emailChangeError}
+                            {feedbackText(emailChangeError)}
                           </div>
                         ) : null}
 
                         {emailChangeSuccess ? (
                           <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-3 text-xs leading-5 text-emerald-200">
-                            Die Änderung wurde angefordert. Bitte prüfe sowohl dein bisheriges
-                            als auch dein neues E-Mail-Postfach und bestätige die Änderung in
-                            beiden E-Mails. Erst danach wird die neue Adresse übernommen.
+                            {t('yourChangeHasBeenRequestedCheck')}
                           </div>
                         ) : null}
                       </div>
@@ -1454,7 +1246,7 @@ export default function AccountPage() {
                       disabled={profileSaving}
                       className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {profileSaving ? 'Speichert…' : 'Speichern'}
+                      {profileSaving ? t('saving') : t('save')}
                     </button>
 
                     <button
@@ -1462,59 +1254,45 @@ export default function AccountPage() {
                       onClick={() => {
                         setProfileCountry(hiker.country ?? '')
                         setProfileGender(hiker.gender ?? '')
-                        setProfileSaveMessage('')
-                        setProfileSaveError('')
+                        setProfileSaveMessage(null)
+                        setProfileSaveError(null)
                         setShowProfileMetaForm(false)
                       }}
                       className="rounded-2xl border border-white/10 bg-transparent px-5 py-3 text-sm font-medium text-stone-300 transition hover:bg-white/[0.04] hover:text-white"
                     >
-                      Abbrechen
+                      {t('cancel')}
                     </button>
                   </div>
                 </div>
 
                 {profileSaveError ? (
                   <div className="mt-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                    {profileSaveError}
+                    {feedbackText(profileSaveError)}
                   </div>
                 ) : null}
 
                 {profileSaveMessage ? (
                   <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-                    {profileSaveMessage}
+                    {feedbackText(profileSaveMessage)}
                   </div>
                 ) : null}
               </>
             )}
           </div>
 
-          {USE_SEASON_RANKING && seasonHistory.length > 0 ? (
+          {seasonYears.length > 1 ? (
             <div className="mt-8">
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-                Saison
+                {t('season')}
               </div>
 
               <div className="flex w-full items-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
                 <button
                   type="button"
-                  onClick={() => {
-                    const currentIndex = seasonHistory.findIndex(
-                      (season) => season.season_year === selectedSeasonYear
-                    )
-
-                    if (currentIndex < seasonHistory.length - 1) {
-                      setSelectedSeasonYear(
-                        seasonHistory[currentIndex + 1].season_year
-                      )
-                    }
-                  }}
-                  disabled={
-                    seasonHistory.findIndex(
-                      (season) => season.season_year === selectedSeasonYear
-                    ) >= seasonHistory.length - 1
-                  }
+                  onClick={() => setPickedSeasonYear(seasonYears[seasonIndex + 1])}
+                  disabled={seasonIndex >= seasonYears.length - 1}
                   className="flex h-14 w-16 shrink-0 items-center justify-center border-r border-white/10 text-3xl text-stone-300 transition active:bg-white/10 disabled:opacity-20"
-                  aria-label="Vorherige Saison"
+                  aria-label={t('previousSeason')}
                 >
                   ‹
                 </button>
@@ -1527,24 +1305,10 @@ export default function AccountPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    const currentIndex = seasonHistory.findIndex(
-                      (season) => season.season_year === selectedSeasonYear
-                    )
-
-                    if (currentIndex > 0) {
-                      setSelectedSeasonYear(
-                        seasonHistory[currentIndex - 1].season_year
-                      )
-                    }
-                  }}
-                  disabled={
-                    seasonHistory.findIndex(
-                      (season) => season.season_year === selectedSeasonYear
-                    ) <= 0
-                  }
+                  onClick={() => setPickedSeasonYear(seasonYears[seasonIndex - 1])}
+                  disabled={seasonIndex <= 0}
                   className="flex h-14 w-16 shrink-0 items-center justify-center border-l border-white/10 text-3xl text-stone-300 transition active:bg-white/10 disabled:opacity-20"
-                  aria-label="Nächste Saison"
+                  aria-label={t('nextSeason')}
                 >
                   ›
                 </button>
@@ -1552,71 +1316,69 @@ export default function AccountPage() {
             </div>
                     ) : null}
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-7">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <StatCard
-              label="Aktuelle Division"
+              label={ui('seasonDistance', { year: selectedSeasonYear })}
+              value={seasonUnavailable ? ui('rankingUnavailable') : `${formatRankingDistance(selectedSeasonKm, locale)} km`}
+              division={hiker.division}
+            />
+            <StatCard
+              label={ui('allTimeDistance')}
+              value={`${formatRankingDistance(hiker.total_km ?? 0, locale)} km`}
+              division={hiker.division}
+            />
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label={t('currentDivision')}
               value={(hiker.division ?? 'silver').toUpperCase()}
               division={hiker.division}
             />
 
             <StatCard
-              label="Rang Division"
+              label={useSeason ? ui('divisionSeasonRank', { year }) : t('divisionRank')}
               value={divisionRank ? `#${divisionRank}` : '—'}
               division={hiker.division}
             />
 
             <StatCard
-              label="Rang Overall"
+              label={useSeason ? ui('seasonRank', { year }) : ui('allTimeRank')}
               value={overallRank ? `#${overallRank}` : '—'}
               division={hiker.division}
             />
 
-            <StatCard
-              label="Gesamt-km"
-              value={`${hiker.total_km ?? '—'} km`}
-              division={hiker.division}
-            />
-
-            {USE_SEASON_RANKING ? (
-              <>
-                <StatCard
-                  label={`Saison-km ${selectedSeasonYear}`}
-                  value={`${selectedSeasonKm.toFixed(2)} km`}
-                  division={hiker.division}
-                />
-                <StatCard
-                  label={`Saison-Höhenmeter ${selectedSeasonYear}`}
-                  value={`${Math.round(
-                    selectedSeasonElevation
-                  ).toLocaleString('de-DE')} hm`}
-                  division={hiker.division}
-                />
-              </>
+            {useSeason ? (
+              <StatCard
+                label={t('seasonElevation', { year: selectedSeasonYear })}
+                value={seasonUnavailable ? ui('rankingUnavailable') : `${Math.round(selectedSeasonElevation).toLocaleString(locale)} hm`}
+                division={hiker.division}
+              />
             ) : null}
 
             <StatCard
-              label="Ø Speed"
+              label={t('averageSpeed')}
               value={`${hiker.avg_speed ?? '—'} km/h`}
               division={hiker.division}
             />
             <StatCard
-              label="Ø Event Speed"
+              label={t('averageEventSpeed')}
               value={eventAvgSpeed !== null ? `${eventAvgSpeed.toFixed(2)} km/h` : '-'}
               division={hiker.division}
             />
             <StatCard
-              label="Höhenmeter"
+              label={t('elevationGain')}
               value={`${Math.round(hiker.total_elevation_gain ?? 0).toLocaleString('de-DE')} hm`}
               division={hiker.division}
             />
             <StatCard
-              label="Höhenmeter / km"
+              label={t('elevationGainPerKm')}
               value={elevationPerKm !== null ? `${elevationPerKm.toFixed(1)} hm/km` : '-'}
               division={hiker.division}
             />
             <StatCard
               label="Skyscraper"
-              value={skyscraperRank ? `#${skyscraperRank}` : 'Noch offen'}
+              value={skyscraperRank ? `#${skyscraperRank}` : skyscraperUnavailable ? ui('rankingUnavailable') : t('notYetAchieved')}
               division={hiker.division}
             />
           </div>
@@ -1625,7 +1387,7 @@ export default function AccountPage() {
         {claimRequests.length > 0 && (
           <section className="mt-6 rounded-2xl border border-white/10 bg-black/10 p-4">
             <div className="mb-2 text-sm text-stone-400">
-              Deine Anfragen
+              {t('yourRequests')}
             </div>
 
             <div className="space-y-2">
@@ -1643,7 +1405,7 @@ export default function AccountPage() {
                       claim.status
                     )}`}
                   >
-                    {formatClaimStatus(claim.status)}
+                    {formatClaimStatus(claim.status, t)}
                   </span>
                 </div>
               ))}
@@ -1669,18 +1431,18 @@ export default function AccountPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-sm font-semibold text-red-200">
                         <span aria-hidden="true">⚠️</span>
-                        <span>Ablehnung deiner Einreichung</span>
+                        <span>{t('submissionDeclined')}</span>
                       </div>
                       <div className="mt-1 text-sm text-red-100">
-                        Betroffen: {notice.activity_name ?? 'Eintrag'}
+                        {t('affectedRecord')} {notice.activity_name ?? t('record')}
                       </div>
                       <div className="mt-2 text-sm text-red-100/90">
-                        {notice.admin_note ?? 'Es wurde kein Admin-Hinweis hinterlegt.'}
+                        {notice.admin_note ?? t('noNoteWasProvidedByThe')}
                       </div>
                       <div className="mt-2 text-xs text-red-200/70">
                         {notice.reviewed_at
-                          ? `Geprüft am ${formatDate(notice.reviewed_at.slice(0, 10))}`
-                          : 'Geprüft'}
+                          ? t('reviewedOn', { date: formatDate(notice.reviewed_at.slice(0, 10)) })
+                          : t('reviewed')}
                       </div>
                     </div>
 
@@ -1689,7 +1451,7 @@ export default function AccountPage() {
                       onClick={() => dismissSubmissionNotice(notice.id)}
                       className="shrink-0 rounded-xl border border-red-300/20 bg-black/10 px-3 py-1.5 text-xs text-red-100 transition hover:bg-black/20"
                     >
-                      Schließen
+                      {t('close')}
                     </button>
                   </div>
                 </div>
@@ -1706,18 +1468,18 @@ export default function AccountPage() {
                     <div className="min-w-0">
                      <div className="flex items-center gap-2 text-sm font-semibold text-red-200">
                        <span aria-hidden="true">⚠️</span>
-                       <span>Ablehnung deiner Bearbeitung</span>
+                       <span>{t('editRequestDeclined')}</span>
                      </div> 
                       <div className="mt-1 text-sm text-orange-100">
-                        Betroffen: {notice.activity_name ?? 'Eintrag'}
+                        {t('affectedRecord')} {notice.activity_name ?? t('record')}
                       </div>
                       <div className="mt-2 text-sm text-orange-100/90">
-                        {notice.admin_note ?? 'Es wurde kein Admin-Hinweis hinterlegt.'}
+                        {notice.admin_note ?? t('noNoteWasProvidedByThe')}
                       </div>
                       <div className="mt-2 text-xs text-orange-200/70">
                         {notice.reviewed_at
-                          ? `Geprüft am ${formatDate(notice.reviewed_at.slice(0, 10))}`
-                          : 'Geprüft'}
+                          ? t('reviewedOn', { date: formatDate(notice.reviewed_at.slice(0, 10)) })
+                          : t('reviewed')}
                       </div>
                     </div>
 
@@ -1726,7 +1488,7 @@ export default function AccountPage() {
                       onClick={() => dismissCorrectionNotice(notice.id)}
                       className="shrink-0 rounded-xl border border-orange-300/20 bg-black/10 px-3 py-1.5 text-xs text-orange-100 transition hover:bg-black/20"
                     >
-                      Schließen
+                      {t('close')}
                     </button>
                   </div>
                 </div>
@@ -1739,14 +1501,14 @@ export default function AccountPage() {
         <section className="mt-10">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Meine Records</h2>
+              <h2 className="text-2xl font-bold text-white">{t('myRecords')}</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Deine verknüpften Leistungen und Event-Ergebnisse.
+                {t('yourLinkedHikingRecordsAndEvent')}
               </p>
             </div>
 
             <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
-              Privat
+              {t('private')}
             </div>
           </div>
 
@@ -1757,7 +1519,7 @@ export default function AccountPage() {
           <div className="space-y-4">
             {displayedRecords.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-stone-400">
-                Noch keine Records gefunden.
+                {t('noRecordsYet')}
               </div>
             ) : (
               displayedRecords.map((record) => (
@@ -1772,8 +1534,12 @@ export default function AccountPage() {
                       </div>
 
                       <div className="mt-1 text-xl font-semibold text-white">
-                        {record.event_name}
+                        {record.displayEventName ?? t('privateRecord')}
                       </div>
+
+                      {record.garmin_verified && (
+                        <div className="mt-1 text-sm text-stone-300">{garminAttribution(record)}</div>
+                      )}
 
                       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-400">
                         <span className="inline-flex items-center gap-2">
@@ -1784,7 +1550,7 @@ export default function AccountPage() {
                         </span>
                         <span>·</span>
                         <span>{record.location}</span>
-                        {record.record_source ? (
+                        {record.record_source && !record.garmin_verified ? (
                           <>
                             <span>·</span>
                             <span>{record.record_source}</span>
@@ -1799,7 +1565,7 @@ export default function AccountPage() {
                           record.verified
                         )}`}
                       >
-                        {record.verified ? 'verified' : 'unverified'}
+                        {record.verified ? t('verified') : t('unverified')}
                       </div>
 
                       <div
@@ -1812,7 +1578,7 @@ export default function AccountPage() {
 
                       {record.is_corrected ? (
                         <div className="inline-flex rounded-full border border-sky-400/30 bg-sky-400/12 px-3 py-1 text-xs text-sky-200">
-                          corrected
+                          {t('corrected')}
                         </div>
                       ) : null}
 
@@ -1823,25 +1589,25 @@ export default function AccountPage() {
                   <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                     <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
                       <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                        Distanz
+                        {t('distance')}
                       </div>
                       <div className="mt-1 font-semibold text-white">
-                        {record.distance_km ?? '—'} km
+                        {formatDistanceKm(record.distance_km) ?? '—'} km
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
                       <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                        Zeit
+                        {t('time')}
                       </div>
                       <div className="mt-1 font-semibold text-white">
-                        {formatTime(record.time_text, record.time_hours)}
+                        {formatElapsedTime(record.time_text, record.time_hours) ?? '—'}
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
                       <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                        Ø Speed
+                        {t('averageSpeed')}
                       </div>
                       <div className="mt-1 font-semibold text-white">
                         {record.avg_speed ?? '—'} km/h
@@ -1850,21 +1616,21 @@ export default function AccountPage() {
 
                     <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
                       <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                        Höhenmeter
+                        {t('elevationGain')}
                       </div>
                       <div className="mt-1 font-semibold text-white">
                         {typeof record.elevation_gain === 'number'
-                          ? `${Math.round(record.elevation_gain).toLocaleString('de-DE')} hm`
+                          ? `${formatElevationMeters(record.elevation_gain)} hm`
                           : '—'}
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
                       <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                        Status
+                        {t('status')}
                       </div>
                       <div className="mt-1 font-semibold text-white">
-                        {getRecordStatusLabel(record.record_status)}
+                        {getRecordStatusLabel(record.record_status, t)}
                       </div>
                     </div>
                   </div>
@@ -1876,12 +1642,16 @@ export default function AccountPage() {
                     />
                   ) : null}
                   
+                  {record.custom_description && (
+                    <p className="mt-3 whitespace-pre-wrap break-words text-sm text-stone-300">{record.custom_description}</p>
+                  )}
                  <RecordEditRequestForm
                    recordId={record.id}
                    hikerId={hiker.id}
                    isOfficialEvent={!!record.event_master_id}
                    garminVerified={record.garmin_verified}
-                   initialActivityName={record.event_name}
+                   initialDescription={record.custom_description}
+                   initialActivityName={record.displayEventName ?? t('privateRecord')}
                    initialActivityDate={record.activity_date}
                    initialOfficialDistanceKm={record.official_distance_km}
                    initialActualDistanceKm={record.actual_distance_km}

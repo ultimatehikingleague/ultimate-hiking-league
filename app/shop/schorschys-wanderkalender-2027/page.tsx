@@ -1,4 +1,6 @@
-import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
+import { storeTagline, calendarImageAlt } from '@/i18n/polish-store'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { checkoutEnabled } from '../../lib/shop/config'
 export const dynamic = 'force-dynamic'
 import Nav from '../../components/Nav'
@@ -15,6 +17,8 @@ import {
 } from 'lucide-react'
 
 export default function CalendarProductPage() {
+  const locale = useLocale()
+  const t = useTranslations('outdoorStore')
   return (
     <main className="min-h-screen bg-[#141312] text-white">
 
@@ -24,7 +28,7 @@ export default function CalendarProductPage() {
         <div className="absolute inset-0">
           <img
             src="/mountain-hero.jpg"
-            alt="Berglandschaft"
+            alt={t('hero')}
             className="h-full w-full object-cover object-[72%_18%]"
           />
         </div>
@@ -52,11 +56,11 @@ export default function CalendarProductPage() {
               </div>
 
               <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
-                Made for your journey.
+                {storeTagline(locale)}
               </h1>
 
               <p className="mx-auto mt-5 text-lg text-stone-200">
-                Für alle, die draußen zu Hause sind.
+                {t('tagline')}
               </p>
 
             </div>
@@ -79,7 +83,7 @@ export default function CalendarProductPage() {
           className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-stone-300 transition hover:text-white"
         >
           <ArrowLeft size={17} />
-          Zurück zum Shop
+          {t('back')}
         </Link>
 
         <section className="overflow-hidden rounded-xl border border-[#D7D3C9] bg-[#F8F6F1] shadow-[0_25px_70px_rgba(0,0,0,0.30)]">
@@ -89,7 +93,7 @@ export default function CalendarProductPage() {
             {/* PRODUKTGALERIE */}
             <div className="bg-[#E9E5DC] p-5 md:p-8">
 
-              <ProductGallery images={calendarPreviewImages} />
+              <ProductGallery images={calendarPreviewImages.map(image => ({ ...image, alt: calendarImageAlt(locale, image) }))} />
 
             </div>
 
@@ -106,20 +110,15 @@ export default function CalendarProductPage() {
               </h2>
 
               <p className="mt-5 text-lg font-semibold text-[#455044]">
-                12 Monate. 12 Abenteuer.
+                {t('twelveAdventures')}
               </p>
 
               <p className="mt-5 text-[15px] leading-7 text-[#626760]">
-                Begleite unser Wandermurmeltier Schorschy durch ein
-                ganzes Jahr voller Abenteuer, überraschender Begegnungen
-                und unvergesslicher Momente.
+                {t('marmot')}
               </p>
 
               <p className="mt-3 text-[15px] leading-7 text-[#626760]">
-                Mit zwölf liebevoll gestalteten Monatsmotiven,
-                ausgewählten Wanderveranstaltungen aus ganz Europa
-                und den Feiertagen in Deutschland, Österreich
-                und der Schweiz.
+                {t('productDetails')}
               </p>
 
               {/* PRODUKTMERKMALE */}
@@ -127,22 +126,22 @@ export default function CalendarProductPage() {
 
                 <div className="flex items-center gap-3 text-sm">
                   <CalendarDays size={19} className="shrink-0 text-[#52724F]" />
-                  12 Monatsmotive
+                  {t('monthlyArt')}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm">
                   <Mountain size={19} className="shrink-0 text-[#52724F]" />
-                  Europäische Wanderevents
+                  {t('europeanEvents')}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm">
                   <Compass size={19} className="shrink-0 text-[#52724F]" />
-                  A3-Hochformat
+                  {t('portrait')}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm">
                   <Check size={19} className="shrink-0 text-[#52724F]" />
-                  Feiertage in DE, AT & CH
+                  {t('holidays')}
                 </div>
 
               </div>
@@ -155,11 +154,11 @@ export default function CalendarProductPage() {
                 </div>
 
                 <p className="mt-1 text-sm text-[#777B73]">
-                  Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.
+                  {t('vat')}
                 </p>
 
                 <p className="mt-2 text-sm text-[#777B73]">
-                  Zuzüglich Versandkosten
+                  {t('shippingExtra')}
                 </p>
 
                 {/* Platzhalter für spätere Produktvarianten */}
@@ -169,20 +168,20 @@ export default function CalendarProductPage() {
 
                   <div className="flex items-center gap-3 text-sm font-medium text-[#244B36]">
                     <ShieldCheck size={20} />
-                    Hochwertiger Wandkalender
+                    {t('wallCalendar')}
                   </div>
 
                   <div className="mt-3 flex items-center gap-3 text-sm text-[#626760]">
                     <Truck size={20} />
-                    Versandkosten werden im Bestellprozess angezeigt.
+                    {t('shippingCheckout')}
                   </div>
 
                 </div>
 
                 {checkoutEnabled() ? (
-                  <Link href="/shop/checkout" className="mt-6 flex min-h-[58px] w-full items-center justify-center rounded-lg bg-[#244B36] px-8 py-4 text-base font-bold text-white">Kalender bestellen</Link>
+                  <Link href="/shop/checkout" className="mt-6 flex min-h-[58px] w-full items-center justify-center rounded-lg bg-[#244B36] px-8 py-4 text-base font-bold text-white">{t('order')}</Link>
                 ) : (
-                  <button type="button" disabled className="mt-6 flex min-h-[58px] w-full cursor-not-allowed items-center justify-center rounded-lg bg-[#244B36] px-8 py-4 text-base font-bold text-white opacity-60">Bald erhältlich</button>
+                  <button type="button" disabled className="mt-6 flex min-h-[58px] w-full cursor-not-allowed items-center justify-center rounded-lg bg-[#244B36] px-8 py-4 text-base font-bold text-white opacity-60">{t('comingSoon')}</button>
                 )}
 
               </div>

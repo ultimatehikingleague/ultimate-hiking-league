@@ -1,22 +1,20 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
+import type { UiFeedback } from '../../i18n/feedback'
+import { garminIssueKeys } from '../../i18n/activity-display-messages'
+import { formatDistanceKm, formatElevationMeters, formatElapsedTime } from '../lib/activity/display'
 import { useEffect, useId, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatActivityDistanceInput, normalizeActivityDurationText, readActivityDistanceInput } from '../lib/activity/normalize'
 import { isLocalActivityImport } from '../lib/activity/development'
 import { activityDateInBerlin } from '../lib/activity/compare'
-import type { ScreenshotValues } from '../lib/activity/screenshot'
-import { privateScreenshotPrefix, screenshotBucket } from '../lib/activity/screenshot-proof'
 import { ActivitySummary, type ActivityPreview } from './ActivityImportPreview'
 import { type GarminInboxActivity } from '../lib/activity/garmin-metrics'
 
-// Only a type reference is kept here so the OCR implementation stays out
-// of the website's JavaScript bundles.
-function screenshotImportComponent(): typeof import('./ActivityScreenshotImport').default | null {
-  return null
-}
+const eventSelectClass = 'mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-stone-900 px-3 text-sm text-white'
 
-type EntryMode = 'screenshot' | 'import' | 'manual'
+type EntryMode = 'import' | 'manual'
 
 function activityImportEnabled() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) &&
@@ -33,7 +31,7 @@ type RecordSubmissionFormProps = {
   garminActivity?: GarminInboxActivity
   garminSubmissionEnabled?: boolean
   hikerId: number
-  onSuccess?: () => void
+  onSuccess?: (result?: 'review' | 'published') => void
   onCancel?: () => void
   preselectedEvent?: {
     eventMasterId: number
@@ -55,11 +53,22 @@ export default function RecordSubmissionForm({
   garminActivity,
   garminSubmissionEnabled,
 }: RecordSubmissionFormProps) {
+  const t = useTranslations('recordSubmission')
+  const ui = useTranslations('ui')
+  const garminText = useTranslations('garminDisplay')
+  const locale = useLocale()
+  const errorText = (feedback: UiFeedback<'recordSubmission'>) => {
+    if (locale === 'de' && feedback.key === 'importFailed' && feedback.detail) return feedback.detail
+    return t(feedback.key, { message: locale === 'de' ? feedback.detail ?? t('unknown') : '' })
+  }
+
+  const [garminKind, setGarminKind] = useState<'official_event' | 'private' | undefined>(garminActivity ? 'private' : undefined)
+  const [garminEventId, setGarminEventId] = useState<number | null>(null)
   const [isOfficialEvent, setIsOfficialEvent] = useState(!garminActivity)
   const [activityName, setActivityName] = useState(garminActivity?.name ?? '')
   const [description, setDescription] = useState('')
   const [officialDistanceKm, setOfficialDistanceKm] = useState('')
-  const [actualDistanceKm, setActualDistanceKm] = useState(garminActivity?.distanceKm?.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }) ?? '')
+  const [actualDistanceKm, setActualDistanceKm] = useState(garminActivity?.distanceKm?.toString() ?? '')
   const [activityDate, setActivityDate] = useState(() => garminActivity?.startTimeInSeconds == null
     ? ''
     : activityDateInBerlin(new Date(garminActivity.startTimeInSeconds * 1000).toISOString()) ?? '')
@@ -73,25 +82,37 @@ export default function RecordSubmissionForm({
   const [notes, setNotes] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
 
-  const [screenshots, setScreenshots] = useState<File[]>([])
-  const screenshotUpload = useRef({ attempt: '', paths: [] as string[] })
-  const screenshotValues = useRef<ScreenshotValues>({})
-  const [screenshotSelection, setScreenshotSelection] = useState(0)
-  const [screenshotPending, setScreenshotPending] = useState(false)
   const [imported, setImported] = useState<{ file: File; activity: ActivityPreview; repeated: boolean; id: string }>()
   const [readingActivity, setReadingActivity] = useState(false)
-  const [entryMode, setEntryMode] = useState<EntryMode>(initialEntryMode)
+  const entryMode = initialEntryMode
   const fileInputId = useId()
   const activeRead = useRef(false)
-  // Keep the OCR flow in source for future providers. Website entry points are disabled.
-  const ActivityScreenshotImport = screenshotImportComponent()
-  const screenshotImportEnabled = Boolean(ActivityScreenshotImport)
-  const importEnabled = !garminActivity && (screenshotImportEnabled || activityGpsImportEnabled())
+  const [focusedMetric, setFocusedMetric] = useState<string | null>(null)
+  function displayNumber(input: string, format: typeof formatDistanceKm) {
+    return input.trim() ? format(Number(input.trim().replace(',', '.')), false) ?? input : input
+  }
   const gpsEnabled = !garminActivity && activityGpsImportEnabled()
   const garminReady = garminActivity?.publishable
+  const [calendarEvents, setCalendarEvents] = useState<{
+    id: number; title: string; city: string | null; country: string | null; brand: string | null
+    event_distances: { distance_km: number; label: string | null }[]
+  }[]>([])
+  const [calendarError, setCalendarError] = useState(false)
+
+  useEffect(() => {
+    if (garminKind !== 'official_event' || !activityDate) return
+    let active = true
+    void supabase.from('events_master').select('id,title,city,country,brand,event_distances(distance_km,label)')
+      .eq('event_date', activityDate).order('title').order('id').then(({ data, error }) => {
+        if (!active) return
+        setCalendarEvents(data ?? [])
+        setCalendarError(Boolean(error))
+      })
+    return () => { active = false }
+  }, [garminKind, activityDate])
   const [submitting, setSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState<UiFeedback<'recordSubmission'>['key'] | ''>('')
+  const [errorMessage, setErrorMessage] = useState<UiFeedback<'recordSubmission'> | null>(null)
 
   useEffect(() => {
   if (!preselectedEvent) return
@@ -162,7 +183,7 @@ export default function RecordSubmissionForm({
     })
     if (!response.ok) {
       const details = await response.json().catch(() => null)
-      throw Error(details?.error ?? 'Aktivitätsimport ist nicht verfügbar.')
+      throw Error(details?.error ?? 'couldNotRead')
     }
     return await response.json() as { activity: ActivityPreview; reference: string; repeated: boolean }
   }
@@ -171,16 +192,15 @@ export default function RecordSubmissionForm({
     if (!gpsEnabled || activeRead.current || submitting) return
     activeRead.current = true
     setReadingActivity(true)
-    setErrorMessage('')
+    setErrorMessage(null)
     setSuccessMessage('')
     try {
-      if (file.size > 4 * 1024 * 1024) throw Error('Die Aktivitätsdatei darf maximal 4 MB groß sein.')
+      if (file.size > 4 * 1024 * 1024) throw Error('theActivityFileMustBeNo')
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw Error('Bitte logge dich zuerst ein.')
+      if (!session) throw Error('pleaseSignInFirst')
       const result = await requestActivity(file, session.access_token, 'POST')
       const { activity } = result
       setImported({ ...result, file, id: crypto.randomUUID() })
-      if (screenshots.length) return
       if (!preselectedEvent) {
         setIsOfficialEvent(false)
         setIsPublic(false)
@@ -191,53 +211,22 @@ export default function RecordSubmissionForm({
       setElapsedTimeText(activity.elapsed === '00:00' ? '' : activity.elapsed ?? '')
       setElevationGain(activity.ascent === null ? '' : String(activity.ascent))
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Import fehlgeschlagen.')
+      const detail = error instanceof Error ? error.message : undefined
+      const key = (['theActivityFileMustBeNo', 'pleaseSignInFirst', 'couldNotRead'] as const).find(candidate => candidate === detail)
+      setErrorMessage(key ? { key } : { key: 'importFailed', detail })
     } finally {
       activeRead.current = false
       setReadingActivity(false)
     }
   }
 
-  function clearScreenshotValues() {
-    const previous = screenshotValues.current
-    const restore = (current: string, original: string | undefined, fallback = '') =>
-      original !== undefined && current === original ? fallback : current
-    setActualDistanceKm(current => restore(current, previous.distance, String(preselectedEvent?.distanceKm ?? '')))
-    setElapsedTimeText(current => restore(current, previous.elapsed))
-    setElevationGain(current => restore(current, previous.ascent))
-    setDescription(current => restore(current, previous.title))
-    setActivityName(current => restore(current, previous.title))
-    screenshotValues.current = {}
-    setScreenshots([])
-    screenshotUpload.current = { attempt: '', paths: [] }
-  }
-
-  function confirmScreenshots(files: File[], values: ScreenshotValues) {
-    screenshotUpload.current = { attempt: crypto.randomUUID(), paths: [] }
-    screenshotValues.current = preselectedEvent ? { ...values, title: undefined } : values
-    setScreenshots(files)
-    setScreenshotPending(false)
-    setErrorMessage('')
-    if (!preselectedEvent) {
-      setIsOfficialEvent(false)
-      setIsPublic(false)
-      if (values.title) {
-        setDescription(values.title)
-        setActivityName(values.title)
-      }
-    }
-    if (values.distance) setActualDistanceKm(values.distance)
-    if (values.elapsed) setElapsedTimeText(values.elapsed)
-    if (values.ascent) setElevationGain(values.ascent)
-  }
-
   async function handleSubmit(e?: React.FormEvent<HTMLFormElement>) {
     e?.preventDefault()
     if (e && garminActivity) return
-    if ((garminActivity && (!garminSubmissionEnabled || !garminReady)) || activeRead.current || submitting || screenshotPending) return
+    if ((garminActivity && (!garminSubmissionEnabled || !garminKind || !garminReady)) || activeRead.current || submitting) return
     setSubmitting(true)
     setSuccessMessage('')
-    setErrorMessage('')
+    setErrorMessage(null)
 
     try {
       const {
@@ -245,59 +234,72 @@ export default function RecordSubmissionForm({
       } = await supabase.auth.getSession()
 
       if (!session?.user) {
-        setErrorMessage('Bitte logge dich zuerst ein.')
+        setErrorMessage({ key: 'pleaseSignInFirst' })
         setSubmitting(false)
         return
       }
 
       if (garminActivity) {
         if (!activityDate) {
-          setErrorMessage('Bitte gib ein Datum an.')
+          setErrorMessage({ key: 'enterADate' })
+          return
+        }
+        const official = Number(officialDistanceKm.replace(',', '.'))
+        if (isOfficialEvent && (!activityName.trim() || !Number.isFinite(official) || official <= 0)) {
+          setErrorMessage({ key: 'enterTheEventNameAndOfficial' })
+          return
+        }
+        if (isOfficialEvent && (garminActivity.distanceKm ?? 0) < official * 0.97) {
+          setErrorMessage({ key: 'youMustCoverAtLeast97' })
           return
         }
         const response = await fetch(`/api/garmin/activities?id=${encodeURIComponent(garminActivity.id)}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            hikerId, activity_name: activityName, activityDate, country, location, reviewKey: garminActivity.reviewKey,
+            hikerId, activity_name: activityName, activityDate, description, country, location,
+            reviewKey: garminActivity.reviewKey, kind: garminKind,
+            ...(isOfficialEvent && { officialDistanceKm: official, organizer, eventMasterId: garminEventId }),
           }),
           cache: 'no-store',
         })
         if (response.ok) {
-          setSuccessMessage(response.status === 201 ? 'Deine Wanderung wurde veröffentlicht.' : 'Diese Wanderung wurde bereits veröffentlicht.')
-          onSuccess?.()
+          const result = response.status === 202 ? 'review' : 'published'
+          setSuccessMessage(result === 'review' ? 'yourEventParticipationWasSubmittedFor'
+            : response.status === 201 ? 'yourHikeWasPublished' : 'thisHikeHasAlreadyBeenPublished')
+          onSuccess?.(result)
         } else {
-          const messages: Record<number, string> = {
-            400: 'Bitte prüfe die Länge deiner Angaben.',
-            404: 'Die Garmin-Aktivität oder dein Wanderprofil ist nicht verfügbar.',
-            409: 'Die Daten oder die Freigabe haben sich geändert oder ein passender Record existiert bereits. Öffne die Garmin-Übersicht erneut.',
-            422: 'Die Garmin-Aktivität erfüllt die UHL-Zulassung nicht oder es fehlen erforderliche Daten.',
+          const messages: Record<number, UiFeedback<'recordSubmission'>['key']> = {
+            400: 'checkYourHikeAndEventDetails',
+            404: 'theGarminActivityOrYourHiker',
+            409: 'activityChanged',
+            422: 'checkEligibility',
           }
-          setErrorMessage(messages[response.status] ?? 'Die Veröffentlichung ist gerade nicht möglich. Bitte versuche es erneut.')
+          setErrorMessage({ key: messages[response.status] ?? 'publishingIsCurrentlyUnavailablePleaseTry' })
         }
         return
       }
 
-      if (!activityDate.trim() || (!proofFile && !imported && !screenshots.length)) {
-        setErrorMessage('Bitte fülle alle Pflichtfelder aus.')
+      if (!activityDate.trim() || (!proofFile && !imported)) {
+        setErrorMessage({ key: 'completeAllRequiredFields' })
         setSubmitting(false)
         return
       }
 
       if (isOfficialEvent && !activityName.trim()) {
-        setErrorMessage('Bitte wähle bzw. benenne ein offizielles Event.')
+        setErrorMessage({ key: 'selectOrNameAnOfficialEvent' })
         setSubmitting(false)
         return
       }
 
       if (isOfficialEvent && (!officialDistanceKm.trim() || !actualDistanceKm.trim())) {
-        setErrorMessage('Bitte fülle beide Distanzfelder aus.')
+        setErrorMessage({ key: 'completeBothDistanceFields' })
         setSubmitting(false)
         return
       }
 
       if (!isOfficialEvent && !actualDistanceKm.trim()) {
-        setErrorMessage('Bitte gib deine gelaufene Distanz an.')
+        setErrorMessage({ key: 'enterTheDistanceYouCovered' })
         setSubmitting(false)
         return
       }
@@ -305,7 +307,7 @@ export default function RecordSubmissionForm({
       
 
       let parsedDistance: number | null = null
-      const actual = readActivityDistanceInput(actualDistanceKm, screenshots.length ? null : imported?.activity.distanceKm ?? null)
+      const actual = readActivityDistanceInput(actualDistanceKm, imported?.activity.distanceKm ?? null)
 
 if (isOfficialEvent) {
   const official = Number(officialDistanceKm.replace(',', '.'))
@@ -316,13 +318,13 @@ if (isOfficialEvent) {
     official <= 0 ||
     actual <= 0
   ) {
-    setErrorMessage('Bitte gib gültige Distanzen ein.')
+    setErrorMessage({ key: 'enterValidDistances' })
     setSubmitting(false)
     return
   }
 
   if (actual < official * 0.97) {
-    setErrorMessage('Du musst mindestens 97% der offiziellen Distanz erreichen.')
+    setErrorMessage({ key: 'youMustCoverAtLeast97' })
     setSubmitting(false)
     return
   }
@@ -331,7 +333,7 @@ if (isOfficialEvent) {
 } else {
 
   if (Number.isNaN(actual) || actual <= 0) {
-    setErrorMessage('Distanz ist ungültig.')
+    setErrorMessage({ key: 'theDistanceIsInvalid' })
     setSubmitting(false)
     return
   }
@@ -342,35 +344,14 @@ if (isOfficialEvent) {
         elevationGain.trim() === '' ? null : Number(elevationGain.replace(',', '.'))
 
       const timeInput = elapsedTimeText.trim()
-      const importDuration = (imported || screenshots.length) && timeInput ? normalizeActivityDurationText(timeInput) : null
-      if ((imported || screenshots.length) && timeInput && (!importDuration || importDuration === '00:00')) {
-        setErrorMessage('Bitte gib eine gültige Gesamtzeit mit mindestens einer vollen Minute ein, z. B. 04:51.')
+      const importDuration = imported && timeInput ? normalizeActivityDurationText(timeInput) : null
+      if (imported && timeInput && (!importDuration || importDuration === '00:00')) {
+        setErrorMessage({ key: 'invalidTime' })
         return
       }
 
       let proofImageUrl: string
-      if (screenshots.length) {
-        const { paths, attempt } = screenshotUpload.current
-        const storage = supabase.storage.from(screenshotBucket)
-        for (const [index, file] of screenshots.entries()) {
-          if (paths[index]) continue
-          const extension = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }[file.type]
-          const path = `${session.user.id}/${attempt}/${index}.${extension}`
-          const { error } = await storage.upload(path, file, { upsert: false, cacheControl: '0', contentType: file.type })
-          if (error) {
-            // A previous upload may have committed even if the response was lost.
-            const { data: stored } = await storage.download(path)
-            const expected = new Uint8Array(await file.arrayBuffer())
-            const actual = stored && new Uint8Array(await stored.arrayBuffer())
-            if (!actual || actual.length !== expected.length || !actual.every((byte, i) => byte === expected[i])) {
-              setErrorMessage('Ein Screenshot konnte nicht gespeichert werden. Bitte versuche es erneut.')
-              return
-            }
-          }
-          paths[index] = path
-        }
-        proofImageUrl = privateScreenshotPrefix + paths.join(',')
-      } else if (imported) {
+      if (imported) {
         const result = await requestActivity(imported.file, session.access_token, 'PUT', imported.id)
         proofImageUrl = result.reference
       } else if (proofFile) {
@@ -391,9 +372,7 @@ if (isOfficialEvent) {
             uploadError,
           })
 
-          setErrorMessage(
-            `Upload-Fehler nach mehreren Versuchen: ${uploadError.message || 'Unbekannter Upload-Fehler'}`
-          )
+          setErrorMessage({ key: 'uploadFailed', detail: uploadError.message })
           setSubmitting(false)
           return
         }
@@ -442,11 +421,11 @@ if (isOfficialEvent) {
 
       // A lost response can leave the first write committed. Verify by this attempt's
       // stable proof reference before reporting success on a subsequent submission.
-      const storedImport = insertError && (imported || screenshots.length) && await supabase.from('record_submissions')
+      const storedImport = insertError && imported && await supabase.from('record_submissions')
         .select('id').eq('user_id', session.user.id)
         .eq('proof_image_url', proofImageUrl).maybeSingle()
       if (insertError && !(storedImport && storedImport.data)) {
-        setErrorMessage(`DB-Fehler: ${insertError.message}`)
+        setErrorMessage({ key: 'databaseError', detail: insertError.message })
         setSubmitting(false)
         return
       }
@@ -465,83 +444,54 @@ if (isOfficialEvent) {
       setLocation('')
       setNotes('')
       setProofFile(null)
-      screenshotValues.current = {}
-      screenshotUpload.current = { attempt: '', paths: [] }
-      setScreenshots([])
-      setScreenshotSelection(current => current + 1)
       setImported(undefined)
-      setSuccessMessage('Deine Wanderung wurde erfolgreich eingereicht.')
+      setSuccessMessage('yourHikeWasSubmittedSuccessfully')
 
       if (onSuccess) onSuccess()
     } catch (error) {
-      setErrorMessage(`Fehler: ${error instanceof Error ? error.message : 'Unbekannt'}`)
+      setErrorMessage({ key: 'submitError', detail: error instanceof Error ? error.message : undefined })
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className={`rounded-[1.75rem] border border-white/10 p-4 shadow-xl shadow-black/10 sm:p-6 ${importEnabled ? "bg-stone-900 text-stone-100 [color-scheme:dark] [&_.text-stone-500]:text-stone-400" : "bg-white/[0.04]"}`}>
+    <div className={`rounded-[1.75rem] border border-white/10 p-4 shadow-xl shadow-black/10 sm:p-6 ${entryMode === 'import' ? "bg-stone-900 text-stone-100 [color-scheme:dark] [&_.text-stone-500]:text-stone-400" : "bg-white/[0.04]"}`}>
       <div className="mb-4">
-        <h3 className="text-xl font-semibold text-white">Wanderung hinzufügen</h3>
-        {!garminActivity && <p className="mt-1 text-sm text-stone-400">Reiche hier eine neue Wanderung zur Prüfung ein.</p>}
+        <h3 className="text-xl font-semibold text-white">{t('addAHike')}</h3>
+        {!garminActivity && <p className="mt-1 text-sm text-stone-400">{t('submitANewHikeForReview')}</p>}
         {garminActivity && (
           <p className="mt-2 text-sm text-stone-300" role="status">
-            {garminActivity.publicationIssue ?? 'Prüfe die aus Garmin übernommenen Angaben.'}
+            {garminKind === 'official_event' && garminReady
+              ? t('eventReview')
+              : garminActivity.publicationIssue
+                ? locale === 'de' ? garminActivity.publicationIssue : garminText(garminIssueKeys.get(garminActivity.publicationIssue) ?? 'insufficientData')
+                : t('reviewTheInformationImportedFromGarmin')}
           </p>
         )}
+        <p className="mt-2 text-xs uppercase tracking-[0.18em] text-stone-500">
+          {t('requiredFields')}
+        </p>
       </div>
 
-      {screenshotImportEnabled && importEnabled && <div className="mb-5 grid gap-3 sm:grid-cols-3" role="group" aria-label="Art der Erfassung">
-        <button type="button" disabled={readingActivity || submitting} aria-pressed={entryMode === 'screenshot'}
-          onClick={() => { setEntryMode('screenshot'); setErrorMessage('') }}
-          className={`min-h-12 rounded-2xl px-4 py-3 text-left font-semibold ${entryMode === 'screenshot' ? 'bg-emerald-200 text-emerald-950' : 'border border-white/15 text-white'}`}>
-          Garmin Connect Screenshot importieren
-        </button>
-        {gpsEnabled && <button type="button" disabled={readingActivity || submitting || screenshotPending} aria-pressed={entryMode === 'import'}
-          onClick={() => { setEntryMode('import'); setErrorMessage('') }}
-          className={`min-h-12 rounded-2xl px-4 py-3 text-left font-semibold ${entryMode === 'import' ? 'bg-emerald-200 text-emerald-950' : 'border border-white/15 text-white'}`}>
-          GPS-Datei importieren
-        </button>}
-        <button type="button" disabled={readingActivity || submitting} aria-pressed={entryMode === 'manual'}
-          onClick={() => {
-            if (screenshotPending) {
-              setScreenshotPending(false)
-              setScreenshotSelection(current => current + 1)
-            }
-            setEntryMode('manual')
-            setImported(undefined)
-            setErrorMessage('')
-          }}
-          className={`min-h-12 rounded-2xl px-4 py-3 text-left font-semibold ${entryMode === 'manual' ? 'bg-white text-black' : 'border border-white/15 text-white'}`}>
-          Wanderung manuell eintragen
-        </button>
-      </div>}
-
-      {ActivityScreenshotImport && importEnabled && <div hidden={entryMode !== 'screenshot'}>
-        <ActivityScreenshotImport key={screenshotSelection} disabled={submitting || readingActivity}
-          onChange={hasFiles => { clearScreenshotValues(); setScreenshotPending(hasFiles) }}
-          onConfirm={confirmScreenshots} />
-      </div>}
-
       {gpsEnabled && entryMode === 'import' && (
-        <section aria-label="Aktivitätsdatei" tabIndex={0}
+        <section aria-label={t('activityFile')} tabIndex={0}
           onDragOver={event => { if (event.dataTransfer.types.includes('Files')) event.preventDefault() }}
           onDrop={event => {
             if (!event.dataTransfer.files.length) return
             event.preventDefault()
             if (event.dataTransfer.files.length === 1) void previewActivity(event.dataTransfer.files[0])
-            else setErrorMessage('Bitte jeweils eine Aktivitätsdatei auswählen.')
+            else setErrorMessage({ key: 'selectOneActivityFileAtA' })
           }}
           onPaste={event => {
             if (!event.clipboardData.files.length) return
             event.preventDefault()
             if (event.clipboardData.files.length === 1) void previewActivity(event.clipboardData.files[0])
-            else setErrorMessage('Bitte jeweils eine Aktivitätsdatei einfügen.')
+            else setErrorMessage({ key: 'pasteOneActivityFileAtA' })
           }}
           className="mb-5 space-y-3 rounded-2xl border border-dashed border-emerald-200/50 bg-emerald-900/15 p-4 sm:p-5">
-          <h4 className="font-semibold text-white">1. Aktivität importieren</h4>
-          <label htmlFor={fileInputId} className="sr-only">Aktivitätsdatei auswählen</label>
+          <h4 className="font-semibold text-white">{t('stepImportActivity')}</h4>
+          <label htmlFor={fileInputId} className="sr-only">{t('chooseAnActivityFile')}</label>
           <input id={fileInputId} type="file" accept=".gpx,.fit,.tcx" disabled={readingActivity || submitting}
             className="block min-h-11 w-full text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-200 file:px-3 file:py-3 file:text-emerald-950"
             onChange={event => {
@@ -549,25 +499,66 @@ if (isOfficialEvent) {
               event.target.value = ''
               if (file) void previewActivity(file)
             }} />
-          <p className="text-sm text-stone-300">GPX, FIT oder TCX bis 4 MB. Du kannst eine Datei auch hierher ziehen oder einfügen, wenn dein Browser sie aus der Zwischenablage bereitstellt.</p>
-          <p className="text-sm text-amber-200">Aus GPS-Punkten berechnete Distanz und Höhenmeter können von deiner Tracking-App abweichen.{screenshots.length > 0 && ' Deine bestätigten Angaben und Screenshot-Nachweise bleiben erhalten.'}</p>
-          {readingActivity && <p role="status">Aufzeichnung wird gelesen …</p>}
+          <p className="text-sm text-stone-300">{t('fileHelp')}</p>
+          <p className="text-sm text-amber-200">{t('differentGpsMetrics')}</p>
+          {readingActivity && <p role="status">{t('readingActivity')}</p>}
           {imported && <>
             <div className="space-y-3 border-t border-white/15 pt-4" aria-live="polite">
-              <h4 className="font-semibold text-white">2. Erkannte Daten prüfen</h4>
+              <h4 className="font-semibold text-white">{t('stepReviewDetectedData')}</h4>
               <ActivitySummary activity={imported.activity} repeated={imported.repeated} />
             </div>
-            <p className="text-sm text-stone-300">Prüfe die übernommenen Angaben und ergänze fehlende Werte.</p>
-            <button type="button" disabled={submitting || readingActivity} className="min-h-11 text-sm underline" onClick={() => setImported(undefined)}>Import entfernen</button>
+            <p className="text-sm text-stone-300">{t('reviewTheImportedDetailsAndFill')}</p>
+            <button type="button" disabled={submitting || readingActivity} className="min-h-11 text-sm underline" onClick={() => setImported(undefined)}>{t('removeImport')}</button>
           </>}
-          {!imported && errorMessage && <p role="alert" className="text-sm text-red-200">{errorMessage}</p>}
-          {!imported && successMessage && <p role="status" className="text-sm text-emerald-200">{successMessage}</p>}
+          {!imported && errorMessage && <p role="alert" className="text-sm text-red-200">{errorText(errorMessage)}</p>}
+          {!imported && successMessage && <p role="status" className="text-sm text-emerald-200">{t(successMessage)}</p>}
         </section>
       )}
 
-      {(!importEnabled || garminActivity || entryMode === 'manual' || imported || screenshots.length > 0) && (
+      {(!gpsEnabled || entryMode === 'manual' || imported) && (
       <form onSubmit={handleSubmit} className="space-y-4">
-      {imported && <h4 className="font-semibold text-white">3. Fehlende Angaben ergänzen</h4>}
+      {imported && <h4 className="font-semibold text-white">{t('stepFillInMissingDetails')}</h4>}
+      {garminActivity && !garminActivity.privateOnly && (
+        <fieldset disabled={submitting} className="grid gap-2 sm:grid-cols-2">
+          <legend className="mb-2 text-sm font-medium text-stone-200">{t('howWouldYouLikeToSubmit')}</legend>
+          {(['private', 'official_event'] as const).map(kind => (
+            <label key={kind} className="flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-sm">
+              <input type="radio" name={fileInputId + '-garmin-kind'} checked={garminKind === kind}
+                onChange={() => {
+                  setGarminKind(kind)
+                  setIsOfficialEvent(kind === 'official_event')
+                  setGarminEventId(null)
+                  setActivityName(kind === 'private' ? garminActivity.name ?? '' : '')
+                  setOfficialDistanceKm('')
+                  setCountry('')
+                  setLocation('')
+                  setOrganizer('')
+                  setErrorMessage(null)
+                }} />
+              {kind === 'private' ? t('privateHikeDefault') : t('eventParticipation')}
+            </label>
+          ))}
+        </fieldset>
+      )}
+      {garminKind === 'official_event' && calendarEvents.length > 0 && (
+        <label className="block text-sm font-medium text-stone-200">
+          {t('eventFromTheUhlCalendar')}
+          <select value={garminEventId ?? ''} className={eventSelectClass}
+            onChange={event => {
+              const selected = calendarEvents.find(item => item.id === Number(event.target.value))
+              setGarminEventId(selected?.id ?? null)
+              setActivityName(selected?.title ?? '')
+              setCountry(selected?.country ?? '')
+              setLocation(selected?.city ?? '')
+              setOrganizer(selected?.brand ?? '')
+              setOfficialDistanceKm(selected?.event_distances.length === 1 ? String(selected.event_distances[0].distance_km) : '')
+            }}>
+            <option value="">{t('enterEventDetailsManually')}</option>
+            {calendarEvents.map(item => <option key={item.id} value={item.id}>{item.title} · {item.city || item.country || t('noLocationProvided')}</option>)}
+          </select>
+        </label>
+      )}
+      {garminKind === 'official_event' && calendarError && <p role="status" className="text-sm">{t('calendarUnavailable')}</p>}
       {!garminActivity && <div className="flex gap-3 mb-4">
   <button
     type="button"
@@ -578,7 +569,7 @@ if (isOfficialEvent) {
         : 'bg-white/10 text-white'
     }`}
   >
-    Offizielles Event
+    {t('officialEvent')}
   </button>
 
   <button
@@ -590,30 +581,38 @@ if (isOfficialEvent) {
         : 'bg-white/10 text-white'
     }`}
   >
-    Private Wanderung
+    {ui('privateHikeLabel')}
   </button>
 </div>}
         <label className="block text-sm font-medium text-stone-200">
-          Titel {isOfficialEvent && '*'}
+          {t('title')} {isOfficialEvent && '*'}
           <input
             type="text"
             value={garminActivity || isOfficialEvent ? activityName : description}
+            readOnly={garminEventId !== null}
             maxLength={garminActivity ? 240 : undefined}
             onChange={event => (garminActivity || isOfficialEvent ? setActivityName : setDescription)(event.target.value)}
-            placeholder={isOfficialEvent ? 'z. B. Ultimatemarsch Mallorca' : 'z. B. Chiemsee-Umrundung'}
+            placeholder={isOfficialEvent ? t('eventExample') : t('hikeExample')}
             className="mt-2 w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
           />
         </label>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
-              Datum *
+              {t('date')}
             </label>
             <input
               type="date"
               value={activityDate}
               required={Boolean(garminActivity)}
-              onChange={(e) => setActivityDate(e.target.value)}
+              onChange={(e) => {
+                if (garminKind === 'official_event') {
+                  setGarminEventId(null)
+                  setCalendarEvents([])
+                  setCalendarError(false)
+                }
+                setActivityDate(e.target.value)
+              }}
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition focus:border-white/20 focus:bg-black/20"
             />
           </div>
@@ -622,27 +621,38 @@ if (isOfficialEvent) {
   <div className="grid gap-4 md:grid-cols-2">
     <div>
       <label className="mb-2 block text-sm font-medium text-stone-200">
-        Offizielle Distanz (km) <span className="text-stone-500">*</span>
+        {t('officialDistanceKm')} <span className="text-stone-500">*</span>
       </label>
+      {calendarEvents.find(item => item.id === garminEventId)?.event_distances.map(distance => (
+        <button type="button" key={distance.distance_km} aria-pressed={officialDistanceKm === String(distance.distance_km)}
+          className="mr-2 mb-2 min-h-11 rounded-lg border border-white/15 px-3 text-sm"
+          onClick={() => setOfficialDistanceKm(String(distance.distance_km))}>
+          {distance.label || `${distance.distance_km} km`}
+        </button>
+      ))}
       <input
         type="text"
-        value={officialDistanceKm}
+        value={focusedMetric === 'officialDistanceKm' ? officialDistanceKm : displayNumber(officialDistanceKm, formatDistanceKm)}
+        onFocus={() => setFocusedMetric('officialDistanceKm')}
+        onBlur={() => setFocusedMetric(null)}
         onChange={(e) => setOfficialDistanceKm(e.target.value)}
-        placeholder="z. B. 50"
+        placeholder={t('officialDistanceExample')}
         className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
       />
     </div>
 
     <div>
       <label className="mb-2 block text-sm font-medium text-stone-200">
-        Tatsächlich gelaufen (km)  <span className="text-stone-500">*</span>
+        {t('distanceCoveredKm')}  <span className="text-stone-500">*</span>
       </label>
       <input
         type="text"
-        value={actualDistanceKm}
+        value={garminActivity ? formatDistanceKm(garminActivity.distanceKm, false) ?? '' : focusedMetric === 'actualDistanceKm' ? actualDistanceKm : displayNumber(actualDistanceKm, formatDistanceKm)}
+        onFocus={() => setFocusedMetric('actualDistanceKm')}
+        onBlur={() => setFocusedMetric(null)}
               readOnly={Boolean(garminActivity)}
         onChange={(e) => setActualDistanceKm(e.target.value)}
-        placeholder="z. B. 48.7"
+        placeholder={t('coveredDistanceExample')}
         className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
       />
     </div>
@@ -650,14 +660,16 @@ if (isOfficialEvent) {
 ) : (
   <div>
     <label className="mb-2 block text-sm font-medium text-stone-200">
-      Distanz (km) * <span className="text-stone-500">Pflichtangabe</span>
+      {t('distanceKm')} <span className="text-stone-500">{t('required')}</span>
     </label>
     <input
       type="text"
-      value={actualDistanceKm}
+      value={garminActivity ? formatDistanceKm(garminActivity.distanceKm, false) ?? '' : focusedMetric === 'actualDistanceKm' ? actualDistanceKm : displayNumber(actualDistanceKm, formatDistanceKm)}
+      onFocus={() => setFocusedMetric('actualDistanceKm')}
+      onBlur={() => setFocusedMetric(null)}
               readOnly={Boolean(garminActivity)}
       onChange={(e) => setActualDistanceKm(e.target.value)}
-      placeholder="z. B. 12.5"
+      placeholder={t('distanceExample')}
       className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
     />
   </div>
@@ -667,33 +679,37 @@ if (isOfficialEvent) {
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
-              Gesamtzeit 
+              {t('elapsedTime')} 
             </label>
             <input
               type="text"
-              value={elapsedTimeText}
+              value={garminActivity ? formatElapsedTime(garminActivity.elapsed) ?? '' : focusedMetric === 'elapsedTimeText' ? elapsedTimeText : formatElapsedTime(elapsedTimeText) ?? elapsedTimeText}
+              onFocus={() => setFocusedMetric('elapsedTimeText')}
+              onBlur={() => setFocusedMetric(null)}
               readOnly={Boolean(garminActivity)}
               onChange={(e) => setElapsedTimeText(e.target.value)}
-              placeholder="z. B. 08:34"
+              placeholder={t('durationExample')}
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
 
-            {!garminActivity && <p className="text-xs text-yellow-400 mt-1">
-              Bitte Gesamtzeit (inkl. Pausen), nicht nur Gehzeit.
-            </p>}
+            <p className="text-xs text-yellow-400 mt-1">
+              {t('durationHelp')}
+            </p>
             
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
-              Höhenmeter
+              {t('elevationGain')}
             </label>
             <input
               type="text"
-              value={elevationGain}
+              value={garminActivity ? formatElevationMeters(garminActivity.ascent, false) ?? '' : focusedMetric === 'elevationGain' ? elevationGain : displayNumber(elevationGain, formatElevationMeters)}
+              onFocus={() => setFocusedMetric('elevationGain')}
+              onBlur={() => setFocusedMetric(null)}
               readOnly={Boolean(garminActivity)}
               onChange={(e) => setElevationGain(e.target.value)}
-              placeholder="z. B. 1200"
+              placeholder={t('elevationExample')}
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
           </div>
@@ -702,28 +718,30 @@ if (isOfficialEvent) {
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
-              Land
+              {t('country')}
             </label>
             <input
               type="text"
               value={country}
+              readOnly={garminEventId !== null}
             maxLength={garminActivity ? 100 : undefined}
               onChange={(e) => setCountry(e.target.value)}
-              placeholder="z. B. Deutschland"
+              placeholder={t('countryExample')}
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
           </div>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
-              Ort
+              {t('location')}
             </label>
             <input
               type="text"
               value={location}
+              readOnly={garminEventId !== null}
             maxLength={garminActivity ? 240 : undefined}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="z. B. Hamburg"
+              placeholder={t('cityExample')}
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
           </div>
@@ -733,11 +751,11 @@ if (isOfficialEvent) {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-sm font-medium text-stone-200">
-                    Sichtbarkeit
+                    {t('visibility')}
                   </div>
 
                   <p className="mt-1 text-xs text-stone-500">
-                    Entscheide, ob diese Wanderung in deinem öffentlichen Profil sichtbar ist.
+                    {t('chooseWhetherThisHikeAppearsOn')}
                   </p>
                 </div>
 
@@ -758,7 +776,7 @@ if (isOfficialEvent) {
               </div>
 
               <div className="mt-3 text-xs font-medium text-stone-300">
-                {isPublic ? 'Für jeden sichtbar' : 'Nur für mich sichtbar'}
+                {isPublic ? t('visibleToEveryone') : t('visibleOnlyToMe')}
               </div>
             </div>
           ) : null}
@@ -769,32 +787,23 @@ if (isOfficialEvent) {
         {isOfficialEvent ? (
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
-              Veranstalter <span className="text-stone-500">*</span>
+              {t('organiser')} <span className="text-stone-500">*</span>
             </label>
             <input
               type="text"
               value={organizer}
+              readOnly={garminEventId !== null}
+              maxLength={garminActivity ? 240 : undefined}
               onChange={(e) => setOrganizer(e.target.value)}
-              placeholder="z. B. Ultimatemarsch"
+              placeholder={t('organiserExample')}
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
           </div>
         ) : null}
 
-        {screenshots.length > 0 && <div className="rounded-xl border border-emerald-200/30 p-3 text-sm">
-          <p className="font-semibold text-emerald-200">Originale als Nachweis übernommen</p>
-          <ul className="mt-1 break-all">{screenshots.map((file, index) => <li key={index}>{file.name}</li>)}</ul>
-          <button type="button" className="mt-2 min-h-10 underline" disabled={submitting || readingActivity}
-            onClick={() => {
-              clearScreenshotValues()
-              setScreenshotSelection(current => current + 1)
-              setEntryMode('screenshot')
-            }}>Screenshot-Nachweise entfernen</button>
-        </div>}
-
-        {!garminActivity && !imported && !screenshots.length && <div>
+        {!garminActivity && !imported && <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
-            Nachweis hochladen *
+            {t('uploadEvidence')}
           </label>
           <input
             type="file"
@@ -806,23 +815,23 @@ if (isOfficialEvent) {
             className="block w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-stone-300 file:mr-4 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/15"
           />
           <p className="mt-2 text-xs text-stone-500">
-            Erlaubt: JPG, PNG, WEBP oder PDF
+            {t('acceptedFormatsJpgPngWebpOr')}
           </p>
           {proofFile ? (
             <p className="mt-2 text-sm text-stone-300">
-              Ausgewählt: {proofFile.name}
+              {t('selected')} {proofFile.name}
             </p>
           ) : null}
         </div>}
 
         {!garminActivity && <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
-            Notiz
+            {t('note')}
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional: zusätzliche Hinweise zur Wanderung"
+            placeholder={t('optionalAdditionalNotesAboutTheHike')}
             rows={4}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
           />
@@ -830,13 +839,13 @@ if (isOfficialEvent) {
 
         {errorMessage ? (
           <div role="alert" className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-            {errorMessage}
+            {errorText(errorMessage)}
           </div>
         ) : null}
 
         {successMessage ? (
           <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-            {successMessage}
+            {t(successMessage)}
           </div>
         ) : null}
 
@@ -844,10 +853,10 @@ if (isOfficialEvent) {
           <button
             type={garminActivity ? 'button' : 'submit'}
             onClick={garminActivity ? () => void handleSubmit() : undefined}
-            disabled={Boolean(garminActivity && (!garminReady || !garminSubmissionEnabled)) || submitting || readingActivity || screenshotPending}
+            disabled={Boolean(garminActivity && (!garminKind || !garminReady || !garminSubmissionEnabled)) || submitting || readingActivity}
             className="min-h-11 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? 'Wird gesendet…' : garminActivity ? 'Wanderung veröffentlichen' : imported ? '4. Wanderung einreichen' : 'Wanderung einreichen'}
+            {submitting ? t('submitting') : garminActivity && !isOfficialEvent ? t('publishHike') : imported ? t('stepSubmitHike') : t('submitHike')}
           </button>
 
           {onCancel ? (
@@ -856,14 +865,14 @@ if (isOfficialEvent) {
               onClick={onCancel}
               className="rounded-2xl border border-white/10 bg-transparent px-5 py-3 text-sm font-medium text-stone-300 transition hover:bg-white/[0.04] hover:text-white"
             >
-              Zurück zur Auswahl
+              {preselectedEvent ? t('backToCalendar') : t('backToOptions')}
             </button>
           ) : null}
         </div>
       </form>
       )}
       {gpsEnabled && entryMode === 'import' && !imported && onCancel && (
-        <button type="button" onClick={onCancel} className="min-h-11 text-sm text-stone-300">Zurück zur Auswahl</button>
+        <button type="button" onClick={onCancel} className="min-h-11 text-sm text-stone-300">{t('backToOptions')}</button>
       )}
     </div>
   )

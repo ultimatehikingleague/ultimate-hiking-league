@@ -1,7 +1,8 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import PartnerBenefits from './PartnerBenefits'
@@ -18,6 +19,9 @@ type ShopReward = {
 }
 
 export default function MilestoneShopPage() {
+  const t = useTranslations('milestones')
+  const ui = useTranslations('ui')
+  const locale = useLocale()
   const router = useRouter()
   const [rewards, setRewards] = useState<ShopReward[]>([])
   const [balance, setBalance] = useState<number | null>(null)
@@ -48,7 +52,7 @@ export default function MilestoneShopPage() {
 
             if (catalogError) {
                 console.error('Milestone catalog error:', catalogError)
-                setError('Der Prämienkatalog konnte nicht geladen werden.')
+                setError('catalogError')
            } else {
                 setRewards(catalog ?? [])
                 }
@@ -104,9 +108,9 @@ export default function MilestoneShopPage() {
         console.error('Milestone redemption error:', err)
 
         setRedemptionError(
-            err && typeof err === 'object' && 'message' in err
+            locale === 'de' && err && typeof err === 'object' && 'message' in err
             ? String(err.message)
-            : 'Die Belohnung konnte nicht eingelöst werden.'
+            : t('redemptionError')
         )
         } finally {
         // Recheck availability after success and after stock-related failures.
@@ -116,7 +120,7 @@ export default function MilestoneShopPage() {
           setRewards(catalog ?? [])
           setError(null)
         } catch {
-          setError('Die Verfügbarkeit konnte nicht aktualisiert werden. Bitte lade die Seite neu.')
+          setError('availabilityError')
         }
         setRedeemingRewardId(null)
         }
@@ -126,7 +130,7 @@ export default function MilestoneShopPage() {
         return (
         <main className="flex min-h-screen items-center justify-center bg-[#080d16]">
             <p className="text-sm text-slate-400">
-            Anmeldung wird überprüft ...
+            {t('checkingSignIn')}
             </p>
         </main>
         )
@@ -169,7 +173,7 @@ export default function MilestoneShopPage() {
               href="/"
               className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-slate-300 transition hover:border-cyan-400/40 hover:text-white"
             >
-              Zurück zur Liga
+              {t('back')}
             </Link>
           </div>
         </header>
@@ -183,14 +187,14 @@ export default function MilestoneShopPage() {
               <span className="h-2 w-2 rounded-full bg-cyan-400" />
 
               <span className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
-                Deine Leistung wird belohnt
+                {t('rewarded')}
               </span>
             </div>
 
             <h1 className="max-w-2xl text-5xl font-black leading-[1.05] tracking-tight md:text-7xl">
-              JEDER
+              {t('every')}
               <br />
-              KILOMETER
+              {t('kilometre')}
               <br />
               <span
                 style={{
@@ -200,15 +204,12 @@ export default function MilestoneShopPage() {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                ZÄHLT.
+                {t('counts')}
               </span>
             </h1>
 
             <p className="mt-8 max-w-xl text-lg leading-relaxed text-slate-400">
-              Deine Wanderungen bringen dich nicht nur ans Ziel.
-              Sie bringen dir Milestones. Sammle sie mit deinen
-              verifizierten Leistungen und sichere dir Belohnungen
-              unserer Outdoor-Partner.
+              {t('intro')}
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -216,21 +217,21 @@ export default function MilestoneShopPage() {
                 href="#belohnungen"
                 className="rounded-xl bg-[#67DCE8] px-7 py-3.5 text-sm font-bold text-[#07111a] transition hover:bg-[#8CEAF2]"
               >
-                Belohnungen entdecken
+                {t('discover')}
               </a>
 
               <a
                 href="#partnervorteile"
                 className="hidden rounded-xl border border-cyan-300/40 px-7 py-3.5 text-sm font-semibold text-cyan-200 hover:border-cyan-200 group-has-[#partnervorteile]/shop:inline-flex"
               >
-                Partnervorteile
+                {t('benefits')}
               </a>
 
               <a
                 href="#so-funktionierts"
                 className="rounded-xl border border-white/15 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white/40"
               >
-                So funktioniert&apos;s
+                {t('how')}
               </a>
             </div>
           </div>
@@ -246,7 +247,7 @@ export default function MilestoneShopPage() {
 
             <img
               src="/images/milestone.png"
-              alt="Milestone-Kristall"
+              alt={t('crystal')}
               className="relative z-10 h-[300px] w-[300px] object-contain drop-shadow-[0_0_55px_rgba(47,207,217,0.22)] md:h-[480px] md:w-[480px]"
             />
 
@@ -255,7 +256,7 @@ export default function MilestoneShopPage() {
                 The Milestone
               </p>
               <p className="mt-2 text-xs text-slate-500">
-                Die Währung deiner Wanderleistung
+                {t('currency')}
               </p>
             </div>
           </div>
@@ -278,7 +279,7 @@ export default function MilestoneShopPage() {
 
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    Dein Milestone-Guthaben
+                    {t('balance')}
                   </p>
 
                   <div className="mt-2 flex items-baseline gap-3">
@@ -300,8 +301,8 @@ export default function MilestoneShopPage() {
 
                   <p className="mt-3 text-sm text-slate-400">
                     {isLoggedIn
-                      ? 'Gesammelt durch deine verifizierten Wanderleistungen.'
-                      : 'Melde dich an, um dein persönliches Guthaben zu sehen.'}
+                      ? t('verification')
+                      : t('signInBalance')}
                   </p>
                 </div>
               </div>
@@ -312,14 +313,14 @@ export default function MilestoneShopPage() {
                     href="/account"
                     className="rounded-xl border border-white/20 bg-white/[0.05] px-6 py-3 text-sm font-semibold transition hover:bg-white/10"
                   >
-                    Mein Hiker-Profil
+                    {t('hikerProfile')}
                   </Link>
                 ) : (
                   <Link
                     href="/login"
                     className="rounded-xl bg-[#67DCE8] px-6 py-3 text-sm font-bold text-[#07111a] transition hover:bg-[#8CEAF2]"
                   >
-                    Jetzt anmelden
+                    {t('signIn')}
                   </Link>
                 )}
               </div>
@@ -338,28 +339,26 @@ export default function MilestoneShopPage() {
 
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
-                Milestone Rewards
+                {ui('milestoneRewardsLabel')}
               </p>
 
               <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl">
-                Deine Belohnungen.
+                {t('yourRewards')}
               </h2>
 
               <p className="mt-4 max-w-xl text-slate-400">
-                Entdecke exklusive Prämien unserer Outdoor-Partner.
-                Deine gesammelten Milestones öffnen dir die Tür
-                zu besonderen Belohnungen.
+                {t('rewardsIntro')}
               </p>
             </div>
 
             <div className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 text-xs font-medium text-slate-400">
-              Exklusiv für Ultimate Hiker
+              {t('exclusive')}
             </div>
           </div>
 
           {loading ? (
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-8 py-20 text-center text-slate-400">
-              Belohnungen werden geladen ...
+              {t('loading')}
             </div>
           ) : error ? (
             <div className="rounded-3xl border border-red-400/20 bg-red-400/5 px-8 py-12 text-center text-red-300">
@@ -381,12 +380,11 @@ export default function MilestoneShopPage() {
             </p>
 
             <h3 className="text-2xl font-bold md:text-3xl">
-                Deine Belohnungen.
+                {ui('rewardsBanner')}
             </h3>
 
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-400">
-                Hier findest du die verfügbaren Belohnungen
-                unserer Outdoor-Partner.
+                {t('availableRewards')}
             </p>
 
             </div>
@@ -421,10 +419,10 @@ export default function MilestoneShopPage() {
 
                     <div className="absolute left-5 top-5 rounded-full border border-white/10 bg-black/50 px-4 py-2 text-xs font-semibold backdrop-blur-md">
                       {reward.reward_type === 'product'
-                        ? 'Produkt'
+                        ? t('product')
                         : reward.reward_type === 'discount'
-                          ? 'Rabatt'
-                          : 'Gutschein'}
+                          ? t('discount')
+                          : t('voucher')}
                     </div>
                   </div>
 
@@ -486,16 +484,16 @@ export default function MilestoneShopPage() {
                         }`}
                         >
                         {redeemingRewardId === reward.id
-                            ? 'Einlösung läuft ...'
+                            ? t('redeeming')
                             : reward.reward_type === 'product'
-                            ? 'Noch nicht verfügbar'
+                            ? t('unavailable')
                             : !reward.is_available
-                            ? 'Ausverkauft'
+                            ? t('soldOut')
                             : balance === null
-                            ? 'Guthaben nicht verfügbar'
+                            ? t('balanceUnavailable')
                             : balance < reward.points_cost
-                                ? 'Nicht genügend Milestones'
-                                : 'Belohnung abholen'}
+                                ? t('insufficient')
+                                : t('claim')}
                         </button>
                   </div>
                 </article>
@@ -510,11 +508,11 @@ export default function MilestoneShopPage() {
                     {redeemedVoucherCode && (
                     <div className="rounded-3xl border border-cyan-400/30 bg-[#122831] p-8 text-center">
                         <h3 className="text-2xl font-bold text-cyan-300">
-                        Belohnung erfolgreich eingelöst!
+                        {t('redeemed')}
                         </h3>
 
                         <p className="mt-4 text-sm text-slate-300">
-                        Dein Gutscheincode lautet:
+                        {t('yourCode')}
                         </p>
 
                         <div className="mx-auto mt-5 max-w-md rounded-xl border border-cyan-400/30 bg-[#080d16] px-6 py-5">
@@ -524,7 +522,7 @@ export default function MilestoneShopPage() {
                         </div>
 
                         <p className="mt-4 text-sm text-slate-400">
-                        Die Milestones wurden von deinem Guthaben abgezogen.
+                        {t('debited')}
                         </p>
                     </div>
                     )}
@@ -532,7 +530,7 @@ export default function MilestoneShopPage() {
                     {redemptionError && (
                     <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-6 text-center">
                         <p className="font-semibold text-red-300">
-                        Einlösung fehlgeschlagen
+                        {t('failed')}
                         </p>
 
                         <p className="mt-2 text-sm text-red-200">
@@ -544,8 +542,8 @@ export default function MilestoneShopPage() {
                 )}
 
         <div className="mx-auto max-w-7xl px-5 pb-12 md:px-10">
-          <Link href="/milestone-shop/regeln" className="text-sm font-semibold text-cyan-300 underline underline-offset-4">Milestone-Regeln und Hinweise zur Einlösung lesen →</Link>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Für die Einlösung beim Händler und dessen Gutscheinleistung ist der im Angebot genannte Händler verantwortlich. ULTIMATE verwaltet deine Milestones und die Codezuteilung.</p>
+          <Link href="/milestone-shop/regeln" className="text-sm font-semibold text-cyan-300 underline underline-offset-4">{t('readRules')}</Link>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{t('partnerResponsibility')}</p>
         </div>
 
         {/* SO FUNKTIONIERT'S */}
@@ -557,16 +555,15 @@ export default function MilestoneShopPage() {
 
             <div className="mb-14 text-center">
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
-                Das Milestone-System
+                {t('system')}
               </p>
 
               <h2 className="text-3xl font-extrabold md:text-5xl">
-                Wandern lohnt sich.
+                {t('hikingPays')}
               </h2>
 
               <p className="mx-auto mt-5 max-w-2xl text-slate-400">
-                Drei einfache Schritte von deiner Wanderung
-                bis zu deiner nächsten Belohnung.
+                {t('threeSteps')}
               </p>
             </div>
 
@@ -575,21 +572,21 @@ export default function MilestoneShopPage() {
               {[
                 {
                   number: '01',
-                  title: 'Wandern',
+                  title: t('hike'),
                   description:
-                    'Sammle Kilometer und erreiche neue persönliche Meilensteine.',
+                    t('hikeExplanation'),
                 },
                 {
                   number: '02',
-                  title: 'Milestones sammeln',
+                  title: t('earn'),
                   description:
-                    'Für deine verifizierten Wanderleistungen erhältst du Milestones.',
+                    t('earnExplanation'),
                 },
                 {
                   number: '03',
-                  title: 'Belohnung abholen',
+                  title: t('claim'),
                   description:
-                    'Tausche deine Milestones gegen Prämien unserer Outdoor-Partner.',
+                    t('redeemExplanation'),
                 },
               ].map((step) => (
                 <div

@@ -63,7 +63,7 @@ export function mergeGarminMetrics(
 
 export type GarminInboxActivity = Pick<ReturnType<typeof mergeGarminMetrics>,
   'name' | 'device' | 'manual' | 'isWebUpload' | 'distanceKm' | 'ascent' | 'startTimeInSeconds' | 'elapsed' | 'eligibility'> &
-  { id: string; reviewKey: string; publishable: boolean; publicationIssue: string | null }
+  { id: string; reviewKey: string; publishable: boolean; privateOnly: boolean; publicationIssue: string | null }
 
 export function garminSourceSnapshot(
   row: { summary: GarminMetrics; details: GarminMetrics; file_metrics: GarminMetrics },
@@ -98,7 +98,7 @@ function verifiedSnapshot(
   const distanceKm = roundGarminMeasurement(rawDistance, 2)
   const ascent = roundGarminMeasurement(rawAscent, 0)
   const elapsedSeconds = review ? privateElapsedSeconds(summary, file, review) : undefined
-  if (type !== 'HIKING' || !summary.device?.trim() ||
+  if ((type !== 'HIKING' && type !== 'WALKING') || !summary.device?.trim() ||
       [summary, details, file].some(source => source.manual === true || source.isWebUpload === true ||
         (source.type != null && !garminHikingTypes.has(source.type))) ||
       file.warnings?.length ||

@@ -1,6 +1,5 @@
-'use client'
-
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import Link from '@/i18n/prototype/LocalizedLink'
 import BrandHeader from '../components/BrandHeader'
 
 function Section({
@@ -34,6 +33,8 @@ function RuleList({ items }: { items: React.ReactNode[] }) {
 }
 
 export default function RulesPage() {
+  const t = useTranslations('leagueRules')
+  const ui = useTranslations('ui')
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
       <section
@@ -52,22 +53,20 @@ export default function RulesPage() {
             href="/"
             className="inline-block text-sm text-stone-300 transition hover:text-white"
           >
-            ← Zurück
+            {t('back')}
           </Link>
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
             <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">
-              Liga
+              {t('league')}
             </div>
 
             <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Ligaregeln
+              {t('title')}
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">
-              Transparent, fair und nachvollziehbar: So werden Records,
-              Divisionen, Rankings und Saisons in der Ultimate European Hiking
-              League gewertet.
+              {t('intro')}
             </p>
           </div>
         </div>
@@ -75,302 +74,243 @@ export default function RulesPage() {
 
       <section className="px-6 py-10 md:px-10 md:py-12">
         <div className="mx-auto max-w-5xl space-y-6">
-          <Section title="1. Grundprinzip der Liga">
+          <Section title={t('principle')}>
             <p>
-              Die Ultimate European Hiking League ist eine dauerhafte Rangliste
-              für Langstreckenwanderer.
+              {t('permanentRanking')}
             </p>
             <p>
-              Die allgemeine Platzierung basiert ausschließlich auf den
-              insgesamt gesammelten Kilometern.
+              {t('placementDistanceOnly')}
             </p>
             <p>
-              Die Divisionen dienen der Einordnung des Leistungsprofils, nicht
-              der Platzierung im Overall Ranking.
+              {t('divisionsDescribeProfile')}
             </p>
           </Section>
 
-          <Section title="2. Saisonmodell">
+          <Section title={t('seasonModel')}>
             <RuleList
               items={[
-                <>Eine Saison entspricht dem Kalenderjahr.</>,
-                <>Saisonstart ist der 01.01.</>,
-                <>Saisonende ist der 31.12.</>,
-                <>Zum Start einer neuen Saison wird die Saisonwertung zurückgesetzt.</>,
-                <>Vergangene Saisons bleiben archiviert und sollen langfristig im Profil sichtbar bleiben.</>,
+                <>{t('calendarYear')}</>,
+                <>{t('seasonStart')}</>,
+                <>{t('seasonEnd')}</>,
+                <>{t('seasonReset')}</>,
+                <>{t('seasonArchives')}</>,
               ]}
             />
           </Section>
 
-          <Section title="3. Was ist ein gültiger Record?">
-            <p>Ein Record ist eine dokumentierte Wanderung eines Teilnehmers.</p>
+          <Section title={t('validRecord')}>
+            <p>{t('recordDefinition')}</p>
 
-            <p className="font-semibold text-white">Pflichtdaten eines Records</p>
+            <p className="font-semibold text-white">{t('requiredFields')}</p>
             <RuleList
               items={[
-                <>Name des Wanderers</>,
-                <>Datum der Wanderung</>,
-                <>Distanz in Kilometern</>,
+                <>{t('hikerName')}</>,
+                <>{t('hikeDate')}</>,
+                <>{t('kilometres')}</>,
               ]}
             />
 
-            <p className="font-semibold text-white">Weitere wichtige Angaben</p>
+            <p className="font-semibold text-white">{t('extraFields')}</p>
             <RuleList
               items={[
-                <>Gesamtzeit der Wanderung</>,
-                <>Höhenmeter</>,
-                <>Land</>,
-                <>Event / Veranstaltungsname</>,
-                <>Quelle oder Nachweis</>,
+                <>{t('elapsedTime')}</>,
+                <>{t('elevation')}</>,
+                <>{t('country')}</>,
+                <>{t('eventName')}</>,
+                <>{t('source')}</>,
               ]}
             />
 
-            <p className="font-semibold text-white">Mindestanforderung</p>
+            <p className="font-semibold text-white">{t('minimum')}</p>
             <RuleList
               items={[
-                <>Ein Record zählt grundsätzlich ab 10 km.</>,
+                <>{t('minimumDistance')}</>,
                 <>
-                  Unter 10 km wird ein Record nur gewertet, wenn mindestens
-                  600 Höhenmeter erreicht wurden.
+                  {t('minimumElevation')}
                 </>,
               ]}
             />
           </Section>
 
-          <Section title="4. Private Wanderungen">
+          <Section title={t('privateHikes')}>
             <p>
-              Private Wanderungen sind ausdrücklich zugelassen und zählen für
-              die Gesamtkilometer eines Teilnehmers.
+              {t('privateHikesAllowed')}
             </p>
 
-            <p className="font-semibold text-white">Voraussetzungen</p>
+            <p className="font-semibold text-white">{t('requirements')}</p>
             <RuleList
               items={[
-                <>Ein privater Hike benötigt einen GPS-Track als Nachweis.</>,
-                <>Die Wanderung muss mit vollständigen und plausiblen Daten eingereicht werden.</>,
+                <>{t('privateGpsEvidence')}</>,
+                <>{t('privateData')}</>,
               ]}
             />
 
-            <p className="font-semibold text-white">Wichtig</p>
+            <p className="font-semibold text-white">{t('important')}</p>
             <RuleList
               items={[
-                <>Private Wanderungen zählen für das Overall Ranking.</>,
-                <>Private Wanderungen zählen nicht für die Divisionseinstufung.</>,
-                <>Private Wanderungen zählen nicht für Aufstieg oder Abstieg zwischen Divisionen.</>,
+                <>{t('privateOverall')}</>,
+                <>{t('privateClassification')}</>,
+                <>{t('privatePromotion')}</>,
               ]}
             />
           </Section>
 
-          <Section title="5. Offizielle Events">
+          <Section title={t('officialEvents')}>
             <p>
-              Offizielle Events sind die Grundlage für die Leistungsbewertung
-              innerhalb der Divisionen.
+              {t('officialEventsAssessPerformance')}
             </p>
 
-            <p className="font-semibold text-white">Wichtig</p>
+            <p className="font-semibold text-white">{ui('rulesHighlight')}</p>
             <RuleList
               items={[
-                <>Nur Event-Ergebnisse werden für die Divisionsbewertung herangezogen.</>,
-                <>Private Wanderungen haben keinen Einfluss auf die Division.</>,
+                <>{t('onlyEventResults')}</>,
+                <>{t('privateNoImpact')}</>,
                 <>
-                  Bei offiziellen Events muss ein GPS-Track mindestens 97 % der
-                  geforderten offiziellen Distanz erfüllen, sofern ein Track als
-                  Nachweis genutzt wird.
+                  {t('officialTrackThreshold')}
                 </>,
               ]}
             />
           </Section>
 
-          <Section title="6. Zeitwertung">
+          <Section title={t('timeScoring')}>
             <p>
-              Für jede Geschwindigkeitsberechnung zählt ausschließlich die echte
-              Gesamtzeit der Wanderung von Start bis Ziel.
+              {t('elapsedTimeOnly')}
             </p>
 
             <RuleList
               items={[
-                <>Moving Time zählt nicht.</>,
-                <>Aktive Gehzeit zählt nicht.</>,
-                <>Bereinigte Zeiten ohne Pausen zählen nicht.</>,
+                <>{t('movingTime')}</>,
+                <>{t('walkingTime')}</>,
+                <>{t('adjustedTime')}</>,
                 <>
-                  Für die Divisionsberechnung werden nur Events mit bestätigter
-                  Gesamtzeit berücksichtigt.
+                  {t('confirmedEventTimes')}
                 </>,
               ]}
             />
           </Section>
 
-          <Section title="7. Divisionen und km/h-Grenzen">
+          <Section title={t('divisionThresholds')}>
             <p>
-              Die Divisionen werden nach der durchschnittlichen Geschwindigkeit
-              offizieller Event-Ergebnisse mit bestätigter Gesamtzeit eingeteilt.
+              {t('confirmedAverage')}
             </p>
 
             <RuleList
               items={[
                 <>
-                  <strong>Silver Division:</strong> 0,00 bis 4,79 km/h
+                  <strong>Silver</strong> {t('silverRange')}
                 </>,
                 <>
-                  <strong>Gold Division:</strong> 4,80 bis 5,79 km/h
+                  <strong>Gold</strong> {t('goldRange')}
                 </>,
                 <>
-                  <strong>Platinum Division:</strong> 5,80 bis 7,50 km/h
+                  <strong>Platinum</strong> {t('platinumRange')}
                 </>,
               ]}
             />
 
-            <p>
-              Neue Teilnehmer oder Teilnehmer ohne ausreichend bestätigte
-              Event-Zeiten werden standardmäßig der Silver Division zugeordnet.
-            </p>
+            <p>{t('speedFormula')}</p>
+            <p>{t('eventTierAndProfile')}</p>
+            <p>{t('defaultSilver')}</p>
           </Section>
 
-          <Section title="8. Rolling-Berechnung der Division">
-            <p>
-              Die Division eines Teilnehmers wird dynamisch anhand der letzten
-              offiziellen Event-Ergebnisse berechnet.
-            </p>
-
-            <p className="font-semibold text-white">Grundregel</p>
+          <Section title={t('rollingCalculation')}>
+            <p>{t('dynamicDivision')}</p>
+            <p className="font-semibold text-white">{t('basicRule')}</p>
             <RuleList
               items={[
-                <>
-                  Verwendet werden nur offizielle Events mit bestätigter
-                  Gesamtzeit.
-                </>,
-                <>Private Wanderungen werden nicht berücksichtigt.</>,
-                <>
-                  Grundlage für die laufende Bewertung sind die letzten 3
-                  offiziellen Events.
-                </>,
-                <>
-                  Formel: Geschwindigkeit = Distanz ÷ Gesamtzeit
-                </>,
-                <>
-                  Rolling-Wert = Durchschnitt der Geschwindigkeiten der letzten
-                  3 offiziellen Events
-                </>,
+                t('rollingConfirmedTime'),
+                t('rollingPrivateExcluded'),
+                t('rollingEventTier'),
+                t('rollingThreeEvents'),
+                t('rollingFiveEvents'),
+                t('rollingOrder'),
               ]}
             />
+            <p className="font-semibold text-white">{t('rollingFormula')}</p>
           </Section>
 
-          <Section title="9. Aufstieg und Abstieg">
-            <p className="font-semibold text-white">Aufstieg</p>
-            <RuleList
-              items={[
-                <>
-                  Ein Aufstieg ist ab mindestens 3 offiziellen
-                  Event-Ergebnissen möglich.
-                </>,
-                <>
-                  Der Durchschnitt der letzten 3 offiziellen Events muss über
-                  der Schwelle der nächsthöheren Division liegen.
-                </>,
-                <>
-                  Beispiel: Für den Aufstieg von Silver nach Gold muss der
-                  Rolling-Durchschnitt mindestens 4,80 km/h betragen.
-                </>,
-                <>
-                  Für den Aufstieg von Gold nach Platinum muss der
-                  Rolling-Durchschnitt mindestens 5,80 km/h betragen.
-                </>,
-              ]}
-            />
+          <Section title={t('divisionMovement')}>
+            <h3 className="font-semibold text-white">{t('promotion')}</h3>
+            <p>{t('promotionThreeResults')}</p>
+            <RuleList items={[t('silverToGold'), t('goldToPlatinum')]} />
+            <p>{t('promotionExample')}</p>
 
-            <p className="font-semibold text-white">Abstieg</p>
-            <RuleList
-              items={[
-                <>
-                  Ein Abstieg wird erst geprüft, wenn mindestens 5 offizielle
-                  Event-Ergebnisse vorhanden sind.
-                </>,
-                <>
-                  Dann wird der Durchschnitt der letzten 5 offiziellen Events
-                  betrachtet.
-                </>,
-                <>
-                  Liegt dieser Durchschnitt unter der Mindestgrenze der
-                  aktuellen Division, erfolgt eine Rückstufung.
-                </>,
-                <>
-                  Beispiel: Fällt ein Gold-Hiker unter 4,80 km/h, droht der
-                  Abstieg in Silver.
-                </>,
-                <>
-                  Fällt ein Platinum-Hiker unter 5,80 km/h, droht der Abstieg
-                  in Gold.
-                </>,
-              ]}
-            />
+            <h3 className="font-semibold text-white">{t('relegation')}</h3>
+            <p>{t('relegationFiveResults')}</p>
+            <RuleList items={[t('platinumToGold'), t('goldToSilver')]} />
+            <p>{t('relegationInterrupted')}</p>
+
+            <h3 className="font-semibold text-white">{t('movementGeneral')}</h3>
+            <p>{t('movementStep')}</p>
           </Section>
 
-          <Section title="10. Ranking in der Liga">
+          <Section title={t('rankings')}>
             <p>
-              Das Ranking – sowohl Overall als auch innerhalb einer Division –
-              basiert ausschließlich auf den insgesamt gelaufenen Kilometern.
+              {t('rankDistanceOnly')}
             </p>
 
             <RuleList
               items={[
-                <>Geschwindigkeit beeinflusst nicht den Rangplatz.</>,
-                <>Geschwindigkeit beeinflusst nur die Division.</>,
-                <>Ein Silver-Hiker kann deshalb im Overall Ranking vor einem Platinum-Hiker stehen.</>,
+                <>{t('speedAndRank')}</>,
+                <>{t('speedAndDivision')}</>,
+                <>{t('silverBeforePlatinum')}</>,
               ]}
             />
           </Section>
 
-          <Section title="11. Event-Struktur">
+          <Section title={t('eventStructure')}>
             <RuleList
               items={[
-                <>Ein Event wird über Eventname, Datum, Ort und offizielle Distanz definiert.</>,
-                <>Unterschiedliche Distanzen eines Events gelten als eigenständige Eventvarianten.</>,
+                <>{t('eventDefinition')}</>,
+                <>{t('eventVariants')}</>,
               ]}
             />
           </Section>
 
-          <Section title="12. Skyscraper-Ranking">
+          <Section title={t('skyscraper')}>
             <p>
-              Zusätzlich zur kilometerbasierten Hauptliga existiert eine
-              Skyscraper-Wertung für Höhenmeter.
+              {t('skyscraperSeparate')}
             </p>
 
             <RuleList
               items={[
-                <>Gezählt wird die Summe aller plausibel erfassten Höhenmeter.</>,
-                <>Ein Teilnehmer wird ab insgesamt 1500 Höhenmetern innerhalb einer Saison sichtbar.</>,
-                <>Das Skyscraper-Ranking basiert ausschließlich auf Höhenmetern.</>,
-                <>Kilometer und km/h beeinflussen das Skyscraper-Ranking nicht.</>,
-                <>Skyscraper läuft parallel zu Silver, Gold und Platinum.</>,
+                <>{t('elevationSum')}</>,
+                <>{t('elevationVisibility')}</>,
+                <>{t('elevationOnly')}</>,
+                <>{t('distanceSpeedExcluded')}</>,
+                <>{t('skyscraperParallel')}</>,
               ]}
             />
           </Section>
 
-          <Section title="13. Profile claimen und Daten ergänzen">
+          <Section title={t('claims')}>
             <p>
-              Teilnehmer können bestehende Profile beanspruchen und mit ihrem
-              eigenen Account verknüpfen.
+              {t('linkProfile')}
             </p>
 
             <RuleList
               items={[
-                <>Für einen Claim können Vor- und Nachname, Datum, Ort und Distanz eines Events abgefragt werden.</>,
-                <>Als Nachweis können GPS-Track oder personifizierte Finisher-Nachweise verlangt werden.</>,
-                <>Nach erfolgreichem Claim können Records ergänzt, Profilinformationen erweitert und Zuordnungen korrigiert werden.</>,
+                <>{t('claimDetails')}</>,
+                <>{t('claimEvidence')}</>,
+                <>{t('afterClaim')}</>,
               ]}
             />
           </Section>
 
-          <Section title="14. Fairness und Prüfung">
+          <Section title={t('fairness')}>
             <RuleList
               items={[
-                <>Alle Daten müssen korrekt, vollständig und plausibel sein.</>,
-                <>Unplausible oder manipulierte Einreichungen können abgelehnt oder entfernt werden.</>,
-                <>Claims, Nachweise und Korrekturen können manuell geprüft werden.</>,
-                <>Manuell eingereichte Wanderungen benötigen einen Nachweis und die Freigabe durch das Prüfteam.</>,
-                <>Sobald die Veröffentlichung aus Garmin freigeschaltet ist, können verifizierbare Geräteaufzeichnungen nach automatischer Prüfung und ausdrücklicher Bestätigung gewertet werden.</>,
-                <>Dieselbe Wanderung darf nur einmal zur Wertung eingereicht werden. Das gilt auch bei unterschiedlichen Nachweiswegen. Beziehe dich bei einer Berichtigung auf die bestehende Einreichung.</>,
-                <>Ziel der Liga ist ein faires, transparentes und nachvollziehbares Bewertungssystem.</>,
+                <>{t('correctData')}</>,
+                <>{t('rejectManipulation')}</>,
+                <>{t('manualReview')}</>,
+                <>{t('submissionMethods')}</>,
+                <>{t('evidenceReview')}</>,
+                <>{t('manualApproval')}</>,
+                <>{t('garminPrivateVerification')}</>,
+                <>{t('garminEventApproval')}</>,
+                <>{t('garminConnection')}</>,
+                <>{t('oneSubmission')}</>,
+                <>{t('fairnessGoal')}</>,
               ]}
             />
           </Section>

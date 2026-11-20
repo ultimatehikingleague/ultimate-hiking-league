@@ -1,9 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { LiveBrandPlacement } from '../../components/PartnerPlacements'
-import Link from 'next/link'
-import { supabase } from '../../lib/supabase'
+import { formatRankingDistance } from '../../../i18n/display'
+import { useEffect, useMemo, useState } from 'react'
+import Link from '@/i18n/prototype/LocalizedLink'
+import { fetchDistanceRanking, rankingResult } from '../../lib/rankings'
+import { getSeasonYear, SEASON_RANKINGS_START } from '../../lib/season'
+import SeasonRefresh from '../../components/SeasonRefresh'
 import BrandHeader from '../../components/BrandHeader'
 import BackToHomeButton from '../../components/BackToHomeButton'
 
@@ -17,8 +21,6 @@ type RankedUser = {
 }
 
 const PAGE_SIZE = 50
-const CURRENT_YEAR = new Date().getFullYear()
-const USE_SEASON_RANKING = new Date() >= new Date('2027-01-01T00:00:00')
 
 function countryToFlag(countryCode: string | null) {
   if (!countryCode) return '—'
@@ -62,112 +64,29 @@ function getPageNumbers(currentPage: number, totalPages: number) {
   return pages
 }
 
-async function fetchAllPlatinumHikers() {
-  const pageSize = 1000
-  let from = 0
-  let allRows: any[] = []
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('hikers')
-      .select('id, display_name, country, division, total_km')
-      .eq('division', 'platinum')
-      .eq('profile_status', 'active')
-      .order('total_km', { ascending: false })
-      .range(from, from + pageSize - 1)
-
-    if (error || !data || data.length === 0) {
-      break
-    }
-
-    allRows = allRows.concat(data)
-
-    if (data.length < pageSize) {
-      break
-    }
-
-    from += pageSize
-  }
-
-  if (!USE_SEASON_RANKING || allRows.length === 0) {
-    return allRows
-  }
-
-  const hikerIds = allRows.map((hiker) => hiker.id)
-
-  const { data: seasonStats, error: seasonError } = await supabase
-    .from('hiker_season_stats')
-    .select('hiker_id, season_km')
-    .eq('season_year', CURRENT_YEAR)
-    .in('hiker_id', hikerIds)
-
-  if (seasonError) {
-    console.error('Platinum season stats load error:', seasonError)
-    return []
-  }
-
-  const seasonKmByHiker = new Map(
-    (seasonStats ?? []).map((row) => [
-      row.hiker_id,
-      typeof row.season_km === 'number' ? row.season_km : 0,
-    ])
-  )
-
-  return allRows.map((hiker) => ({
-    ...hiker,
-    total_km: seasonKmByHiker.get(hiker.id) ?? 0,
-  }))
-}
-
 export default function PlatinumPage() {
-  const [users, setUsers] = useState<RankedUser[]>([])
-  const [loading, setLoading] = useState(true)
+  const t = useTranslations('ui')
+  const locale = useLocale()
+  const year = getSeasonYear()
+  const useSeason = year >= SEASON_RANKINGS_START
+  const rankingKey = useSeason ? year : 0
+  const [result, setResult] = useState<{ key: number; rows: RankedUser[] | null } | null>(null)
+  const currentResult = result?.key === rankingKey ? result : null
+  const users = useMemo(() => currentResult?.rows ?? [], [currentResult])
+  const loading = currentResult === null
+  const failed = currentResult?.rows === null
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const hikers = await fetchAllPlatinumHikers()
-
-        if (!hikers || hikers.length === 0) {
-          setLoading(false)
-          return
-        }
-
-        const rankedUsers: RankedUser[] = hikers
-          .map((h) => ({
-            id: h.id,
-            display_name: h.display_name,
-            country: h.country,
-            division: h.division,
-            total_km:
-              typeof h.total_km === 'number' && !Number.isNaN(h.total_km)
-                ? h.total_km
-                : 0,
-            rank: 0,
-          }))
-          .filter((u) => USE_SEASON_RANKING || u.total_km > 0)
-          .sort((a, b) => b.total_km - a.total_km)
-          .map((u, index) => ({
-            ...u,
-            rank: index + 1,
-          }))
-
-        setUsers(rankedUsers)
-      } catch (error) {
-        console.error('Platinum ranking load error:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void loadData()
-  }, [])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchQuery])
+    let cancelled = false
+    void rankingResult('Platinum', fetchDistanceRanking(useSeason ? year : undefined, 'platinum')).then(ranking => {
+      if (cancelled) return
+      setResult({ key: rankingKey, rows: ranking })
+      setCurrentPage(1)
+    })
+    return () => { cancelled = true }
+  }, [rankingKey, useSeason, year])
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -193,6 +112,7 @@ export default function PlatinumPage() {
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
+      <SeasonRefresh />
       <section
         className="relative overflow-hidden border-b border-white/10"
         style={{
@@ -208,9 +128,7 @@ export default function PlatinumPage() {
           <Link
             href="/division"
             className="inline-block text-sm text-stone-300 transition hover:text-white"
-          >
-            ← Zurück zu Divisionen
-          </Link>
+          >{t("backToDivisions")}</Link>
 
           <div className="mt-2">
             <BackToHomeButton />
@@ -225,9 +143,7 @@ export default function PlatinumPage() {
               Platinum Division
             </h1>
 
-            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">
-              Ambitionierte Hiker mit hoher Aktivität. Fokus liegt auf Kontinuität und stetigem Fortschritt über viele Kilometer hinweg.
-            </p>
+            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">{t("platinumDescription")}</p>
           </div>
         </div>
       </section>
@@ -237,44 +153,43 @@ export default function PlatinumPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Platinum Ranking</h2>
-              <p className="mt-1 text-sm text-stone-400">
-                50 Hiker pro Seite. Bei der Suche bleibt der echte Rang sichtbar.
-              </p>
+              <h2 className="text-2xl font-bold text-white">{t('divisionRankingLabel', { division: 'Platinum' })}</h2>
+              <p className="mt-1 text-sm text-stone-400">{t("paginationHint")}</p>
             </div>
 
             <div className="w-full md:w-[340px]">
-              <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">
-                Hiker suchen
-              </label>
+              <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">{t("searchHikers")}</label>
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Name eingeben…"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
+                placeholder={t("namePlaceholder")}
                 className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-white/[0.06]"
               />
             </div>
           </div>
 
           <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-stone-500">
-            <span>Platinum</span>
+            <span>{useSeason ? t('seasonRanking', { year }) : 'Platinum'}</span>
             <span>
               {isSearchMode
-                ? `${filteredUsers.length} Treffer`
-                : `${users.length} Hiker · Seite ${currentPage} / ${totalPages}`}
+                ? t('found', { count: filteredUsers.length })
+                : `${t('numberOfHikers', { count: users.length })} · ${t('pageOf', { current: currentPage, count: totalPages })}`}
             </span>
           </div>
 
           <div className="space-y-3">
             {loading ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">
-                Lade Rangliste…
-              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">{t("loadingDivision")}</div>
+            ) : failed ? (
+              <p role="status" className="text-sm text-stone-400">{t('rankingUnavailable')}</p>
+            ) : users.length === 0 ? (
+              <p className="text-sm text-stone-400">{t('rankingEmpty')}</p>
             ) : paginatedUsers.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">
-                Keine passenden Hiker gefunden.
-              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">{t("noHikers")}</div>
             ) : (
               paginatedUsers.map((user) => (
                 <div
@@ -302,7 +217,7 @@ export default function PlatinumPage() {
 
                   <div className="text-right">
                     <div className="text-lg font-bold text-white">
-                      {user.total_km} km
+                      {formatRankingDistance(user.total_km, locale)} km
                     </div>
                     <div className="text-xs text-stone-400">platinum</div>
                   </div>
@@ -318,9 +233,7 @@ export default function PlatinumPage() {
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/[0.06]"
-              >
-                Zurück
-              </button>
+              >{t("back")}</button>
 
               {pageNumbers.map((page, index) =>
                 page < 0 ? (
@@ -353,9 +266,7 @@ export default function PlatinumPage() {
                 }
                 disabled={currentPage === totalPages}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/[0.06]"
-              >
-                Weiter
-              </button>
+              >{t("next")}</button>
             </div>
           ) : null}
         </div>

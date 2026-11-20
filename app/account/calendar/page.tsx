@@ -1,7 +1,9 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
+import { formatDistanceKm } from '../../lib/activity/display'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
 import {
   CalendarDays,
   Clock3,
@@ -47,7 +49,7 @@ function countryToFlag(countryCode: string | null) {
   )
 }
 
-function getEventCountdown(eventDate: string | null) {
+function getEventCountdown(eventDate: string | null, t: ReturnType<typeof useTranslations<'accountCalendar'>>) {
   if (!eventDate) return '—'
 
   const event = new Date(eventDate)
@@ -59,15 +61,18 @@ function getEventCountdown(eventDate: string | null) {
   const difference = event.getTime() - today.getTime()
   const days = Math.ceil(difference / (1000 * 60 * 60 * 24))
 
-  if (days > 1) return `Noch ${days} Tage`
-  if (days === 1) return 'Noch 1 Tag'
-  if (days === 0) return 'Heute'
-  if (days === -1) return 'Gestern'
+  if (days > 1) return t('daysLeft', { count: days })
+  if (days === 1) return t('oneDayLeft')
+  if (days === 0) return t('today')
+  if (days === -1) return t('yesterday')
 
-  return `Vor ${Math.abs(days)} Tagen`
+  return t('daysAgo', { count: Math.abs(days) })
 }
 
 export default function PersonalCalendarPage() {
+  const t = useTranslations('accountCalendar')
+  const locale = useLocale()
+
 
 const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
 const [loading, setLoading] = useState(true)
@@ -262,43 +267,42 @@ const [eventDistances, setEventDistances] = useState<
                                 href="/"
                                 className="text-sm text-stone-400 transition hover:text-white"
                             >
-                                ← Zur Startseite
+                                {t('backToTheHomepage')}
                             </Link>
 
                             <Link
                                 href="/account"
                                 className="text-sm text-stone-400 transition hover:text-white"
                             >
-                                Zu meinem Profil
+                                {t('goToMyProfile')}
                             </Link>
 
                             <Link
                                 href="/events"
                                 className="text-sm text-stone-400 transition hover:text-white"
                             >
-                                Events entdecken
+                                {t('exploreEvents')}
                             </Link>
                             </div>
 
                         <div className="mt-8">
                         <div className="text-xs font-medium uppercase tracking-[0.22em] text-stone-500">
-                            Persönlicher Eventkalender
+                            {t('personalEventCalendar')}
                         </div>
 
                         <h1 className="mt-2 text-3xl font-bold text-white md:text-4xl">
-                            Mein Kalender
+                            {t('myCalendar')}
                         </h1>
 
                         <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-400">
-                            Hier findest du die Events, die du geplant hast oder für die du
-                            bereits angemeldet bist.
+                            {t('hereYouCanFindEventsYou')}
                         </p>
                         </div>
 
                         {loading ? (
                         <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 md:p-8">
                             <div className="text-sm text-stone-400">
-                            Kalender wird geladen…
+                            {t('loadingCalendar')}
                             </div>
                         </div>
                         ) : visibleCalendarEvents.length > 0 ? (
@@ -310,7 +314,7 @@ const [eventDistances, setEventDistances] = useState<
                                     eventDistances[item.event_master_id]
                                         ?.map(
                                         (distance) =>
-                                            distance.label ?? `${distance.distance_km} km`
+                                            distance.label ?? `${formatDistanceKm(distance.distance_km) ?? '—'} km`
                                         )
                                         .join(' / ') ?? '—'
 
@@ -332,7 +336,7 @@ const [eventDistances, setEventDistances] = useState<
                             </span>
 
                             <h2 className="text-2xl font-bold text-white md:text-3xl">
-                            {event?.city ?? 'Event'}
+                            {event?.city ?? ((locale === 'pl' || locale === 'it' || locale === 'es' || locale === 'cs') ? t('event') : 'Event')}
                             </h2>
 
                             <span
@@ -348,7 +352,7 @@ const [eventDistances, setEventDistances] = useState<
                                             : 'rgb(96 165 250)',
                                 }}
                             >
-                                {item.status === 'registered' ? 'Angemeldet' : 'Geplant'}
+                                {item.status === 'registered' ? t('registered') : t('planned')}
                             </span>
                         </div>
 
@@ -368,7 +372,7 @@ const [eventDistances, setEventDistances] = useState<
 
                             <div className="min-w-0">
                             <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                                Veranstaltung
+                                {t('event')}
                             </div>
 
                             <div className="mt-1 text-lg font-semibold text-white">
@@ -384,7 +388,7 @@ const [eventDistances, setEventDistances] = useState<
 
                             <div className="min-w-0">
                             <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                                Veranstalter
+                                {t('organiser')}
                             </div>
 
                             <div className="mt-1 text-lg font-semibold text-white">
@@ -400,12 +404,12 @@ const [eventDistances, setEventDistances] = useState<
 
                             <div>
                             <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                                Datum
+                                {t('date')}
                             </div>
 
                             <div className="mt-1 text-lg font-semibold text-white">
                                 {event?.event_date
-                                ? new Date(event.event_date).toLocaleDateString('de-DE')
+                                ? new Date(event.event_date).toLocaleDateString((locale === 'pl' || locale === 'it' || locale === 'es' || locale === 'cs') ? locale : 'de-DE')
                                 : '—'}
                             </div>
                             </div>
@@ -418,7 +422,7 @@ const [eventDistances, setEventDistances] = useState<
 
                             <div>
                                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                                    Distanzen
+                                    {t('distances')}
                                 </div>
 
                                 <div className="mt-1 text-lg font-semibold text-white">
@@ -434,15 +438,15 @@ const [eventDistances, setEventDistances] = useState<
 
                             <div>
                                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                                    Noch
+                                    {t('timeRemaining')}
                                 </div>
 
                                 <div className="mt-1 text-lg font-semibold text-white">
-                                    {getEventCountdown(event?.event_date ?? null)}
+                                    {getEventCountdown(event?.event_date ?? null, t)}
                                 </div>
 
                                 <div className="text-xs text-stone-500">
-                                    bis zum Event
+                                    {t('untilTheEvent')}
                                 </div>
                             </div>
                         </div>
@@ -454,7 +458,7 @@ const [eventDistances, setEventDistances] = useState<
 
                             <div className="min-w-0 flex-1">
                                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                                    Dein Status
+                                    {t('yourStatus')}
                                 </div>
 
                                 <div
@@ -479,7 +483,7 @@ const [eventDistances, setEventDistances] = useState<
                                                     : 'rgb(120 113 108)',
                                         }}
                                     >
-                                        Geplant
+                                        {t('planned')}
                                     </button>
 
                                     <button
@@ -497,7 +501,7 @@ const [eventDistances, setEventDistances] = useState<
                                                     : 'rgb(120 113 108)',
                                         }}
                                     >
-                                        Angemeldet
+                                        {t('registered')}
                                     </button>
                                 </div>
                             </div>
@@ -512,7 +516,7 @@ const [eventDistances, setEventDistances] = useState<
                             className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-semibold text-stone-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.13] hover:shadow-lg hover:shadow-black/20 active:translate-y-0 active:scale-[0.98]"
                         >
                             <ExternalLink className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                            Event öffnen
+                            {t('viewEvent')}
                         </Link>
                         ) : null}
 
@@ -530,8 +534,8 @@ const [eventDistances, setEventDistances] = useState<
                             >
                                 <Plus className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
                                 {submissionEventId === item.event_master_id
-                                ? 'Formular schließen'
-                                : 'Wanderung hinzufügen'}
+                                ? t('closeForm')
+                                : t('addAHike')}
                             </button>
                             ) : null}
 
@@ -545,7 +549,7 @@ const [eventDistances, setEventDistances] = useState<
                             }}
                         >
                             <Trash2 className="h-4 w-4 text-white transition-transform duration-200 group-hover:scale-110" />
-                            Aus meinem Kalender entfernen
+                            {t('removeFromMyCalendar')}
                         </button>
                     </div>
                     {submissionEventId === item.event_master_id && hikerId ? (
@@ -577,19 +581,18 @@ const [eventDistances, setEventDistances] = useState<
         ) : (
         <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 md:p-8">
             <div className="text-lg font-semibold text-white">
-            Noch keine Events gespeichert
+            {t('noEventsSavedYet')}
             </div>
 
             <p className="mt-2 text-sm text-stone-400">
-            Events kannst du direkt aus dem Eventkalender zu deinem persönlichen
-            Kalender hinzufügen.
+            {t('addEventsToYourPersonalCalendar')}
             </p>
 
             <Link
             href="/events"
             className="mt-5 inline-flex rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:bg-white/10"
             >
-            Events entdecken
+            {t('exploreEvents')}
             </Link>
         </div>
         )}

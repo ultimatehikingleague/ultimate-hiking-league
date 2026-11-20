@@ -1,54 +1,54 @@
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import Link from '@/i18n/prototype/LocalizedLink'
 
 export default function DisclaimerPage() {
+  const t = useTranslations('disclaimer')
+  const ui = useTranslations('ui')
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
       <div className="mx-auto max-w-4xl">
         <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl">
-          Disclaimer
+          {ui('disclaimerLabel')}
         </h1>
 
         <p className="mt-4 text-stone-400">
-          Hinweise zu externen Links und Inhalten Dritter.
+          {t('intro')}
         </p>
 
         <section className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10">
           <div className="space-y-6 text-sm leading-7 text-stone-300">
             <p>
-              Diese Website enthält Links zu externen Websites Dritter, auf deren
-              Inhalte wir keinen Einfluss haben.
+              {t('external')}
             </p>
 
             <p>
-              Für die Inhalte der verlinkten Seiten sind ausschließlich deren
-              jeweilige Betreiber verantwortlich.
+              {t('responsibility')}
             </p>
 
             <p>
-              Zum Zeitpunkt der Verlinkung wurden die externen Inhalte auf mögliche
-              Rechtsverstöße geprüft. Eine permanente inhaltliche Kontrolle der
-              verlinkten Seiten ist jedoch ohne konkrete Anhaltspunkte einer
-              Rechtsverletzung nicht zumutbar.
+              {t('review')}
             </p>
 
             <p>
-              Bei Bekanntwerden von Rechtsverletzungen werden entsprechende Links
-              selbstverständlich umgehend entfernt.
+              {t('removal')}
             </p>
 
             <p>
-              Dies gilt auch für freiwillig hinterlegte externe Profile oder
-              Social-Media-Verlinkungen von Nutzerinnen und Nutzern.
+              {t('profiles')}
             </p>
           </div>
         </section>
+        <section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
+          <h2 className="text-2xl font-bold text-white">{t('internationalUse')}</h2>
+          <p className="mt-4 text-sm leading-7 text-stone-300">{t('applicableLaw')}</p>
+        </section>
         {process.env.NODE_ENV !== 'production' && (
         <section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
-          <h2 className="text-2xl font-bold text-white">Milestone-Shop: Leistungen der Händler</h2>
+          <h2 className="text-2xl font-bold text-white">{t('milestone')}</h2>
           <div className="mt-4 space-y-4 text-sm leading-7 text-stone-300">
-            <p>Für die Einlösung eines Partnercodes und die Erfüllung der im Angebot beschriebenen Gutschein- oder Rabattleistung ist der dort genannte Händler verantwortlich. ULTIMATE Hiking League betreibt das Milestone-System und verwaltet Guthaben und Codezuteilung.</p>
-            <p>Bei technischen Problemen mit dem Milestone-Konto oder der Codezuteilung ist ULTIMATE dein Ansprechpartner. Die gesetzliche Haftung für eigene Pflichtverletzungen und zwingende gesetzliche Ansprüche bleiben unberührt.</p>
-            <p>Weitere Informationen findest du unter <Link href="/milestone-shop/regeln" className="text-white underline underline-offset-4">Milestone-Regeln &amp; Einlösung</Link>.</p>
+            <p>{t('retailer')}</p>
+            <p>{t('support')}</p>
+            <p>{t('rulesLead')} <Link href="/milestone-shop/regeln" className="text-white underline underline-offset-4">{t('rulesLink')}</Link>.</p>
           </div>
         </section>
         )}

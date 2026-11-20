@@ -1,6 +1,10 @@
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import Link from '@/i18n/prototype/LocalizedLink'
 
 export default function FAQPage() {
+  const t = useTranslations('faq')
+  const rules = useTranslations('leagueRules')
+  const ui = useTranslations('ui')
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
       <div className="mx-auto max-w-3xl">
@@ -11,155 +15,145 @@ export default function FAQPage() {
             href="/"
             className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
           >
-            ← Zurück zur Startseite
+            {t('back')}
           </Link>
         </div>
 
-        <h1 className="text-3xl font-bold mb-6">FAQ</h1>
+        <h1 className="text-3xl font-bold mb-6">{ui('navFaqLabel')}</h1>
 
         <p className="mb-8 text-stone-400">
-          Die wichtigsten Fragen zur Ultimate European Hiking League.
+          {t('intro')}
         </p>
 
         <div className="space-y-6">
 
           <div>
-            <h2 className="font-semibold text-lg">Kostet die Teilnahme etwas?</h2>
+            <h2 className="font-semibold text-lg">{t('costQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Nein. Die Teilnahme ist komplett kostenlos.
+              {t('costAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Warum sollte ich meine Wanderungen eintragen?</h2>
+            <h2 className="font-semibold text-lg">{t('whyLogQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Du bekommst dein komplettes Leistungsbild auf einen Blick:
-              Gesamt-km, Höhenmeter, Geschwindigkeit und Entwicklung.
-              Ohne Filter, ohne Rechnerei.
+              {t('whyLogAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Ist das nur ein Vergleich mit anderen?</h2>
+            <h2 className="font-semibold text-lg">{t('comparisonQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Nein. Du vergleichst dich auch mit dir selbst und siehst,
-              wie sich deine Leistung über Zeit entwickelt.
+              {t('comparisonAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Wie kann ich meinen angezeigten Namen von pseudo in bürgerlich ändern?</h2>
+            <h2 className="font-semibold text-lg">{t('displayNameQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Schreibe uns bitte eine E-Mail an ultimatehikingleague@gmail.com
+              {t('displayNameAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Kann ich auch GPX Dateien hochladen?</h2>
+            <h2 className="font-semibold text-lg">{t('gpxQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Nein. Am besten nur Screenshots oder Fotos mit allen relevanten Daten. Bei Events reicht auch eine 
-              personalisierte Finisherurkunde. Wobei hier nur die geforderten Kilometer angerechnet werden.
+              {t('gpxAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Muss ich an offiziellen Events teilnehmen?</h2>
+            <h2 className="font-semibold text-lg">{t('eventsQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Nein. Du kannst auch deine eigenen Wanderungen eintragen.
+              {t('eventsAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Muss ich meine Wanderungen tracken?</h2>
+            <h2 className="font-semibold text-lg">{t('trackingQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Ja, aber du kannst jede App nutzen (Garmin, Komoot, Outdooractive etc.).
+              {t('trackingAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Wie verbinde ich Garmin Connect mit der Ultimate Hiking League?</h2>
+            <h2 className="font-semibold text-lg">{t('garminQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Mit Garmin Connect kannst du deine aufgezeichneten Wanderungen bequem in die Ultimate Hiking League übernehmen – ohne Distanz, Zeit und Höhenmeter selbst eingeben zu müssen.
+              {t('garminAnswer')}
             </p>
-            <p className="text-stone-400 mt-2">So funktioniert’s:</p>
+            <p className="text-stone-400 mt-2">{t('garminSteps')}</p>
             <ol className="text-stone-400 mt-2 list-decimal space-y-1 pl-6">
-              <li>Melde dich bei der Ultimate Hiking League an und öffne deinen Account.</li>
-              <li>Verbinde dort dein Garmin-Konto mit UHL und erteile die erforderlichen Berechtigungen.</li>
-              <li>Zeichne deine Wanderungen wie gewohnt mit deiner Garmin-Uhr auf und synchronisiere sie mit Garmin Connect.</li>
-              <li>Klicke in der Ultimate Hiking League auf „Wanderung hinzufügen“ und wähle „Aus Garmin importieren“.</li>
-              <li>Wähle die gewünschte Wanderung aus und überprüfe die automatisch übernommenen Angaben.</li>
-              <li>Klicke auf „Wanderung veröffentlichen“.</li>
+              <li>{t('signIn')}</li>
+              <li>{t('connect')}</li>
+              <li>{t('sync')}</li>
+              <li>{t('import')}</li>
+              <li>{t('check')}</li>
+              <li>{t('publish')}</li>
             </ol>
             <p className="text-stone-400 mt-2">
-              Erfüllt deine Aktivität die Teilnahmebedingungen, wird sie automatisch als verifizierter Eintrag in die Liga übernommen.
+              {rules('garminPrivateVerification')}{' '}
+              {rules('garminEventApproval')}{' '}
+              {rules('garminConnection')}
             </p>
-            <p className="text-stone-400 mt-2">Gut zu wissen:</p>
+            <p className="text-stone-400 mt-2">{t('note')}</p>
             <ul className="text-stone-400 mt-2 list-disc space-y-1 pl-6">
-              <li>Es werden nur Aktivitäten übernommen, die Garmin nach deiner Kontoverknüpfung an UHL übermittelt. Ältere Wanderungen werden nicht nachträglich importiert.</li>
-              <li>Eine Wanderung muss mindestens 10 km lang sein. Kürzere Wanderungen zählen ebenfalls, wenn sie mindestens 600 positive Höhenmeter aufweisen.</li>
-              <li>Deine Garmin-Messwerte werden automatisch übernommen und können nicht manuell verändert werden.</li>
-              <li>Du kannst die Garmin-Verbindung jederzeit in deinem Account wieder trennen.</li>
+              <li>{t('onlyNewGarminActivities')}</li>
+              <li>{t('garminThresholds')}</li>
+              <li>{t('garminMetrics')}</li>
+              <li>{t('disconnect')}</li>
             </ul>
           </div>
 
           <div>
             <h2 className="font-semibold text-lg">
-              Warum zählt nur die Gesamtzeit und nicht die Gehzeit?
+              {t('timeQuestion')}
             </h2>
             <p className="text-stone-400 mt-2">
-              Die Gesamtzeit ist entscheidend, weil sie die tatsächliche Leistung einer
-              Wanderung widerspiegelt.
+              {t('timeOverview')}
             </p>
             <p className="text-stone-400 mt-2">
-              Pausen gehören zum Leistungsspektrum dazu – egal ob Verpflegung, Erholung
-              oder kurze Stopps. Wer seine Kräfte besser einteilt und effizient pausiert,
-              ist im Vorteil.
+              {t('timeBreaks')}
             </p>
             <p className="text-stone-400 mt-2">
-              Die reine Gehzeit („Zeit in Bewegung“) würde das Ergebnis verfälschen, da
-              sie wichtige Faktoren der Ausdauerleistung ausblendet.
+              {t('movingTime')}
             </p>
             <p className="text-stone-400 mt-2">
-              👉 Deshalb gilt in der Ultimate Hiking League immer die Gesamtzeit von
-              Start bis Ziel.
+              {t('timeRule')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Muss ich die Sekunden der Gesamtzeit mit angeben?</h2>
+            <h2 className="font-semibold text-lg">{t('secondsQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Nein. Bitte nur Stunden und Minuten angeben.
+              {t('secondsAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Was passiert nach meiner Eintragung?</h2>
+            <h2 className="font-semibold text-lg">{t('reviewQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Deine Wanderung wird geprüft und danach in deinem Profil
-              und im Ranking angezeigt.
+              {t('reviewAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Kann ich auch Wanderungen aus dem Vorjahr angeben?</h2>
+            <h2 className="font-semibold text-lg">{t('pastQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Nein. Wir berücksichtigen nur Einträge aus der aktuellen Saison/Kalenderjahr.
+              {t('pastAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Warum taucht meine Wanderung nicht in meiner Timeline auf?</h2>
+            <h2 className="font-semibold text-lg">{t('timelineQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Wahrscheinlich verstößt sie gegen eine unserer Ligaregeln. Checke dazu die Adminnotiz oder deine Emails.
-              Bitte auch im Spamordner nachsehen.
+              {t('timelineAnswer')}
             </p>
           </div>
 
           <div>
-            <h2 className="font-semibold text-lg">Was ist der Unterschied zu anderen Apps?</h2>
+            <h2 className="font-semibold text-lg">{t('otherAppsQuestion')}</h2>
             <p className="text-stone-400 mt-2">
-              Andere Apps zeigen einzelne Aktivitäten.
-              Die Liga zeigt dir deine gesamte Leistung – alles auf einen Blick.
+              {t('otherAppsAnswer')}
             </p>
           </div>
 

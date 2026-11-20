@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -16,6 +17,7 @@ export default function ClaimProfileForm({
   onSuccess,
   onCancel,
 }: ClaimProfileFormProps) {
+  const t = useTranslations('claimForm')
   const [message, setMessage] = useState('')
   const [socialLink, setSocialLink] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
@@ -36,14 +38,14 @@ export default function ClaimProfileForm({
 
       if (!session?.user) {
         setErrorMessage(
-          'Bitte logge dich zuerst ein, um ein Profil zu beanspruchen.'
+          t('signIn')
         )
         setSubmitting(false)
         return
       }
 
       if (!message.trim() || !proofFile) {
-        setErrorMessage('Bitte fülle alle Pflichtfelder aus.')
+        setErrorMessage(t('required'))
         setSubmitting(false)
         return
       }
@@ -59,7 +61,7 @@ export default function ClaimProfileForm({
         })
 
       if (uploadError) {
-        setErrorMessage('Der Nachweis konnte nicht hochgeladen werden.')
+        setErrorMessage(t('uploadError'))
         setSubmitting(false)
         return
       }
@@ -82,7 +84,7 @@ export default function ClaimProfileForm({
       })
 
       if (error) {
-        setErrorMessage('Deine Claim-Anfrage konnte nicht gesendet werden.')
+        setErrorMessage(t('sendError'))
         setSubmitting(false)
         return
       }
@@ -90,13 +92,13 @@ export default function ClaimProfileForm({
       setMessage('')
       setSocialLink('')
       setProofFile(null)
-      setSuccessMessage('Deine Claim-Anfrage wurde erfolgreich gesendet.')
+      setSuccessMessage(t('success'))
 
       if (onSuccess) {
         onSuccess()
       }
     } catch (_error) {
-      setErrorMessage('Beim Senden ist ein Fehler aufgetreten.')
+      setErrorMessage(t('unknownError'))
     } finally {
       setSubmitting(false)
     }
@@ -105,20 +107,19 @@ export default function ClaimProfileForm({
   return (
     <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10">
       <div className="mb-4">
-        <h3 className="text-xl font-semibold text-white">Profil beanspruchen</h3>
+        <h3 className="text-xl font-semibold text-white">{t('title')}</h3>
         <p className="mt-1 text-sm text-stone-400">
-          Wenn dieses Profil dir gehört, kannst du hier eine Claim-Anfrage
-          senden.
+          {t('intro')}
         </p>
         <p className="mt-2 text-xs uppercase tracking-[0.18em] text-stone-500">
-          * Pflichtfelder
+          {t('requiredNote')}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
-            Profilname *
+            {t('profileName')}
           </label>
           <input
             type="text"
@@ -130,12 +131,12 @@ export default function ClaimProfileForm({
 
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
-            Woran erkennen wir, dass dieses Profil dir gehört? *
+            {t('evidencePrompt')}
           </label>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Zum Beispiel: Eventname, Ergebnisliste, Startnummer oder anderer überprüfbarer Bezug."
+            placeholder={t('placeholder')}
             rows={4}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
           />
@@ -143,7 +144,7 @@ export default function ClaimProfileForm({
 
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
-            Nachweis hochladen *
+            {t('upload')}
           </label>
           <input
             type="file"
@@ -155,24 +156,24 @@ export default function ClaimProfileForm({
             className="block w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-stone-300 file:mr-4 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/15"
           />
           <p className="mt-2 text-xs text-stone-500">
-            Erlaubt: JPG, PNG, WEBP oder PDF
+            {t('extensions')}
           </p>
           {proofFile ? (
             <p className="mt-2 text-sm text-stone-300">
-              Ausgewählt: {proofFile.name}
+              {t('selected')} {proofFile.name}
             </p>
           ) : null}
         </div>
 
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
-            Social Link
+            {t('link')}
           </label>
           <input
             type="url"
             value={socialLink}
             onChange={(e) => setSocialLink(e.target.value)}
-            placeholder="Optional: Instagram, Strava oder anderes Profil"
+            placeholder={t('linkPlaceholder')}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
           />
         </div>
@@ -195,7 +196,7 @@ export default function ClaimProfileForm({
             disabled={submitting}
             className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? 'Wird gesendet…' : 'Claim-Anfrage senden'}
+            {submitting ? t('sending') : t('send')}
           </button>
 
           {onCancel ? (
@@ -204,7 +205,7 @@ export default function ClaimProfileForm({
               onClick={onCancel}
               className="rounded-2xl border border-white/10 bg-transparent px-5 py-3 text-sm font-medium text-stone-300 transition hover:bg-white/[0.04] hover:text-white"
             >
-              Abbrechen
+              {t('cancel')}
             </button>
           ) : null}
         </div>

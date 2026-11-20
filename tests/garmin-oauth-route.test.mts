@@ -9,7 +9,8 @@ import { POST as finish } from '../app/api/garmin/finish/route'
 test('Garmin OAuth stages a callback in a separate browser and requires the initiating proof and authenticated owner', async t => {
   const env = process.env
   const key = randomBytes(32)
-  const origin = 'https://uhl.example'
+  const origin = 'https://www.ultimatehikingleague.com'
+  const europeanOrigin = 'https://www.europeanhikingleague.com'
   const redirect = `${origin}/api/garmin/callback`
   const owner = 'c6fdbe30-198a-4f4f-8287-ea396087644e'
   const hash = (value: string) => createHash('sha256').update(value).digest('hex')
@@ -53,7 +54,7 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
         saved = JSON.parse(String(init.body))
         return new Response(null, { status: 201 })
       }
-      return Response.json(saved && searchParams.get('user_id') === `eq.${saved.user_id}` ? [{ user_id: saved.user_id }] : [])
+      return Response.json(saved ? [{ user_id: owner }] : [])
     }
     if (pathname === '/rest/v1/garmin_oauth_attempts') {
       assert.equal(auth, 'Bearer service-key')
@@ -65,7 +66,7 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
       if (init.method === 'DELETE' && !searchParams.has('browser_hash')) return new Response(null, { status: 204 })
       if (databaseUnavailable) return new Response(null, { status: 503 })
       assert.ok(searchParams.get('expires_at')?.startsWith('gt.'))
-      if (expired || !attempt || (init.method === 'DELETE' && searchParams.get('user_id') !== `eq.${attempt.user_id}`)) return Response.json([])
+      if (expired || !attempt) return Response.json([])
       if (init.method === 'PATCH') {
         assert.equal(searchParams.get('callback_result'), 'is.null')
         if (attempt.callback_result || searchParams.get('state_hash') !== `eq.${attempt.state_hash}`) return Response.json([])
@@ -75,7 +76,8 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
         return Response.json([{ state_hash: attempt.state_hash }])
       }
       assert.equal(searchParams.get('callback_result'), 'not.is.null')
-      if (!attempt.callback_result || searchParams.get('browser_hash') !== `eq.${attempt.browser_hash}`) return Response.json([])
+      if (searchParams.get('user_id') !== `eq.${attempt.user_id}` ||
+          !attempt.callback_result || searchParams.get('browser_hash') !== `eq.${attempt.browser_hash}`) return Response.json([])
       const consumed = attempt
       attempt = undefined
       return Response.json([consumed])
@@ -124,9 +126,9 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
       headers: { Origin: requestOrigin, Authorization: authorization, 'X-Garmin-Attempt-Proof': proof },
     },
   ))
-  async function expectReturn(response: Response, status: string) {
+  async function expectReturn(response: Response, status: string, returnOrigin = '') {
     assert.equal(response.status, 303)
-    assert.equal(response.headers.get('location'), `/garmin/return?status=${status}`)
+    assert.equal(response.headers.get('location'), `${returnOrigin}/garmin/return?status=${status}`)
     assert.equal(response.headers.get('content-disposition'), null)
     assert.equal(response.headers.get('set-cookie'), null)
     assert.equal(response.headers.get('cache-control'), 'no-store')
@@ -138,14 +140,15 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
     assert.equal(response.status, 200)
     return (await response.json()).status
   }
-  async function begin() {
-    const response = await start()
+  async function begin(requestOrigin = origin) {
+    const response = await start(requestOrigin)
     assert.equal(response.status, 200)
     assert.equal(response.headers.get('set-cookie'), null)
     assert.equal(response.headers.get('cache-control'), 'no-store')
     const proof = response.headers.get('x-garmin-attempt-proof')!
     const params = new URL(response.headers.get('x-garmin-authorization-url')!).searchParams
     const state = params.get('state')!
+    assert.equal(params.get('redirect_uri'), redirect)
     assert.equal(params.get('code_challenge_method'), 'S256')
     assert.equal(params.get('code_challenge'), createHash('sha256').update(verifier).digest('base64url'))
     assert.notEqual(proof, state)
@@ -161,6 +164,7 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
   process.env.GARMIN_OAUTH_ENABLED = 'true'
   assert.equal((await start('https://other.example')).status, 403)
   assert.equal((await start(origin, '')).status, 401)
+  assert.equal((await start(europeanOrigin, '')).status, 401)
   const refused = await begin()
   for (const userAgent of [mobileSafari, mobileChrome]) {
     await expectReturn(await callback(`${refused.query}&state=${refused.state}`, userAgent), 'retry')
@@ -254,7 +258,7 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
   await expectReturn(await callback(granted.query, mobileChrome), 'received')
   await expectReturn(await callback(granted.query, mobileSafari), 'retry')
   assert.equal((await complete(granted.proof, '')).status, 401)
-  assert.deepEqual(await (await complete(granted.proof, 'Bearer other-session')).json(), { status: 'waiting' })
+  assert.equal((await (await complete(granted.proof, 'Bearer other-session')).json()).status, 'waiting')
   assert.equal((await complete(granted.proof, 'Bearer uhl-session', 'https://other.example')).status, 403)
   assert.equal(await completeStatus(granted.state), 'waiting')
   assert.equal(exchanges, 8)
@@ -272,14 +276,14 @@ test('Garmin OAuth stages a callback in a separate browser and requires the init
   assert.equal(stored.accessToken, 'test-access')
   assert.equal(stored.refreshToken, 'test-refresh')
   assert.equal((await start()).status, 409)
-  const secondStart = await start(origin, 'Bearer other-session')
-  assert.equal(secondStart.status, 200)
-  assert.equal(attempt?.user_id, '00000000-0000-0000-0000-000000000001')
-  const secondParams = new URL(secondStart.headers.get('x-garmin-authorization-url')!).searchParams
-  await expectReturn(await callback(`state=${secondParams.get('state')}&code=garmin-code`), 'received')
-  const secondProof = secondStart.headers.get('x-garmin-attempt-proof')!
-  assert.equal(await completeStatus(secondProof), 'waiting')
-  identityResponse = () => Response.json({ userId: 'second-garmin-owner' })
-  assert.deepEqual(await (await complete(secondProof, 'Bearer other-session')).json(), { status: 'connected' })
-  assert.equal(saved?.user_id, '00000000-0000-0000-0000-000000000001')
+  assert.equal((await start(europeanOrigin)).status, 409)
+
+  saved = undefined
+  const european = await begin(europeanOrigin)
+  assert.match(european.state, /^ehl_[A-Za-z0-9_-]{43}$/)
+  await expectReturn(await callback(granted.query.replace(granted.state, 'ehl_' + granted.state)), 'retry')
+  await expectReturn(await callback(european.query, mobileSafari), 'received', europeanOrigin)
+  const europeanResult = await complete(european.proof, 'Bearer uhl-session', europeanOrigin)
+  assert.equal((await europeanResult.json()).status, 'connected')
+  assert.equal((await start(europeanOrigin)).status, 409)
 })

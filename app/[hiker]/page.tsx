@@ -1,8 +1,15 @@
+import { getLocale, getTranslations } from 'next-intl/server'
 import { BrandPlacement } from '../components/PartnerPlacements'
 import { getPartnerAds } from '../lib/partnerBookings'
-import Link from 'next/link'
+import { garminAttribution } from '../lib/activity/garmin-attribution'
+import Link from '@/i18n/prototype/LocalizedLink'
+import { formatDistanceKm, formatElevationMeters, formatElapsedTime } from '../lib/activity/display'
 import { supabase } from '../lib/supabase'
 import CorrectionRequestForm from '../components/CorrectionRequestForm'
+import { formatRankingDistance } from '@/i18n/display'
+import { getSeasonYear, SEASON_RANKINGS_START } from '../lib/season'
+import { fetchProfileRanking } from '../lib/rankings'
+import SeasonRefresh from '../components/SeasonRefresh'
 import ProfileBrandBar from '../components/ProfileBrandBar'
 import ClaimProfilePanel from '../components/ClaimProfilePanel'
 import { countryToFlag } from '../lib/country'
@@ -38,11 +45,6 @@ function formatSpeed(speed: number | null) {
   return `${speed} km/h`
 }
 
-function formatTime(timeText: string | null) {
-  if (!timeText) return '—'
-  return timeText
-}
-
 function formatDate(dateText: string | null) {
   if (!dateText) return '—'
   const date = new Date(dateText)
@@ -54,7 +56,8 @@ function getEventDisplayName(
   event: any,
   record: {
     custom_title?: string | null
-  }
+  },
+  fallback: string
 ) {
   if (event?.title && event.title.trim() !== '') {
     return event.title
@@ -64,43 +67,19 @@ function getEventDisplayName(
     return record.custom_title
   }
 
-  return 'Privater Eintrag'
+  return fallback
 }
 
-async function fetchAllElevationRecords() {
-  const pageSize = 1000
-  let from = 0
-  let allRows: any[] = []
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('records')
-      .select('hiker_id, elevation_gain')
-      .range(from, from + pageSize - 1)
-
-    if (error || !data || data.length === 0) {
-      break
-    }
-
-    allRows = allRows.concat(data)
-
-    if (data.length < pageSize) {
-      break
-    }
-
-    from += pageSize
-  }
-
-  return allRows
-}
-
-const SKYSCRAPER_THRESHOLD = 1500
+export const dynamic = 'force-dynamic'
 
 export default async function HikerPage({
   params,
 }: {
   params: Promise<{ hiker: string }>
 }) {
+  const year = getSeasonYear()
+  const useSeason = year >= SEASON_RANKINGS_START
+  const [t, ui, locale] = await Promise.all([getTranslations('publicProfile'), getTranslations('ui'), getLocale()])
   const { hiker } = await params
 
   const hikerId = Number(hiker)
@@ -115,11 +94,11 @@ export default async function HikerPage({
             href="/leaderboard/overall"
             className="mb-6 inline-block text-sm text-stone-400 transition hover:text-white"
           >
-            ← Zurück zum Ranking
+            {t('back')}
           </Link>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10">
-            <p className="text-stone-300">Hiker nicht gefunden 😢</p>
+            <p className="text-stone-300">{t('notFound')}</p>
           </div>
         </div>
       </main>
@@ -154,11 +133,11 @@ export default async function HikerPage({
               href="/leaderboard/overall"
               className="mb-6 inline-block text-sm text-stone-400 transition hover:text-white"
             >
-              ← Zurück zum Ranking
+              {t('back')}
             </Link>
 
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10">
-              <p className="text-stone-300">Hiker nicht gefunden 😢</p>
+              <p className="text-stone-300">{t('notFound')}</p>
             </div>
           </div>
         </main>
@@ -175,41 +154,26 @@ export default async function HikerPage({
             href="/leaderboard/overall"
             className="mb-6 inline-block text-sm text-stone-400 transition hover:text-white"
           >
-            ← Zurück zum Ranking
+            {t('back')}
           </Link>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10">
-            <p className="text-stone-300">Hiker nicht gefunden 😢</p>
+            <p className="text-stone-300">{t('notFound')}</p>
           </div>
         </div>
       </main>
     )
   }
 
-  const allHikers = await fetchAllRankedHikers()
-
-  const rankedHikers = allHikers.filter(
-    (entry) =>
-      typeof entry.id === 'number' &&
-      typeof entry.total_km === 'number' &&
-      entry.total_km > 0
-  )
-
-  const overallIndex = rankedHikers.findIndex(
-    (entry) => entry.id === hikerData.id
-  )
-
-  const overallRank = overallIndex >= 0 ? overallIndex + 1 : null
-
-  const sameDivision = rankedHikers.filter(
-    (entry) => entry.division === hikerData.division
-  )
-
-  const divisionIndex = sameDivision.findIndex(
-    (entry) => entry.id === hikerData.id
-  )
-
-  const divisionRank = divisionIndex >= 0 ? divisionIndex + 1 : null
+  const [seasonStats, ranks] = await Promise.all([
+    supabase.from('hiker_season_stats')
+      .select('season_km')
+      .eq('hiker_id', hikerData.id)
+      .eq('season_year', year)
+      .maybeSingle(),
+    fetchProfileRanking(hikerData.id, year),
+  ])
+  const seasonKm = Number(seasonStats.data?.season_km ?? 0)
 
   const { data: recordsData, error: recordsError } = await supabase
   .from('records')
@@ -223,11 +187,14 @@ export default async function HikerPage({
         time_text,
         activity_date,
         record_status,
+        garmin_verified,
+        garmin_record_attributions(device_model),
         event_master_id,
         is_public,
         is_corrected,
         elevation_gain,
         custom_title,
+        custom_description,
         custom_location,
         custom_country
       `
@@ -298,83 +265,11 @@ const elevationPerKm =
     ? totalElevation / totalDistance
     : null  
 
-const hasSkyscraper = totalElevation >= SKYSCRAPER_THRESHOLD
-
-const elevationRows = await fetchAllElevationRecords()
-
-const activeHikersForSkyscraper = await fetchAllRankedHikers()
-
-const activeHikerIdsForSkyscraper = new Set(
-  activeHikersForSkyscraper.map((hiker) => hiker.id)
-)
-
-const elevationMap = new Map<number, number>()
-
-  ;(elevationRows ?? []).forEach((row: any) => {
-    if (typeof row.hiker_id !== 'number') return
-    if (!activeHikerIdsForSkyscraper.has(row.hiker_id)) return
-    const current = elevationMap.get(row.hiker_id) ?? 0
-    const nextGain =
-      typeof row.elevation_gain === 'number' ? row.elevation_gain : 0
-
-    elevationMap.set(row.hiker_id, current + nextGain)
-  })
-
-const skyscraperRanking = Array.from(elevationMap.entries())
-    .map(([hikerId, elevation]) => ({
-      id: hikerId,
-      elevation,
-    }))
-    .filter((entry) => entry.elevation >= SKYSCRAPER_THRESHOLD)
-    .sort((a, b) => b.elevation - a.elevation)
-
-const skyscraperIndex = skyscraperRanking.findIndex(
-    (entry) => entry.id === hikerData.id
-  )
-
-const skyscraperRank = skyscraperIndex >= 0 ? skyscraperIndex + 1 : null
-
-  type RankedHiker = {
-  id: number
-  total_km: number | null
-  division: string | null
-  display_name: string | null
-}
-
-async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
-  const pageSize = 1000
-  let from = 0
-  let allRows: RankedHiker[] = []
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('hikers')
-      .select('id, total_km, division, display_name, profile_status')
-      .eq('profile_status', 'active')
-      .order('total_km', { ascending: false })
-      .order('display_name', { ascending: true })
-      .range(from, from + pageSize - 1)
-
-    if (error || !data || data.length === 0) {
-      break
-    }
-
-    allRows = allRows.concat(data as RankedHiker[])
-
-    if (data.length < pageSize) {
-      break
-    }
-
-    from += pageSize
-  }
-
-  return allRows
-}
-
   const partnerAds = await getPartnerAds('profile')
 
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
+      <SeasonRefresh year={year} />
       <div className="mx-auto max-w-5xl">
         <ProfileBrandBar />
 
@@ -382,18 +277,16 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
           href="/leaderboard/overall"
           className="mb-6 inline-block text-sm text-stone-400 transition hover:text-white"
         >
-          ← Zurück zum Ranking
+          {t('back')}
         </Link>
 
         {isOwnProfile && hikerData.profile_status !== 'active' ? (
           <div className="mb-6 rounded-[2rem] border border-yellow-400/25 bg-yellow-400/10 p-5 text-yellow-100">
             <div className="text-lg font-semibold">
-              Dein Profil ist aktuell pausiert.
+              {t('paused')}
             </div>
             <p className="mt-2 text-sm leading-6 text-yellow-100/80">
-              Dein Profil, deine Wanderungen und deine Ranking-Daten werden derzeit öffentlich nicht angezeigt.
-              Du selbst kannst dein Profil weiterhin sehen. Wenn du wieder in der Liga erscheinen möchtest,
-              kann der Admin dein Profil wieder aktivieren.
+              {t('pausedDetails')}
             </p>
           </div>
         ) : null}
@@ -416,11 +309,11 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
             <div className="flex-1">
               <div className="mb-3">
                 <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-400">
-                  Liga-Profil
+                  {t('profile')}
                 </div>
 
                 <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-                  {hikerData.display_name ?? 'Unbekannt'}
+                  {hikerData.display_name ?? t('unknown')}
                 </h1>
               </div>
 
@@ -437,53 +330,65 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                     hikerData.division
                   )}`}
                 >
-                  {hikerData.division ?? 'unranked'}
+                  {hikerData.division ?? t('unranked')}
                 </div>
 
                 {hikerData.claimed_profile ? (
                   <div className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/12 px-3 py-1.5 text-sm text-emerald-200">
-                    verified profile
+                    {t('verifiedBadge')}
                   </div>
                 ) : null}
 
-                {hasSkyscraper ? (
+                {ranks.skyscraper ? (
                   <div className="inline-flex rounded-full border border-sky-400/30 bg-sky-400/12 px-3 py-1.5 text-sm text-sky-200">
-                    skyscraper achieved
+                    {t('skyscraperAchieved')}
                   </div>
                 ) : null}
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Rang Overall
+                    {ui('seasonDistance', { year })}
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
-                    {overallRank ? `#${overallRank}` : '—'}
+                    {seasonStats.error ? ui('rankingUnavailable') : `${formatRankingDistance(seasonKm, locale)} km`}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Rang Division
+                    {ui('allTimeDistance')}
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
-                    {divisionRank ? `#${divisionRank}` : '—'}
+                    {formatRankingDistance(hikerData.total_km ?? 0, locale)} km
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
+                    {useSeason ? ui('seasonRank', { year }) : ui('allTimeRank')}
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-white">
+                    {ranks.overall ? `#${ranks.overall}` : '—'}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Gesamt-km
+                    {useSeason ? ui('divisionSeasonRank', { year }) : t('divisionRank')}
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
-                    {hikerData.total_km ?? 0} km
+                    {ranks.division ? `#${ranks.division}` : '—'}
                   </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Ø Speed
+                    {t('averageSpeed')}
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
                     {formatSpeed(hikerData.avg_speed)}
@@ -492,7 +397,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Ø Event Speed
+                    {t('averageEventSpeed')}
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
                     {eventAvgSpeed !== null
@@ -503,7 +408,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Höhenmeter
+                    {t('elevation')}
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
                     {Math.round(totalElevation).toLocaleString('de-DE')} hm
@@ -512,7 +417,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
 
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                    Höhenmeter / km
+                    {t('elevationPerKm')}
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
                     {elevationPerKm !== null
@@ -526,7 +431,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                     Skyscraper
                   </div>
                   <div className="mt-1 text-2xl font-bold text-white">
-                    {skyscraperRank ? `#${skyscraperRank}` : 'Noch offen'}
+                    {ranks.skyscraper ? `#${ranks.skyscraper}` : ranks.skyscraperUnavailable ? ui('rankingUnavailable') : t('pending')}
                   </div>
                 </div>
               </div>
@@ -540,9 +445,9 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                 />
               ) : (
                 <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-medium text-emerald-200">
-                  <div>Verifiziert</div>
+                  <div>{t('verified')}</div>
                   <div className="text-xs text-emerald-300/80">
-                    Dieses Profil wurde übernommen
+                    {t('claimed')}
                   </div>
                 </div>
               )}
@@ -550,25 +455,25 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
           </div>
         </section>
 
-        {partnerAds.length > 0 && <div className="mb-8"><BrandPlacement ads={partnerAds} label="Werbung im öffentlichen Profil" /></div>}
+        {partnerAds.length > 0 && <div className="mb-8"><BrandPlacement ads={partnerAds} label={t('adLabel')} /></div>}
 
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Leistungen</h2>
+            <h2 className="text-2xl font-bold text-white">{t('performance')}</h2>
             <div className="text-sm text-stone-400">
-              {recordsData?.length ?? 0} Einträge
+              {recordsData?.length ?? 0} {t('entries')}
             </div>
           </div>
 
           {recordsError && (
             <div className="rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-red-200">
-              Fehler beim Laden der Einträge 😢
+              {t('error')}
             </div>
           )}
 
           {!recordsData || recordsData.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-stone-400">
-              Noch keine Einträge vorhanden.
+              {t('noEntries')}
             </div>
           ) : (
             <div className="space-y-3">
@@ -587,8 +492,12 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                         </div>
 
                         <div className="text-lg font-semibold text-white">
-                          {getEventDisplayName(event, record)}
+                          {getEventDisplayName(event, record, ui('privateEntry'))}
                         </div>
+
+                        {record.garmin_verified && (
+                          <div className="mt-1 text-sm text-stone-300">{garminAttribution(record)}</div>
+                        )}
 
                         <div className="mt-1 text-sm text-stone-400">
                           {event ? (
@@ -627,13 +536,15 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                                 record.record_status
                               )}`}
                             >
-                              {record.record_status}
+                              {record.garmin_verified && record.record_status === 'verified_admin_submission'
+                                ? t('recordVerified')
+                                : record.record_status}
                             </span>
                           )}
 
                           {record.is_corrected && (
                             <span className="rounded-full border border-orange-400/20 bg-orange-400/10 px-2 py-1 text-orange-200">
-                              korrigiert
+                              {t('corrected')}
                             </span>
                           )}
                         </div>
@@ -642,25 +553,25 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                       <div className="grid min-w-[220px] grid-cols-2 gap-3 md:w-[420px]">
                         <div className="rounded-2xl border border-white/8 bg-black/10 p-3">
                           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                            Distanz
+                            {t('distance')}
                           </div>
                           <div className="font-semibold text-white">
-                            {record.distance_km ?? '—'} km
+                            {formatDistanceKm(record.distance_km) ?? '—'} km
                           </div>
                         </div>
 
                         <div className="rounded-2xl border border-white/8 bg-black/10 p-3">
                           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                            Zeit
+                            {t('time')}
                           </div>
                           <div className="font-semibold text-white">
-                            {formatTime(record.time_text)}
+                            {formatElapsedTime(record.time_text, record.time_hours) ?? '—'}
                           </div>
                         </div>
 
                         <div className="rounded-2xl border border-white/8 bg-black/10 p-3">
                           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                            Geschwindigkeit
+                            {t('speed')}
                           </div>
                           <div className="font-semibold text-white">
                             {formatSpeed(record.avg_speed)}
@@ -669,7 +580,7 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
 
                         <div className="rounded-2xl border border-white/8 bg-black/10 p-3">
                           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                            Tagesform
+                            {t('dailyForm')}
                           </div>
                           <div>
                             <span
@@ -684,11 +595,11 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
 
                         <div className="rounded-2xl border border-white/8 bg-black/10 p-3 col-span-2">
                           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                            Höhenmeter
+                            {t('elevation')}
                           </div>
                           <div className="font-semibold text-white">
                             {typeof record.elevation_gain === 'number'
-                              ? `${Math.round(record.elevation_gain).toLocaleString('de-DE')} hm`
+                              ? `${formatElevationMeters(record.elevation_gain)} hm`
                               : '—'}
                           </div>
                         </div>
@@ -696,6 +607,9 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
                     </div>
                     
 
+                   {record.custom_description && (
+                     <p className="mt-3 whitespace-pre-wrap break-words text-sm text-stone-300">{record.custom_description}</p>
+                   )}
                    <CorrectionRequestForm
                       recordId={record.id}
                       hikerId={hikerData.id}

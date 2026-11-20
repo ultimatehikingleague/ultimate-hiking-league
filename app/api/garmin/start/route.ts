@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import {
   authenticateGarmin, garminAttemptSeconds, garminDigest, garminResponse,
 } from '../../../lib/activity/garmin-connection.server'
-import { createGarminAuthorization } from '../../../lib/activity/garmin-oauth.server'
+import { createGarminAuthorization, europeanGarminOrigin } from '../../../lib/activity/garmin-oauth.server'
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +21,10 @@ export async function POST(request: Request) {
       .delete().lt('expires_at', now.toISOString())
     if (cleanupError) return garminResponse(503)
 
-    const { authorizationUrl, state, verifier } = createGarminAuthorization(config.clientId, config.redirectUri)
+    const returnToEuropeanDomain = request.headers.get('origin') === europeanGarminOrigin(config.browserOrigin)
+    const { authorizationUrl, state, verifier } = createGarminAuthorization(
+      config.clientId, config.redirectUri, returnToEuropeanDomain,
+    )
     const browserProof = randomBytes(32).toString('base64url')
     const { error } = await config.db.from('garmin_oauth_attempts').insert({
       state_hash: garminDigest(state),

@@ -1,0 +1,34 @@
+name: UHL release checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  production-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install isolated test tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/uhl-tests" playwright@1.65.1 @electric-sql/pglite@0.5.16
+          "$RUNNER_TEMP/uhl-tests/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Test and fingerprint candidate
+        env:
+          UHL_PRODUCTION_DEPLOYMENT: ${{ vars.UHL_PRODUCTION_DEPLOYMENT }}
+        run: |
+          export UHL_PLAYWRIGHT="$RUNNER_TEMP/uhl-tests/node_modules/playwright"
+          export PGLITE_MODULE="$RUNNER_TEMP/uhl-tests/node_modules/@electric-sql/pglite/dist/index.js"
+          node scripts/check-release.mjs "$UHL_PRODUCTION_DEPLOYMENT" "$RUNNER_TEMP/uhl-release-proof.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uhl-release-proof
+          path: ${{ runner.temp }}/uhl-release-proof.json

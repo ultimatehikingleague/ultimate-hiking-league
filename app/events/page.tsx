@@ -1,6 +1,9 @@
-import Link from 'next/link'
-import { supabase } from '../lib/supabase'
+import { useTranslations } from 'next-intl'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { getPartnerAds } from '../lib/partnerBookings'
+import Link from '@/i18n/prototype/LocalizedLink'
+import { formatDistanceKm } from '../lib/activity/display'
+import { supabase } from '../lib/supabase'
 import EventsFilterClient from '../components/EventsFilterClient'
 
 export const dynamic = 'force-dynamic'
@@ -67,7 +70,7 @@ function countryToFlag(countryCode: string) {
   )
 }
 
-function getBrand(event: EventRow) {
+function getBrand(event: EventRow, fallback: string) {
   if (event.brand) return event.brand
 
   const title = event.title?.toLowerCase() ?? ''
@@ -76,10 +79,13 @@ function getBrand(event: EventRow) {
   if (title.includes('mammutmarsch')) return 'Mammutmarsch'
   if (title.includes('megamarsch')) return 'Megamarsch'
 
-  return 'Event'
+  return fallback
 }
 
-function mapEventToCard(event: EventRow): EventItem {
+function mapEventToCard(event: EventRow, displayLocale: string): EventItem {
+  const italian = displayLocale === 'it-IT'
+  const spanish = displayLocale === 'es-ES'
+
   return {
     id: event.id,
     slug: event.slug,
@@ -87,25 +93,26 @@ function mapEventToCard(event: EventRow): EventItem {
     country: event.country ?? '—',
     countryCode: event.country_code ?? '',
     date: event.event_date
-      ? new Date(event.event_date).toLocaleDateString('de-DE')
+      ? new Date(event.event_date).toLocaleDateString(displayLocale)
       : '—',
     distances:
       event.event_distances && event.event_distances.length > 0
         ? event.event_distances
             .slice()
             .sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0))
-            .map((d) => d.label ?? `${d.distance_km} km`)
+            .map((d) => d.label ?? `${formatDistanceKm(d.distance_km) ?? '—'} km`)
             .join(' / ')
         : '—',
-    brand: getBrand(event),
+    brand: getBrand(event, italian || spanish ? 'Evento' : 'Event'),
     special:
       event.country_code && event.country_code !== 'DE'
-        ? 'International'
+        ? (italian ? 'Internazionale' : spanish ? 'Internacional' : 'International')
         : undefined,
   }
 }
 
 function EventCard({ event }: { event: EventItem }) {
+  const t = useTranslations('eventList')
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-5 shadow-xl shadow-black/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -132,14 +139,14 @@ function EventCard({ event }: { event: EventItem }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-            Datum
+            {t('date')}
           </div>
           <div className="mt-1 font-semibold text-white">{event.date}</div>
         </div>
 
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-            Distanzen
+            {t('distances')}
           </div>
           <div className="mt-1 break-words font-semibold text-white">
             {event.distances}
@@ -158,7 +165,7 @@ function EventCard({ event }: { event: EventItem }) {
           href={`/events/${event.slug}`}
           className="inline-block rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-stone-100 transition hover:bg-white/10"
         >
-          Event öffnen
+          {t('openEvent')}
         </Link>
       </div>
     </div>
@@ -166,11 +173,12 @@ function EventCard({ event }: { event: EventItem }) {
 }
 
 export default async function EventsPage() {
+  const [t, locale] = await Promise.all([getTranslations('eventList'), getLocale()])
   const [events, partnerAds] = await Promise.all([getEvents(), getPartnerAds('events')])
 
   const upcomingEvents = events
     .filter((event) => isUpcomingOrToday(event.event_date))
-    .map(mapEventToCard)
+    .map(event => mapEventToCard(event, locale === 'it' ? 'it-IT' : locale === 'es' ? 'es-ES' : locale === 'cs' ? 'cs-CZ' : 'de-DE'))
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
@@ -178,7 +186,7 @@ export default async function EventsPage() {
         <div className="absolute inset-0">
           <img
             src="/mountain-hero.jpg"
-            alt="Events hero background"
+            alt={t('hero')}
             className="h-full w-full object-cover object-[50%_20%]"
           />
         </div>
@@ -198,16 +206,16 @@ export default async function EventsPage() {
             </div>
 
             <div className="mx-auto max-w-5xl text-center">
-              <div className="mb-4 text-sm font-semibold uppercase tracking-[0.30em] text-stone-200 md:text-base">
+              <div lang="en" translate="no" className="notranslate mb-4 text-sm font-semibold uppercase tracking-[0.30em] text-stone-200 md:text-base">
                 Ultimate European Hiking League
               </div>
 
               <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
-                Wanderevents in Europa
+                {t('title')}
               </h1>
 
               <p className="mx-auto mt-5 max-w-3xl text-lg font-medium text-stone-200">
-                Eine Übersicht aktueller Wanderevents mit allen wichtigen Infos zu Datum und Distanzen.
+                {t('intro')}
               </p>
             </div>
 
@@ -216,7 +224,7 @@ export default async function EventsPage() {
                 href="/"
                 className="inline-block rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-stone-200 transition hover:border-white/20 hover:bg-white/10"
               >
-                ← Zurück zur Startseite
+                {t('backHome')}
               </Link>
             </div>
 
@@ -229,14 +237,14 @@ export default async function EventsPage() {
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Kommende Events</h2>
+              <h2 className="text-2xl font-bold text-white">{t('upcoming')}</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Nur aktuelle und zukünftige Events werden hier angezeigt.
+                {t('upcomingOnly')}
               </p>
             </div>
 
             <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
-              Events
+              {t('events')}
             </div>
           </div>
 
@@ -244,7 +252,7 @@ export default async function EventsPage() {
             <EventsFilterClient events={upcomingEvents} partnerAds={partnerAds} />
           ) : (
             <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
-              Aktuell sind keine kommenden Events hinterlegt.
+              {t('noneListed')}
             </div>
           )}
         </section>

@@ -1,10 +1,13 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
+import type { UiFeedback } from '../../i18n/feedback'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type Props = {
   garminVerified: boolean
+  initialDescription: string | null
   recordId: number
   hikerId: number
   isOfficialEvent: boolean
@@ -21,6 +24,7 @@ type Props = {
 
 export default function RecordEditRequestForm({
   garminVerified,
+  initialDescription,
   recordId,
   hikerId,
   isOfficialEvent,
@@ -34,10 +38,14 @@ export default function RecordEditRequestForm({
   initialLocation,
   initialRecordSource,
 }: Props) {
+  const t = useTranslations('recordEdit')
+  const locale = useLocale()
+
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<UiFeedback<'recordEdit'> | null>(null)
 
+  const [description, setDescription] = useState(initialDescription ?? '')
   const [activityName, setActivityName] = useState(initialActivityName || '')
   const [activityDate, setActivityDate] = useState(initialActivityDate || '')
   const [officialDistanceKm] = useState(
@@ -77,7 +85,7 @@ export default function RecordEditRequestForm({
 
   async function handleSubmit() {
     setSaving(true)
-    setMessage('')
+    setMessage(null)
 
     try {
       const {
@@ -85,7 +93,7 @@ export default function RecordEditRequestForm({
       } = await supabase.auth.getSession()
 
       if (!session?.user) {
-        setMessage('Keine aktive Session gefunden.')
+        setMessage({ key: 'yourSessionHasExpiredPleaseSign' })
         return
       }
 
@@ -99,7 +107,7 @@ export default function RecordEditRequestForm({
         const uploadError = await uploadCorrectionProof(filePath, proofFile)
 
         if (uploadError) {
-          setMessage(`Upload-Fehler: ${uploadError.message}`)
+          setMessage({ key: 'uploadFailed', detail: uploadError.message })
           return
         }
 
@@ -116,6 +124,7 @@ export default function RecordEditRequestForm({
         user_id: session.user.id,
         activity_name: activityName.trim() || null,
         activity_date: activityDate || null,
+        ...(garminVerified ? { description: description.trim() || null } : {}),
         official_distance_km: !garminVerified && officialDistanceKm
           ? Number(officialDistanceKm.replace(',', '.'))
           : null,
@@ -135,15 +144,15 @@ export default function RecordEditRequestForm({
       })
 
       if (error) {
-        setMessage(error.message)
+        setMessage({ key: 'saveFailed', detail: error.message })
         return
       }
 
-      setMessage('Änderung wurde eingereicht und wird geprüft.')
+      setMessage({ key: 'yourEditRequestHasBeenSubmitted' })
       setProofFile(null)
       setOpen(false)
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unbekannter Fehler')
+      setMessage({ key: 'saveFailed', detail: error instanceof Error ? error.message : undefined })
     } finally {
       setSaving(false)
     }
@@ -158,12 +167,16 @@ export default function RecordEditRequestForm({
           onClick={() => setOpen(true)}
           className="inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-stone-200 transition hover:bg-white/10"
         >
-          Eintrag bearbeiten
+          {t('editRecord')}
         </button>
 
         {message ? (
           <div className="mt-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-            {message}
+            {
+              message.key === 'saveFailed' && locale === 'de' && message.detail
+                ? message.detail
+                : t(message.key, { message: locale === 'de' ? message.detail ?? t('unknownError') : t('unknownError') })
+            }
           </div>
         ) : null}
       </div>
@@ -173,47 +186,54 @@ export default function RecordEditRequestForm({
     return (
     <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
       <div className="mb-4 text-sm font-medium text-white">
-        Eintrag bearbeiten
+        {t('editRecord')}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
+        {garminVerified && (
+          <label className="md:col-span-2 block text-sm text-stone-300">
+            {t('description')}
+            <textarea value={description} maxLength={240} onChange={event => setDescription(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-white" />
+          </label>
+        )}
         {isOfficialEvent ? (
           <div className="md:col-span-2 rounded-2xl border border-white/10 bg-black/10 p-4">
             <div className="mb-3 text-xs uppercase tracking-[0.18em] text-stone-500">
-              Feste Eventdaten
+              {t('fixedEventDetails')}
             </div>
 
             <div className="grid gap-3 md:grid-cols-2 text-sm text-stone-200">
               <div>
-                <div className="text-stone-500">Eventname</div>
+                <div className="text-stone-500">{t('eventName')}</div>
                 <div className="mt-1">{activityName || '—'}</div>
               </div>
 
               <div>
-                <div className="text-stone-500">Datum</div>
+                <div className="text-stone-500">{t('date')}</div>
                 <div className="mt-1">{activityDate || '—'}</div>
               </div>
 
               <div>
-                <div className="text-stone-500">Offizielle Distanz</div>
+                <div className="text-stone-500">{t('officialDistance')}</div>
                 <div className="mt-1">{officialDistanceKm || '—'}</div>
               </div>
 
               <div>
-                <div className="text-stone-500">Gelaufene Distanz</div>
+                <div className="text-stone-500">{t('distanceCovered')}</div>
                 <div className="mt-1">{actualDistanceKm || '—'}</div>
               </div>
             </div>
 
             <p className="mt-4 text-xs text-stone-500">
-              Diese Eventdaten wurden bereits geprüft und können nicht nachträglich geändert werden.
+              {t('theseEventDetailsHaveAlreadyBeen')}
             </p>
           </div>
         ) : (
           <>
             <div>
               <label className="mb-2 block text-sm text-stone-300">
-                Titel
+                {t('title')}
               </label>
               <input
                 type="text"
@@ -226,7 +246,7 @@ export default function RecordEditRequestForm({
 
             <div>
               <label className="mb-2 block text-sm text-stone-300">
-                Datum
+                {t('date')}
               </label>
               <input
                 type="date"
@@ -238,7 +258,7 @@ export default function RecordEditRequestForm({
 
             <div>
               <label className="mb-2 block text-sm text-stone-300">
-                Distanz
+                {t('distance')}
               </label>
               <input
                 type="text"
@@ -253,21 +273,21 @@ export default function RecordEditRequestForm({
 
         <div>
           <label className="mb-2 block text-sm text-stone-300">
-            Gesamtzeit
+            {t('elapsedTime')}
           </label>
           <input
             type="text"
             value={elapsedTimeText}
             readOnly={garminVerified}
             onChange={(e) => setElapsedTimeText(e.target.value)}
-            placeholder="z. B. 11:23"
+            placeholder={t('eG1123')}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
           />
         </div>
 
         <div>
           <label className="mb-2 block text-sm text-stone-300">
-            Höhenmeter
+            {t('elevationGain')}
           </label>
           <input
             type="text"
@@ -280,7 +300,7 @@ export default function RecordEditRequestForm({
 
         <div>
           <label className="mb-2 block text-sm text-stone-300">
-            Land
+            {t('country')}
           </label>
           <input
             type="text"
@@ -293,7 +313,7 @@ export default function RecordEditRequestForm({
 
         <div>
           <label className="mb-2 block text-sm text-stone-300">
-            Ort
+            {t('location')}
           </label>
           <input
             type="text"
@@ -306,7 +326,7 @@ export default function RecordEditRequestForm({
 
         <div className="md:col-span-2">
           <label className="mb-2 block text-sm text-stone-300">
-            Veranstalter
+            {t('organiser')}
           </label>
           <input
             type="text"
@@ -319,7 +339,7 @@ export default function RecordEditRequestForm({
 
         <div className="md:col-span-2">
           <label className="mb-2 block text-sm text-stone-300">
-            Neuer Nachweis <span className="text-stone-500">optional</span>
+            {t('newEvidence')} <span className="text-stone-500">{t('optional')}</span>
           </label>
           <input
             type="file"
@@ -332,14 +352,14 @@ export default function RecordEditRequestForm({
           />
           {proofFile ? (
             <p className="mt-2 text-sm text-stone-300">
-              Ausgewählt: {proofFile.name}
+              {t('selected')} {proofFile.name}
             </p>
           ) : null}
         </div>
 
         <div className="md:col-span-2">
           <label className="mb-2 block text-sm text-stone-300">
-            Notiz
+            {t('note')}
           </label>
           <textarea
             value={notes}
@@ -352,7 +372,11 @@ export default function RecordEditRequestForm({
 
       {message ? (
         <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-stone-200">
-          {message}
+          {
+              message.key === 'saveFailed' && locale === 'de' && message.detail
+                ? message.detail
+                : t(message.key, { message: locale === 'de' ? message.detail ?? t('unknownError') : t('unknownError') })
+            }
         </div>
       ) : null}
 
@@ -363,7 +387,7 @@ export default function RecordEditRequestForm({
           disabled={saving}
           className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-stone-100 transition hover:bg-white/10 disabled:opacity-50"
         >
-          {saving ? 'Wird eingereicht…' : 'Zur Prüfung einreichen'}
+          {saving ? t('submitting') : t('submitForReview')}
         </button>
 
         <button
@@ -371,7 +395,7 @@ export default function RecordEditRequestForm({
           onClick={() => setOpen(false)}
           className="rounded-2xl border border-white/10 bg-transparent px-4 py-2 text-sm text-stone-400 transition hover:text-white"
         >
-          Abbrechen
+          {t('cancel')}
         </button>
       </div>
     </div>

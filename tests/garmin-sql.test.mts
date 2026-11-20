@@ -291,6 +291,37 @@ test('Garmin migrations, private storage, queue and pilot isolation in isolated 
     }
     assert.deepEqual(await Promise.all([query(publishDefinition), query(correctionDefinition)]), definitions)
     await db.exec(followUp)
+    const walkingMigration = await readFile(new URL('../supabase/migrations/20261202_garmin_walking_publication.sql', import.meta.url), 'utf8')
+    const legacyWalkingEvidence = {
+      type: 'WALKING', device: 'Garmin', startTimeInSeconds: 1700000000,
+      distanceKm: 10, ascent: 0, isWebUpload: false,
+    }
+    for (const [feed, privateEvidence] of Object.entries({
+      activities: legacyWalkingEvidence,
+      activityDetails: { ...legacyWalkingEvidence, elapsedSeconds: 7259, sampleCheck: 'samples-consistent' },
+      activityFiles: { manual: false },
+    })) {
+      await db.query('select public.enqueue_garmin_push($1,$2,$3)', [
+        feed, JSON.stringify([{ garmin_user_id: 'synthetic-garmin', fingerprint: 'legacy-walking-' + feed,
+          payload: { activityId: 'legacy-walking', privateEvidence } }]), owner,
+      ])
+    }
+    assert.deepEqual(await query("select reason from public.garmin_private_reviews where activity_id='legacy-walking'"),
+      [{ reason: 'not-hiking' }])
+    const legacyEvidence = await query("select evidence from public.garmin_private_reviews where activity_id='legacy-walking'")
+    const queueBeforeWalkingMigration = await query("select count(*)::int from public.garmin_push_inbox")
+    const recordsBeforeWalkingMigration = await query("select * from public.records order by id")
+    await db.exec(walkingMigration)
+    assert.deepEqual(await query("select reason from public.garmin_private_reviews where activity_id='legacy-walking'"),
+      [{ reason: 'feed-checks-passed' }])
+    assert.deepEqual(await query("select evidence from public.garmin_private_reviews where activity_id='legacy-walking'"),
+      legacyEvidence)
+    assert.deepEqual(await query("select count(*)::int from public.garmin_push_inbox"), queueBeforeWalkingMigration)
+    assert.deepEqual(await query('select * from public.records order by id'), recordsBeforeWalkingMigration)
+    await db.exec("delete from public.garmin_private_reviews where activity_id='legacy-walking'; delete from public.garmin_push_inbox where fingerprint like 'legacy-walking-%';")
+    const walkingDefinition = await query(publishDefinition)
+    await db.exec(walkingMigration)
+    assert.deepEqual(await query(publishDefinition), walkingDefinition)
     // Exercise the narrow post-commit rollback with the definitions captured from the baseline.
     await db.exec('begin')
     try {
@@ -327,11 +358,11 @@ test('Garmin migrations, private storage, queue and pilot isolation in isolated 
     assert.deepEqual(await query(`insert into public.records(hiker_id, event_master_id, activity_date, distance_km, time_hours)
       values (43, 1, '2026-10-01', 10, 2) returning avg_speed, division`), [{ avg_speed: '5.00', division: 'gold' }])
     await db.exec('delete from public.records where hiker_id = 43')
-    const capture = async (distance: number, ascent: number, seconds: number | null, manual: boolean | null, conflict = false, sampleCheck = 'samples-incomplete') => {
+    const capture = async (distance: number, ascent: number, seconds: number | null, manual: boolean | null, conflict = false, sampleCheck = 'samples-incomplete', type = 'HIKING') => {
       await db.exec(`reset role; delete from public.garmin_private_reviews; update public.garmin_activities
         set file_metrics = '{}', summary = (summary - 'manual') ||
-          jsonb_build_object('distanceKm',${distance},'ascent',${ascent}); set role service_role;`)
-      const summary = { type: 'HIKING', device: 'Garmin', startTimeInSeconds: 1700000000,
+          jsonb_build_object('distanceKm',${distance},'ascent',${ascent},'type','${type}'); set role service_role;`)
+      const summary = { type, device: 'Garmin', startTimeInSeconds: 1700000000,
         distanceKm: distance, ascent, isWebUpload: false }
       const feeds = {
         activities: summary,
@@ -342,7 +373,7 @@ test('Garmin migrations, private storage, queue and pilot isolation in isolated 
       for (const [feed, privateEvidence] of Object.entries(feeds)) {
         await db.query('select public.enqueue_garmin_push($1, $2, $3)', [
           feed, JSON.stringify([{ garmin_user_id: 'synthetic-garmin',
-            fingerprint: JSON.stringify([feed, distance, ascent, seconds, manual, conflict, sampleCheck]),
+            fingerprint: JSON.stringify([feed, distance, ascent, seconds, manual, conflict, sampleCheck, type]),
             payload: { activityId: '123', privateEvidence } }]), owner,
         ])
       }
@@ -373,6 +404,30 @@ test('Garmin migrations, private storage, queue and pilot isolation in isolated 
         await db.exec('reset role')
         assert.deepEqual(await query('select distance_km, elevation_gain, time_text from public.records'),
           scenario.stored ? [{ distance_km: scenario.stored[0], elevation_gain: scenario.stored[1], time_text: '02:00' }] : [])
+      } finally {
+        await db.exec('rollback')
+      }
+    }
+    for (const { type, distance, ascent, published } of [
+      { type: 'WALKING', distance: 10, ascent: 0, published: true },
+      { type: 'WALKING', distance: 9.99, ascent: 600, published: true },
+      { type: 'WALKING', distance: 9.99, ascent: 599, published: false },
+      { type: 'CASUAL_WALKING', distance: 10, ascent: 600, published: false },
+      { type: 'SPEED_WALKING', distance: 10, ascent: 600, published: false },
+      { type: 'RUNNING', distance: 10, ascent: 600, published: false },
+    ]) {
+      await db.exec('begin')
+      try {
+        await capture(distance, ascent, 7259, false, false, 'samples-consistent', type)
+        assert.deepEqual(await query('select reason from public.garmin_private_reviews'),
+          [{ reason: type === 'WALKING' ? 'feed-checks-passed' : 'not-hiking' }])
+        assert.deepEqual(await publishPrivate(), [{ result: published ? 'published' : 'ineligible' }])
+        if (published) {
+          assert.deepEqual(await publishPrivate(), [{ result: 'already-published' }])
+        }
+        await db.exec('reset role')
+        assert.deepEqual(await query('select garmin_verified, time_text from public.records'),
+          published ? [{ garmin_verified: true, time_text: '02:00' }] : [])
       } finally {
         await db.exec('rollback')
       }

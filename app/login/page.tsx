@@ -1,17 +1,29 @@
 'use client'
 
-import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
+import { isWave1Locale } from '@/i18n/wave1'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type Mode = 'login' | 'register' | 'forgot_password'
 
 export default function LoginPage() {
+  const t = useTranslations('login')
+  const ui = useTranslations('ui')
+  const locale = useLocale()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<'' | 'blockedLogin' | 'blockedRegistration' | 'loginUnavailable' | 'registered' | 'registrationUnavailable' | 'resetRequested' | 'signedIn' | { providerError: string; code?: string }>('')
+  function displayMessage() {
+    if (typeof message !== 'object') return message ? t(message) : ''
+    if (!isWave1Locale(locale)) return t('providerError', { message: message.providerError })
+    return ui(message.code === 'invalid_credentials' ? 'authInvalidCredentials' : 'authProviderIssue')
+  }
+
+  const messageText = displayMessage()
 
   useEffect(() => {
     async function checkOAuthBan() {
@@ -39,9 +51,7 @@ export default function LoginPage() {
         if (result.banned) {
           await supabase.auth.signOut()
 
-          setMessage(
-            'Eine Anmeldung mit diesem Zugang ist nicht möglich.'
-          )
+          setMessage('blockedLogin')
         }
       } catch (error) {
         console.error('OAuth ban enforcement failed:', error)
@@ -66,7 +76,7 @@ export default function LoginPage() {
       })
 
       if (!banResponse.ok) {
-        setMessage('Registrierung derzeit nicht möglich. Bitte versuche es später erneut.')
+        setMessage('registrationUnavailable')
         setLoading(false)
         return
       }
@@ -74,9 +84,7 @@ export default function LoginPage() {
       const banResult = await banResponse.json()
 
       if (banResult.banned) {
-        setMessage(
-          'Eine Registrierung mit diesem Zugang ist nicht möglich.'
-        )
+        setMessage('blockedRegistration')
         setLoading(false)
         return
       }
@@ -87,7 +95,7 @@ export default function LoginPage() {
       })
 
       if (error) {
-        setMessage(`Fehler: ${error.message}`)
+        setMessage({ providerError: error.message, code: error.code })
       } else {
         await fetch('/api/send-submission-email', {
           method: 'POST',
@@ -100,7 +108,7 @@ export default function LoginPage() {
           }),
         })
 
-        setMessage('Registrierung erfolgreich. Du kannst dich jetzt einloggen.')
+        setMessage('registered')
         setMode('login')
         setPassword('')
       }
@@ -112,11 +120,9 @@ export default function LoginPage() {
       })
 
       if (error) {
-        setMessage(`Fehler: ${error.message}`)
+        setMessage({ providerError: error.message, code: error.code })
       } else {
-        setMessage(
-          'Wenn ein Konto mit dieser E-Mail existiert, wurde ein Link zum Zurücksetzen des Passworts versendet.'
-        )
+        setMessage('resetRequested')
       }
     } else {
       const banResponse = await fetch('/api/check-user-ban', {
@@ -128,9 +134,7 @@ export default function LoginPage() {
       })
 
       if (!banResponse.ok) {
-        setMessage(
-          'Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.'
-        )
+        setMessage('loginUnavailable')
         setLoading(false)
         return
       }
@@ -140,9 +144,7 @@ export default function LoginPage() {
       if (banResult.banned) {
         await supabase.auth.signOut()
 
-        setMessage(
-          'Eine Anmeldung mit diesem Zugang ist nicht möglich.'
-        )
+        setMessage('blockedLogin')
         setLoading(false)
         return
       }
@@ -153,9 +155,9 @@ export default function LoginPage() {
       })
 
       if (error) {
-        setMessage(`Fehler: ${error.message}`)
+        setMessage({ providerError: error.message, code: error.code })
       } else {
-        setMessage('Login erfolgreich ✅')
+        setMessage('signedIn')
         window.location.href = '/'
       }
     }
@@ -175,24 +177,24 @@ export default function LoginPage() {
     })
 
     if (error) {
-      setMessage(`Fehler: ${error.message}`)
+      setMessage({ providerError: error.message, code: error.code })
       setLoading(false)
     }
   }
 
   const title =
     mode === 'login'
-      ? 'Einloggen'
+      ? t('signIn')
       : mode === 'register'
-      ? 'Registrieren'
-      : 'Passwort vergessen'
+      ? t('register')
+      : t('forgot')
 
   const subtitle =
     mode === 'login'
-      ? 'Melde dich an, um später dein Profil zu übernehmen.'
+      ? t('signInDescription')
       : mode === 'register'
-      ? 'Erstelle deinen Zugang zur Liga.'
-      : 'Gib deine E-Mail-Adresse ein, um dein Passwort zurückzusetzen.'
+      ? t('registerDescription')
+      : t('resetDescription')
 
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
@@ -201,7 +203,7 @@ export default function LoginPage() {
           href="/"
           className="text-sm text-stone-400 transition hover:text-white"
         >
-          ← Zurück zur Startseite
+          {t('backHome')}
         </Link>
 
         <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/10 backdrop-blur-sm">
@@ -231,8 +233,8 @@ export default function LoginPage() {
                               />
                               <span className="text-sm font-semibold text-black">
                                 {mode === 'login'
-                                  ? 'Mit Google anmelden'
-                                  : 'Mit Google registrieren'}
+                                  ? t('googleSignIn')
+                                  : t('googleRegister')}
                               </span>
                             </div>
                           </button>
@@ -240,7 +242,7 @@ export default function LoginPage() {
                           <div className="mb-4 flex items-center gap-3">
                             <div className="h-px flex-1 bg-white/10" />
                             <span className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                              oder
+                              {t('or')}
                             </span>
                             <div className="h-px flex-1 bg-white/10" />
                           </div>
@@ -250,7 +252,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-stone-300">
-                E-Mail
+                {t('email')}
               </label>
               <input
                 type="email"
@@ -264,7 +266,7 @@ export default function LoginPage() {
             {mode !== 'forgot_password' && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-stone-300">
-                  Passwort
+                  {t('password')}
                 </label>
                 <input
                   type="password"
@@ -282,12 +284,12 @@ export default function LoginPage() {
               className="w-full rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:opacity-60"
             >
               {loading
-                ? 'Lädt...'
+                ? t('loading')
                 : mode === 'login'
-                ? 'Einloggen'
+                ? t('signIn')
                 : mode === 'register'
-                ? 'Registrieren'
-                : 'Link zum Zurücksetzen senden'}
+                ? t('register')
+                : t('sendResetLink')}
             </button>
           </form>
 
@@ -302,21 +304,21 @@ export default function LoginPage() {
                 }}
                 className="text-sm text-stone-300 underline transition hover:text-white"
               >
-                Passwort vergessen?
+                {t('forgotLink')}
               </button>
             </div>
           )}
 
           {message && (
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-stone-300">
-              {message}
+              {messageText}
             </div>
           )}
 
           <div className="mt-6 text-center text-sm text-stone-400">
             {mode === 'login' ? (
               <>
-                Noch kein Konto?{' '}
+                {t('noAccount')}{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -325,12 +327,12 @@ export default function LoginPage() {
                   }}
                   className="text-white underline transition hover:text-stone-300"
                 >
-                  Jetzt registrieren
+                  {t('registerNow')}
                 </button>
               </>
             ) : mode === 'register' ? (
               <>
-                Bereits registriert?{' '}
+                {t('alreadyRegistered')}{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -339,12 +341,12 @@ export default function LoginPage() {
                   }}
                   className="text-white underline transition hover:text-stone-300"
                 >
-                  Zum Login
+                  {t('signInLink')}
                 </button>
               </>
             ) : (
               <>
-                Zurück zum{' '}
+                {t('backTo')}{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -353,7 +355,7 @@ export default function LoginPage() {
                   }}
                   className="text-white underline transition hover:text-stone-300"
                 >
-                  Login
+                  {t('loginLink')}
                 </button>
               </>
             )}

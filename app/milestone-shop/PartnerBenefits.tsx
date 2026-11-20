@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import PartnerBenefitCards from './PartnerBenefitCards'
@@ -12,6 +13,7 @@ export function isPartnerBenefit(type: string) {
 }
 
 export default function PartnerBenefits({ preview = false }: { preview?: boolean }) {
+  const t = useTranslations('partnerBenefits')
   const [benefits, setBenefits] = useState<PartnerBenefit[]>([])
   const [error, setError] = useState(false)
 
@@ -29,7 +31,7 @@ export default function PartnerBenefits({ preview = false }: { preview?: boolean
     return () => { cancelled = true }
   }, [preview])
 
-  if (error) return <p role="alert" className="mx-auto my-8 max-w-7xl px-5 text-slate-300">Partnervorteile konnten nicht geladen werden.</p>
+  if (error) return <p role="alert" className="mx-auto my-8 max-w-7xl px-5 text-slate-300">{t('loadError')}</p>
   if (!benefits.length) return null
 
   return <PartnerBenefitCards benefits={benefits} preview={preview} />

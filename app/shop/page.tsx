@@ -1,4 +1,6 @@
-import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
+import { storeTagline } from '@/i18n/polish-store'
+import Link from '@/i18n/prototype/LocalizedLink'
 import Nav from '../components/Nav'
 import {
   ArrowRight,
@@ -11,6 +13,9 @@ import {
 } from 'lucide-react'
 
 export default function ShopPage() {
+  const locale = useLocale()
+  const t = useTranslations('outdoorStore')
+  const ui = useTranslations('ui')
   return (
     <main className="min-h-screen bg-[#141312] text-white">
 
@@ -24,7 +29,7 @@ export default function ShopPage() {
         <div className="absolute inset-0">
           <img
             src="/mountain-hero.jpg"
-            alt="Berglandschaft"
+            alt={t('hero')}
             className="h-full w-full object-cover object-[72%_18%] md:object-[72%_16%] xl:object-[72%_14%]"
           />
         </div>
@@ -57,11 +62,11 @@ export default function ShopPage() {
               </div>
 
               <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
-                Made for your journey.
+                {storeTagline(locale)}
               </h1>
 
               <p className="mx-auto mt-5 max-w-3xl text-lg font-medium text-stone-200">
-                Für alle, die draußen zu Hause sind.
+                {t('tagline')}
               </p>
 
             </div>
@@ -88,16 +93,15 @@ export default function ShopPage() {
 
           <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-[#A9C68B]">
             <Compass size={16} />
-            DISCOVER ULTIMATE
+            {ui('discoverStore')}
           </div>
 
           <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Entdecke unsere Produkte.
+            {t('products')}
           </h2>
 
           <p className="mt-3 max-w-2xl text-base leading-7 text-stone-400">
-            Inspiration für unterwegs. Erinnerungen für zu Hause.
-            Produkte für Menschen, die das Abenteuer lieben.
+            {t('productsIntro')}
           </p>
 
         </section>
@@ -119,7 +123,7 @@ export default function ShopPage() {
 
               {/* Produktkennzeichnung */}
               <div className="absolute left-5 top-5 z-20 rounded-md bg-[#244B36] px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white">
-                NEU 2027
+                {t('new2027')}
               </div>
 
               {/* Original-Kalendercover */}
@@ -152,21 +156,15 @@ export default function ShopPage() {
 
               {/* Kurzbeschreibung */}
               <p className="mt-5 text-lg font-semibold text-[#455044]">
-                12 Monate. 12 Abenteuer.
+                {t('twelveAdventures')}
               </p>
 
               <p className="mt-5 text-[15px] leading-7 text-[#626760]">
-                Begleite unser Wandermurmeltier Schorschy
-                durch ein ganzes Jahr voller Abenteuer,
-                überraschender Begegnungen und
-                unvergesslicher Momente.
+                {t('marmot')}
               </p>
 
               <p className="mt-3 text-[15px] leading-7 text-[#626760]">
-                Mit zwölf liebevoll gestalteten Monatsmotiven,
-                ausgewählten Wanderveranstaltungen aus ganz Europa
-                und den Feiertagen in Deutschland, Österreich
-                und der Schweiz.
+                {t('productDetails')}
                 </p>
 
 
@@ -178,7 +176,7 @@ export default function ShopPage() {
                     size={19}
                     className="shrink-0 text-[#52724F]"
                   />
-                  12 Monatsmotive
+                  {t('monthlyArt')}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm font-medium text-[#404840]">
@@ -186,7 +184,7 @@ export default function ShopPage() {
                     size={19}
                     className="shrink-0 text-[#52724F]"
                   />
-                  Europäische Wanderevents
+                  {t('europeanEvents')}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm font-medium text-[#404840]">
@@ -194,7 +192,7 @@ export default function ShopPage() {
                     size={19}
                     className="shrink-0 text-[#52724F]"
                   />
-                  A3-Hochformat
+                  {t('portrait')}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm font-medium text-[#404840]">
@@ -202,7 +200,7 @@ export default function ShopPage() {
                     size={19}
                     className="shrink-0 text-[#52724F]"
                   />
-                  Hochwertiger Wandkalender
+                  {t('wallCalendar')}
                 </div>
 
               </div>
@@ -219,13 +217,13 @@ export default function ShopPage() {
 
                   
                 <div className="pb-1 text-sm text-[#777B73]">
-                    Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.
+                    {t('vat')}
                 </div>
 
                 </div>
 
                 <p className="mt-2 text-sm text-[#777B73]">
-                  Zuzüglich Versandkosten
+                  {t('shippingExtra')}
                 </p>
 
 
@@ -234,12 +232,12 @@ export default function ShopPage() {
                   href="/shop/schorschys-wanderkalender-2027"
                   className="mt-7 flex min-h-[58px] w-full items-center justify-center gap-3 rounded-lg bg-[#244B36] px-8 py-4 text-base font-bold text-white shadow-[0_8px_20px_rgba(36,75,54,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#326747] hover:shadow-[0_12px_25px_rgba(36,75,54,0.25)]"
                 >
-                  Kalender entdecken
+                  {t('discover')}
                   <ArrowRight size={20} />
                 </Link>
 
                 <p className="mt-4 text-center text-xs text-[#777B73]">
-                  Alle Produktdetails und weitere Bilder ansehen
+                  {t('moreDetails')}
                 </p>
 
               </div>
@@ -266,12 +264,11 @@ export default function ShopPage() {
 
             <div>
               <h3 className="text-sm font-bold text-white">
-                Inspired by Adventure
+                {ui('outdoorAdventureLabel')}
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-stone-400">
-                Produkte für Menschen, die Natur,
-                Wandern und Abenteuer lieben.
+                {t('adventureProducts')}
               </p>
             </div>
 
@@ -287,12 +284,11 @@ export default function ShopPage() {
 
             <div>
               <h3 className="text-sm font-bold text-white">
-                Direkt zu dir
+                {t('direct')}
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-stone-400">
-                Lieferung direkt an deine
-                Wunschadresse.
+                {t('delivery')}
               </p>
             </div>
 
@@ -308,12 +304,11 @@ export default function ShopPage() {
 
             <div>
               <h3 className="text-sm font-bold text-white">
-                Sicher bestellen
+                {t('secure')}
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-stone-400">
-                Transparente Preise und eine
-                nachvollziehbare Bestellabwicklung.
+                {t('orderProcess')}
               </p>
             </div>
 

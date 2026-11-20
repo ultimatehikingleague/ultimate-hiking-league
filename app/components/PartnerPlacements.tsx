@@ -1,21 +1,23 @@
 'use client'
 
-import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useEffect, useState, type ReactNode } from 'react'
 import { getPartnerAds, type PartnerAd, type PartnerSurface } from '../lib/partnerBookings'
 import { supabase } from '../lib/supabase'
 
 export function BrandAd({ ad, footer = false }: { ad: PartnerAd; footer?: boolean }) {
+  const t = useTranslations('ui')
   const image = footer ? ad.logo_url : ad.banner_url
   if (!image || !ad.target_url) return null
   return (
-    <aside aria-label={'Werbung von ' + ad.partner_name} className="min-w-0 rounded-2xl border border-emerald-200/25 bg-[#213125] p-3 text-stone-100">
+    <aside aria-label={t('adBy', { name: ad.partner_name })} className="min-w-0 rounded-2xl border border-emerald-200/25 bg-[#213125] p-3 text-stone-100">
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        <span className="font-semibold uppercase tracking-wide text-emerald-100">Werbung</span>
-        {ad.package_code === 'F' && <span className="font-semibold text-amber-200">Official Partner</span>}
+        <span className="font-semibold uppercase tracking-wide text-emerald-100">{t("advertising")}</span>
+        {ad.package_code === 'F' && <span className="font-semibold text-amber-200">{t('officialPartnerBadge')}</span>}
       </div>
       <a href={ad.target_url} target="_blank" rel="noopener noreferrer sponsored"
-        aria-label={'Website von ' + ad.partner_name + ' öffnen'} className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4">
+        aria-label={t('openPartner', { name: ad.partner_name })} className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4">
         <img src={image} alt={ad.partner_name} loading="lazy" decoding="async"
           className={footer ? 'h-10 max-w-full object-contain' : 'h-20 w-full object-contain md:h-24'} />
       </a>
@@ -24,15 +26,16 @@ export function BrandAd({ ad, footer = false }: { ad: PartnerAd; footer?: boolea
 }
 
 export function EventSponsor({ ad, compact = false }: { ad: PartnerAd; compact?: boolean }) {
+  const t = useTranslations('ui')
   return (
-    <div aria-label={'Werbung von ' + ad.partner_name} className="grid min-w-0 gap-2 text-sm text-stone-100">
+    <div aria-label={t('adBy', { name: ad.partner_name })} className="grid min-w-0 gap-2 text-sm text-stone-100">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        <span className="font-semibold uppercase tracking-wide text-emerald-100">Werbung</span>
-        {ad.package_code === 'D' && <span className="rounded-full border border-amber-200/40 px-2 py-1 font-semibold text-amber-200">Offizieller Eventpartner</span>}
+        <span className="font-semibold uppercase tracking-wide text-emerald-100">{t("advertising")}</span>
+        {ad.package_code === 'D' && <span className="rounded-full border border-amber-200/40 px-2 py-1 font-semibold text-amber-200">{t("officialEventPartner")}</span>}
       </div>
       {ad.logo_url && (ad.target_url?.startsWith('https://') ? (
         <a href={ad.target_url} target="_blank" rel="noopener noreferrer sponsored"
-          aria-label={'Website von ' + ad.partner_name + ' öffnen'}
+          aria-label={t('openPartner', { name: ad.partner_name })}
           className="w-fit max-w-full rounded focus-visible:outline-2 focus-visible:outline-offset-4">
           <img src={ad.logo_url} alt={ad.partner_name} loading="lazy" decoding="async" className="h-9 max-w-full object-contain object-left" />
         </a>
@@ -43,13 +46,14 @@ export function EventSponsor({ ad, compact = false }: { ad: PartnerAd; compact?:
 }
 
 export function EventAd({ ad, link = false }: { ad: PartnerAd; link?: boolean }) {
+  const t = useTranslations('ui')
   return (
     <aside className={'rounded-2xl border p-3 ' + (ad.package_code === 'D'
       ? 'border-amber-200/50 bg-[#372e1d]' : 'border-emerald-200/25 bg-[#213125]')}>
       <EventSponsor ad={ad} compact={link} />
       {link && ad.event_slug && (
         <Link href={'/events/' + encodeURIComponent(ad.event_slug)} className="mt-2 inline-block break-words font-semibold text-white underline underline-offset-4">
-          {ad.event_title ?? 'Event öffnen'} →
+          {ad.event_title ?? t('openEvent')} →
         </Link>
       )}
     </aside>
@@ -62,6 +66,7 @@ function AdRotation({ count, label, auto = false, children }: {
   auto?: boolean
   children: (index: number) => ReactNode
 }) {
+  const t = useTranslations('ui')
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const [pointerInside, setPointerInside] = useState(false)
@@ -84,10 +89,10 @@ function AdRotation({ count, label, auto = false, children }: {
       {count > 1 && (
         <div className="mt-2 flex flex-wrap items-center justify-end gap-3 text-xs text-stone-200">
           {auto && <button type="button" className="rounded-full border border-white/25 px-3 py-1.5"
-            onClick={() => setPaused(value => !value)}>{paused ? 'Rotation starten' : 'Rotation pausieren'}</button>}
+            onClick={() => setPaused(value => !value)}>{paused ? t("startRotation") : t("pauseRotation")}</button>}
           <button type="button" className="rounded-full border border-white/25 px-3 py-1.5"
             onClick={() => setIndex(current => (current + 1) % count)}>
-            Weiter ({(index % count) + 1}/{count})
+            {t('nextAd', { current: (index % count) + 1, count })}
           </button>
         </div>
       )}
@@ -96,14 +101,17 @@ function AdRotation({ count, label, auto = false, children }: {
 }
 
 export function EventSponsors({ ads, detail = false }: { ads: PartnerAd[]; detail?: boolean }) {
+  const t = useTranslations('ui')
   return (
-    <AdRotation count={ads.length} label="Veranstaltungspartner">
+    <AdRotation count={ads.length} label={t('eventPartners')}>
       {index => detail ? <EventAd ad={ads[index]} /> : <EventSponsor ad={ads[index]} />}
     </AdRotation>
   )
 }
 
 export function HomePartnerPlacements({ ads }: { ads: PartnerAd[] }) {
+  const t = useTranslations('ui')
+  const locale = useLocale()
   const official = ads.filter(ad => ad.booking_type === 'brand_partner' && ad.package_code === 'F')
   const premium = ads.filter(ad => ad.booking_type === 'brand_partner' && ad.package_code === 'E').slice(0, 3)
   const events = ads.filter(ad => ad.booking_type === 'event_partner' && ad.package_code !== 'D')
@@ -112,23 +120,23 @@ export function HomePartnerPlacements({ ads }: { ads: PartnerAd[] }) {
 
   return (
     <div className="mt-5 grid min-w-0 gap-3">
-      <BrandPlacement ads={official} label="Offizielle Markenpartner" />
+      <BrandPlacement ads={official} label={t('officialBrandPartners')} />
       {premium.length > 0 && <>
         <div className="hidden grid-cols-3 gap-3 md:grid">
           {premium.map(ad => <BrandAd key={ad.booking_id} ad={ad} />)}
         </div>
         <div className="md:hidden">
-          <AdRotation count={premium.length} label="Premium-Markenpartner">
+          <AdRotation count={premium.length} label={t('premiumBrandPartners')}>
             {index => <BrandAd ad={premium[index]} />}
           </AdRotation>
         </div>
       </>}
       {(mainEvents.length > 0 || events.length > 0) && (
         <div className={'grid gap-3' + (mainEvents.length > 0 && events.length > 0 ? ' md:grid-cols-2' : '')}>
-          <AdRotation count={mainEvents.length} label="Main Event Partner" auto>
+          <AdRotation count={mainEvents.length} label={(locale === 'pl' || locale === 'it' || locale === 'es' || locale === 'cs') ? t('officialEventPartner') : "Main Event Partner"} auto>
             {index => <EventAd ad={mainEvents[index]} link />}
           </AdRotation>
-          <AdRotation count={events.length} label="Beworbene Veranstaltungen" auto>
+          <AdRotation count={events.length} label={t('promotedEvents')} auto>
             {index => <EventAd ad={events[index]} link />}
           </AdRotation>
         </div>
@@ -137,14 +145,15 @@ export function HomePartnerPlacements({ ads }: { ads: PartnerAd[] }) {
   )
 }
 
-export function BrandPlacement({ ads, label = 'Werbepartner', footer = false }: {
+export function BrandPlacement({ ads, label, footer = false }: {
   ads: PartnerAd[]
   label?: string
   footer?: boolean
 }) {
+  const t = useTranslations('ui')
   if (ads.length === 0) return null
   return (
-    <AdRotation count={ads.length} label={label} auto>
+    <AdRotation count={ads.length} label={label ?? t('advertisingPartners')} auto>
       {index => <BrandAd ad={ads[index]} footer={footer} />}
     </AdRotation>
   )
@@ -193,9 +202,10 @@ export function MilestonePartners() {
 }
 
 export function LiveBrandPlacement({ surface }: { surface: Extract<PartnerSurface, 'rankings' | 'account' | 'footer'> }) {
+  const t = useTranslations('ui')
   const ads = useLivePartnerAds(surface)
   if (!ads.length) return null
-  const label = surface === 'account' ? 'Werbung im Mitgliederbereich' :
-    surface === 'footer' ? 'Offizielle Markenpartner im Footer' : 'Werbung in Rankings und Divisionen'
+  const label = surface === 'account' ? t("memberAdvertising") :
+    surface === 'footer' ? t("footerPartners") : t("rankingsAdvertising")
   return <div className="mb-5"><BrandPlacement ads={ads} label={label} footer={surface === 'footer'} /></div>
 }

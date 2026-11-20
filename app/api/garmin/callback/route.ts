@@ -3,9 +3,11 @@ import {
   encryptGarminValue, garminConfiguration, garminDigest, garminNonce, garminResponse,
 } from '../../../lib/activity/garmin-connection.server'
 
-function returnToUhl(status: 'received' | 'retry' | 'unavailable') {
+import { europeanGarminOrigin, europeanGarminStatePrefix } from '../../../lib/activity/garmin-oauth.server'
+
+function returnToUhl(status: 'received' | 'retry' | 'unavailable', origin = '') {
   const response = garminResponse(303)
-  response.headers.set('Location', `/garmin/return?status=${status}`)
+  response.headers.set('Location', `${origin}/garmin/return?status=${status}`)
   return response
 }
 
@@ -19,7 +21,10 @@ export async function GET(request: NextRequest) {
     const state = params.get('state')
     const code = params.get('code')
     const providerError = params.get('error')
-    if (!state || !garminNonce.test(state) ||
+    const europeanOrigin = state && !garminNonce.test(state) && state.startsWith(europeanGarminStatePrefix)
+      ? europeanGarminOrigin(config.browserOrigin) : null
+    const nonce = europeanOrigin && state ? state.slice(europeanGarminStatePrefix.length) : state
+    if (!state || !nonce || !garminNonce.test(nonce) ||
         params.getAll('state').length !== 1 || params.getAll('code').length > 1 ||
         params.getAll('error').length > 1 ||
         (params.has('error') ? !providerError || params.has('code') : !code || code.length > 4096)) {
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
       console.error('Garmin OAuth callback failed', { stage })
       return returnToUhl('unavailable')
     }
-    return returnToUhl(data ? 'received' : 'retry')
+    return data ? returnToUhl('received', europeanOrigin ?? undefined) : returnToUhl('retry')
   } catch {
     console.error('Garmin OAuth callback failed', { stage })
     return returnToUhl('unavailable')

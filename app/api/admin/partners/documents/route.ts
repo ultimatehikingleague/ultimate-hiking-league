@@ -6,12 +6,14 @@ import { addCalendarDays, berlinDate, isCalendarDate, renderPartnerDocument, sel
 
 export const runtime = 'nodejs'
 const noCache = { 'Cache-Control': 'private, no-store' }
-const dossierState = 'terms,offered_at,accepted_on,payment_requested_at,payment_due_on,paid_on,paid_cents,invoice_number,invoice_archived'
+const dossierState = 'terms,offered_at,accepted_on,payment_requested_at,payment_due_on,paid_on,paid_cents,invoice_number,invoice_archived,cancellation_at,cancellation_reason'
 type Dossier = {
   terms: PartnerTerms
   offered_at: string
   accepted_on: string | null
   payment_requested_at: string | null
+  payment_due_on: string | null
+  cancellation_at: string | null
   paid_on: string | null
   invoice_number: string | null
   invoice_archived: boolean
@@ -21,6 +23,13 @@ const files = { offer: 'offer_pdf', contract: 'contract_pdf', payment: 'payment_
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: noCache })
 const rejected = (message: string, status = 400) => json({ error: message }, status)
+
+function pdfResponse(pdf: string, filename: string) {
+  return new Response(Uint8Array.from(Buffer.from(pdf, 'base64')), {
+    headers: { ...noCache, 'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="' + filename + '"' },
+  })
+}
 
 export async function GET(request: Request) {
   if (!await shopAdminId(request)) return rejected('Zugriff verweigert.', 403)
@@ -39,16 +48,30 @@ export async function GET(request: Request) {
     if (dossier.error || cooperation.error || approval.error || social.error) return rejected('Unterlagen konnten nicht geladen werden.', 500)
     return json({ dossier: dossier.data, cooperation: cooperation.data, approval: approval.data, social: social.data })
   }
+  if (kind === 'invoice-draft') {
+    const { data, error } = await db.from('partner_dossiers')
+      .select('terms,paid_on,invoice_number,cancellation_at').eq('booking_id', id).maybeSingle<Dossier>()
+    if (error) return rejected('Rechnungsentwurf konnte nicht geladen werden.', 500)
+    if (!data?.paid_on || data.invoice_number || data.cancellation_at) {
+      return rejected('Ein bestätigter Zahlungseingang ohne ausgestellte Rechnung ist erforderlich.', 409)
+    }
+    const taxNumber = process.env.SHOP_SELLER_TAX_NUMBER?.trim() ?? ''
+    if (!taxNumber) return rejected('Steuernummer für die Rechnung fehlt.', 409)
+    try {
+      const pdf = await renderPartnerDocument('Rechnungsentwurf', 'ENTWURF', berlinDate(new Date()), data.terms,
+        ['Entwurf ohne Rechnungsnummer. Bezahlt am ' + data.paid_on + '.'], { ...seller, taxNumber })
+      return pdfResponse(pdf, 'Rechnungsentwurf-' + id + '.pdf')
+    } catch {
+      return rejected('Rechnungsentwurf konnte nicht erstellt werden.', 500)
+    }
+  }
   if (!Object.prototype.hasOwnProperty.call(files, kind)) return rejected('Unbekanntes Dokument.')
   const column = files[kind as keyof typeof files]
   const { data, error } = await db.from('partner_dossiers').select(column).eq('booking_id', id).maybeSingle<Partial<Record<typeof column, string | null>>>()
   if (error) return rejected('Dokument konnte nicht geladen werden.', 500)
   const pdf = data?.[column]
   if (!pdf) return rejected('Dokument fehlt.', 404)
-  return new Response(Uint8Array.from(Buffer.from(pdf, 'base64')), {
-    headers: { ...noCache, 'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename="' + kind + '-' + id + '.pdf"' },
-  })
+  return pdfResponse(pdf, kind + '-' + id + '.pdf')
 }
 
 export async function POST(request: Request) {
@@ -105,8 +128,9 @@ export async function POST(request: Request) {
     if (body.action === 'record-cooperation') {
       const { data: booking, error } = await db.from('partner_bookings').select('start_date,status,agreed_price_cents,package_code').eq('id', id).single()
       if (error || booking.status !== 'draft') return rejected('Ein Buchungsentwurf ist erforderlich.', 409)
-      if (booking.package_code === 'M' || (booking.agreed_price_cents ?? 0) !== 0)
-        return rejected('Eine Kooperation erfordert einen Buchungspreis von 0,00 EUR. Die Milestone-Präsenz kann direkt freigegeben werden.')
+      if (booking.package_code === 'M') return rejected('Die Milestone-Präsenz kann direkt freigegeben werden.')
+      if (booking.agreed_price_cents === null) return rejected('Bitte zuerst den vereinbarten Buchungspreis festlegen.', 409)
+      if (booking.agreed_price_cents !== 0) return rejected('Eine Kooperation erfordert einen Buchungspreis von 0,00 EUR.')
       const explanation = clean(body.explanation, 2000)
       if (!explanation || !['in_kind', 'goodwill', 'unpaid_milestone'].includes(body.kind)
         || !['fixed', 'partnership', 'minimum'].includes(body.termKind)) return rejected('Art, Begründung und Laufzeit wählen.')
@@ -164,7 +188,8 @@ export async function POST(request: Request) {
         || booking.end_date !== packageEndDate(booking.start_date, String(price.days))) {
         return rejected('Empfänger, Anschrift, Paketlaufzeit und Angebotsgültigkeit prüfen.')
       }
-      const agreedPrice = booking.agreed_price_cents ?? price.cents
+      const agreedPrice = booking.agreed_price_cents
+      if (agreedPrice === null) return rejected('Bitte zuerst den vereinbarten Buchungspreis festlegen.', 409)
       if (agreedPrice === 0) return rejected('Kostenlose Buchungen bitte als Kooperation oder Kulanz erfassen.')
       const terms: PartnerTerms = { partner: partner.name, recipient, address,
         services: [pack.services, additionalDetails].filter(Boolean).join('\n'), validUntil: body.date,
@@ -183,7 +208,23 @@ export async function POST(request: Request) {
     if (result.error) throw result.error
     const dossier = result.data
     if (!dossier) return rejected('Zuerst ein Angebot erstellen.', 409)
+    if (dossier.cancellation_at) return rejected('Der Vorgang wurde bereits beendet. Die Unterlagen bleiben im Archiv.', 409)
     const terms = dossier.terms
+
+    if (body.action === 'record-cancellation') {
+      if (!dossier.accepted_on || !dossier.payment_requested_at || !dossier.payment_due_on
+        || dossier.payment_due_on >= today || dossier.paid_on) {
+        return rejected('Eine überfällige, unbezahlte Zahlungsanforderung ist erforderlich.', 409)
+      }
+      const reason = clean(body.reason, 500)
+      if (!reason) return rejected('Bitte die bereits erklärte Beendigung dokumentieren.')
+      const saved = await db.from('partner_dossiers').update({
+        cancellation_at: now.toISOString(), cancellation_by: admin, cancellation_reason: reason,
+      }).eq('booking_id', id).is('cancellation_at', null).is('paid_on', null).select('booking_id')
+      if (saved.error) throw saved.error
+      if (!saved.data.length) return rejected('Der Vorgang wurde inzwischen geändert. Bitte neu laden.', 409)
+      return json({ ok: true })
+    }
 
     let updates
     let guard
@@ -245,7 +286,7 @@ export async function POST(request: Request) {
       default: return rejected('Unbekannte Aktion.')
     }
 
-    const saved = await db.from('partner_dossiers').update(updates).eq('booking_id', id).is(guard, null).select('booking_id')
+    const saved = await db.from('partner_dossiers').update(updates).eq('booking_id', id).is('cancellation_at', null).is(guard, null).select('booking_id')
     if (saved.error) throw saved.error
     if (!saved.data.length && body.action !== 'invoice') return rejected('Der Vorgang wurde bereits gespeichert. Bitte neu laden.', 409)
     return json({ ok: true })

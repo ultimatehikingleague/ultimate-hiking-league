@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict'
+import {changesBetween,deployedFiles,requireApprovedChanges} from './release-source.mjs'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -10,8 +12,11 @@ const [baseline, candidate, ...files] = process.argv.slice(2)
 if (!idPattern.test(baseline ?? '') || !idPattern.test(candidate ?? '') || baseline === candidate || !files.length) {
   throw Error('Usage: node scripts/verify-production-release.mjs <live deployment ID> <candidate deployment ID> <approved changed path> [...]')
 }
-const allowed = new Set(files)
-if (allowed.size !== files.length) throw Error('The approved path list contains duplicates')
+const proofPath = process.env.UHL_RELEASE_PROOF
+if (!proofPath) throw Error('UHL_RELEASE_PROOF is required. Run scripts/check-release.mjs first.')
+const proof = JSON.parse(await readFile(proofPath, 'utf8'))
+assert.equal(proof.baseline, baseline, 'Test evidence belongs to a different production baseline')
+assert.deepEqual(proof.checks, ['unit','postgresql','build','browser'])
 
 const token = process.env.VERCEL_TOKEN || JSON.parse(await readFile(
   join(homedir(), 'Library/Application Support/com.vercel.cli/auth.json'), 'utf8',
@@ -32,20 +37,7 @@ async function liveId() {
 }
 
 async function sourceFiles(id) {
-  const result = new Map()
-  function visit(node, prefix = '') {
-    const path = prefix + node.name
-    if (node.type === 'directory') {
-      for (const child of node.children ?? []) visit(child, path + '/')
-    } else if (node.type === 'file') {
-      const name = path.replace(/^src\//, '')
-      if (result.has(name) || typeof node.uid !== 'string') throw Error('Ambiguous deployment file: ' + name)
-      result.set(name, node.uid)
-    }
-  }
-  for (const node of await api('/v6/deployments/' + id + '/files')) visit(node)
-  if (!result.size) throw Error('Empty deployment file manifest: ' + id)
-  return result
+  return deployedFiles(await api('/v6/deployments/' + id + '/files'))
 }
 
 function environmentKeys(deployment) {
@@ -62,14 +54,27 @@ const [before, after, existing, proposed] = await Promise.all([
 if (proposed.projectId !== project || proposed.target !== 'production' || proposed.readyState !== 'READY') {
   throw Error('Expected a ready production candidate in the ULTIMATE project')
 }
-const changes = [...new Set([...before.keys(), ...after.keys()])].filter(file => before.get(file) !== after.get(file)).sort()
-const unapproved = changes.filter(file => !allowed.has(file))
-const absent = [...allowed].filter(file => !changes.includes(file))
-if (unapproved.length || absent.length) throw Error(JSON.stringify({ unapproved, approvedButNotChanged: absent }))
+const uploadedDrift = changesBetween(proof.files, after)
+if (uploadedDrift.length) throw Error('Candidate differs from tested files: ' + uploadedDrift.join(', '))
+const changes = requireApprovedChanges(before, after, files)
+
+const settings = ['framework','rootDirectory','buildCommand','installCommand','outputDirectory','nodeVersion']
+for (const field of settings) {
+  assert.deepEqual(proposed.projectSettings?.[field] ?? null, existing.projectSettings?.[field] ?? null,
+    'Build configuration changed: ' + field)
+}
+assert.deepEqual(proposed.regions, existing.regions, 'Deployment regions changed')
+if (existing.crons !== undefined || proposed.crons !== undefined) {
+  assert.deepEqual(proposed.crons, existing.crons, 'Deployment cron configuration changed')
+}
 
 const existingKeys = environmentKeys(existing)
 const proposedKeys = environmentKeys(proposed)
-const missingEnvironment = [...new Set([...existingKeys, 'SHOP_STATUS_SYNC_ENABLED'])].filter(key => !proposedKeys.has(key))
+const requiredSettings = [
+  'SHOP_STATUS_SYNC_ENABLED', 'UHL_WAVE1_RELEASE_BUILD', 'NEXT_PUBLIC_UHL_WAVE1',
+  'NEXT_PUBLIC_UHL_PL', 'NEXT_PUBLIC_UHL_IT', 'NEXT_PUBLIC_UHL_ES', 'NEXT_PUBLIC_UHL_CS',
+]
+const missingEnvironment = [...new Set([...existingKeys, ...requiredSettings])].filter(key => !proposedKeys.has(key))
 if (missingEnvironment.length) throw Error('Missing production settings: ' + missingEnvironment.join(', '))
 
 const lastLive = await liveId()

@@ -1,7 +1,8 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
 
 type PastEventCard = {
   id: number
@@ -27,6 +28,7 @@ function countryToFlag(countryCode?: string | null) {
 }
 
 function PastEventLeaderboardCard({ event }: { event: PastEventCard }) {
+  const t = useTranslations('ui')
   return (
     <Link
       href={`/events/${event.slug}`}
@@ -54,25 +56,19 @@ function PastEventLeaderboardCard({ event }: { event: PastEventCard }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
-            <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-              Datum
-            </div>
+            <div className="text-xs uppercase tracking-[0.18em] text-stone-500">{t("date")}</div>
             <div className="mt-1 font-semibold text-white">{event.date}</div>
           </div>
 
           <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
-            <div className="text-xs uppercase tracking-[0.18em] text-stone-500">
-              Distanzen
-            </div>
+            <div className="text-xs uppercase tracking-[0.18em] text-stone-500">{t("distances")}</div>
             <div className="mt-1 break-words font-semibold text-white">
               {event.distances}
             </div>
           </div>
         </div>
 
-        <div className="text-sm font-medium text-stone-300 transition group-hover:text-white">
-          Zum Event-Ranking →
-        </div>
+        <div className="text-sm font-medium text-stone-300 transition group-hover:text-white">{t("viewEventRanking")}</div>
       </div>
     </Link>
   )
@@ -83,6 +79,7 @@ export default function PastEventLeaderboardFilters({
 }: {
   pastEvents: PastEventCard[]
 }) {
+  const t = useTranslations('ui')
   const [selectedMonth, setSelectedMonth] = useState<string>('all')
   const [selectedCountry, setSelectedCountry] = useState<string>('all')
 
@@ -135,9 +132,7 @@ export default function PastEventLeaderboardFilters({
   return (
     <div>
       <div className="mb-4">
-        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-stone-500">
-          Monate
-        </div>
+        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-stone-500">{t("months")}</div>
 
         <div className="-mx-1 overflow-x-auto pb-2">
           <div className="flex min-w-max gap-2 px-1">
@@ -149,9 +144,7 @@ export default function PastEventLeaderboardFilters({
                   ? 'bg-white text-black'
                   : 'border border-white/10 bg-white/[0.04] text-stone-200 hover:border-white/20 hover:bg-white/[0.06]'
               }`}
-            >
-              Alle Monate
-            </button>
+            >{t("allMonths")}</button>
 
             {months.map((month) => (
               <button
@@ -172,9 +165,7 @@ export default function PastEventLeaderboardFilters({
       </div>
 
       <div className="mb-6">
-        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-stone-500">
-          Länder
-        </div>
+        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-stone-500">{t("countries")}</div>
 
         <div className="-mx-1 overflow-x-auto pb-2">
           <div className="flex min-w-max gap-2 px-1">
@@ -186,9 +177,7 @@ export default function PastEventLeaderboardFilters({
                   ? 'bg-white text-black'
                   : 'border border-white/10 bg-white/[0.04] text-stone-200 hover:border-white/20 hover:bg-white/[0.06]'
               }`}
-            >
-              Alle Länder
-            </button>
+            >{t("allCountries")}</button>
 
             {countries.map((country) => (
               <button
@@ -216,9 +205,7 @@ export default function PastEventLeaderboardFilters({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">
-          Für diese Auswahl wurden keine vergangenen Event-Rankings gefunden.
-        </div>
+        <div className="rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-sm text-stone-400">{t("noFilteredEvents")}</div>
       )}
     </div>
   )

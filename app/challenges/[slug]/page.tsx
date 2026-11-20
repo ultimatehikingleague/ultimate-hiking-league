@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import { getLocale, getTranslations } from 'next-intl/server'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { notFound } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import { CalendarDays, Trophy, CircleCheck } from 'lucide-react'
@@ -33,6 +34,7 @@ function getRankDisplay(rank: number) {
 }
 
 export default async function ChallengePage({ params }: PageProps) {
+  const [t, ui, locale] = await Promise.all([getTranslations('christmasChallenge'), getTranslations('ui'), getLocale()])
   const { slug } = await params
 
   const { data: challenge, error } = await supabase
@@ -183,13 +185,13 @@ const challengeRanking = (participantHikers ?? [])
                 href="/"
                 className="inline-block text-sm text-stone-300 transition hover:text-white"
                 >
-                ← Zurück zur Startseite
+                {t('back')}
                 </Link>
 
                 <div className="mt-8 max-w-4xl rounded-[2rem] border border-white/15 bg-black/35 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm md:p-8">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-amber-200">
                 <span className="text-base">✦</span>
-                Christmas Special
+                {(locale === 'pl' || locale === 'it' || locale === 'es' || locale === 'cs') ? ui('christmasSpecial') : 'Christmas Special'}
                 </div>
 
                 <h1 className="mt-3 text-3xl font-bold text-white md:text-5xl">
@@ -197,8 +199,7 @@ const challengeRanking = (participantHikers ?? [])
                 </h1>
 
                 <p className="mt-4 max-w-3xl text-sm leading-6 text-stone-300 md:text-base">
-                Sammle vom 20. Oktober bis 15. Dezember so viele verifizierte Kilometer
-                wie möglich. Wer am Ende die meisten Kilometer erreicht, gewinnt.
+                {t('intro')}
                 </p>
 
                 <div className="mt-7 grid gap-3 md:grid-cols-3">
@@ -210,10 +211,10 @@ const challengeRanking = (participantHikers ?? [])
 
                     <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">
-                        Zeitraum
+                        {t('period')}
                         </div>
                         <div className="mt-1 font-semibold text-white">
-                        20. Okt. – 15. Dez.
+                        {t('shortDates')}
                         </div>
                     </div>
                     </div>
@@ -227,7 +228,7 @@ const challengeRanking = (participantHikers ?? [])
 
                     <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/70">
-                        Hauptpreis
+                        {t('grandPrize')}
                         </div>
                         <div className="mt-1 font-semibold text-white">
                         Garmin Venu Sq
@@ -244,13 +245,13 @@ const challengeRanking = (participantHikers ?? [])
 
                     <div>
                         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200/70">
-                        Teilnahme
+                        {t('entry')}
                         </div>
                         <div className="mt-1 font-semibold text-white">
-                        Kostenlos
+                        {t('free')}
                         </div>
                         <div className="mt-0.5 text-xs text-stone-400">
-                        Anmeldung bis 19. Oktober
+                        {t('deadline')}
                         </div>
                     </div>
                     </div>
@@ -274,11 +275,11 @@ const challengeRanking = (participantHikers ?? [])
             <div className="mb-5 flex items-end justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-white">
-                  Challenge-Rangliste
+                  {t('leaderboard')}
                 </h2>
 
                 <p className="mt-1 text-sm text-stone-400">
-                  Alle angemeldeten Hiker der Christmas Challenge 2026.
+                  {t('rankingIntro')}
                 </p>
               </div>
             </div>
@@ -292,20 +293,20 @@ const challengeRanking = (participantHikers ?? [])
                     />
 
                     <span className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
-                    Ranking
+                    {t('rankings')}
                     </span>
                 </div>
 
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-400">
                     {challengeRanking.length}{' '}
-                    {challengeRanking.length === 1 ? 'Teilnehmer' : 'Teilnehmer'}
+                    {challengeRanking.length === 1 ? t('participants') : t('participants')}
                 </div>
                 </div>
 
             <div className="space-y-3">
               {challengeRanking.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">
-                  Noch keine Teilnehmer angemeldet.
+                  {t('none')}
                 </div>
               ) : (
                 challengeRanking.map((participant, index) => {
@@ -326,7 +327,7 @@ const challengeRanking = (participantHikers ?? [])
                             href={`/${participant.id}`}
                             className="truncate font-semibold text-white transition hover:text-stone-300"
                           >
-                            {participant.display_name ?? 'Unbekannt'}
+                            {participant.display_name ?? t('unknown')}
                           </Link>
 
                           <div className="mt-1 text-sm text-stone-400">
@@ -364,286 +365,219 @@ const challengeRanking = (participantHikers ?? [])
                 </div>
 
                 <h2 className="mt-2 text-2xl font-bold text-white">
-                  Regeln & Teilnahmebedingungen
+                  {t('terms')}
                 </h2>
 
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-400">
-                  Mit der Teilnahme an der Christmas Challenge 2026 gelten die
-                  folgenden Regeln und Teilnahmebedingungen.
+                  {t('termsIntro')}
                 </p>
               </div>
 
               <div className="space-y-3">
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    1. Teilnahme & Anmeldung
+                    {t('sectionRegistration')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Die Teilnahme ist kostenlos und setzt ein persönliches
-                      Liga-Profil bei der Ultimate European Hiking League voraus.
+                      {t('registrationEligibility')}
                     </p>
 
                     <p>
-                      Die Anmeldung zur Christmas Challenge ist bis einschließlich
-                      <strong className="text-white"> 19. Oktober 2026</strong>{' '}
-                      möglich. Die Challenge beginnt am{' '}
-                      <strong className="text-white">20. Oktober 2026</strong> und
-                      endet am{' '}
-                      <strong className="text-white">15. Dezember 2026</strong>.
+                      {t('canRegisterUntil')}
+                      <strong className="text-white"> {t('lastRegistrationDate')}</strong>{' '}
+                      {t('challengeStarts')}{' '}
+                      <strong className="text-white">{t('startDate')}</strong> {t('challengeEnds')}{' '}
+                      <strong className="text-white">{t('endDate')}</strong>.
                     </p>
 
                     <p>
-                      Eine Anmeldung nach Beginn der Challenge ist nicht möglich.
-                      Mit der Anmeldung nimmt das Liga-Profil verbindlich an der
-                      Challenge teil. Eine nachträgliche Abmeldung ist nicht
-                      vorgesehen.
+                      {t('registrationFinal')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    2. Gewertete Kilometer
+                    {t('sectionDistance')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Für die Challenge zählen verifizierte Wanderungen mit einem
-                      Aktivitätsdatum zwischen dem 20. Oktober und 15. Dezember
-                      2026 einschließlich.
+                      {t('activityDates')}
                     </p>
 
                     <p>
-                      Eine gewertete Aktivität muss mindestens{' '}
-                      <strong className="text-white">10 Kilometer</strong>{' '}
-                      umfassen und den regulären Nachweis- und
-                      Verifizierungsanforderungen der Ultimate European Hiking
-                      League entsprechen.
+                      {t('minimumIntro')}{' '}
+                      <strong className="text-white">{t('minDistance')}</strong>{' '}
+                      {t('minimumOutro')}
                     </p>
 
                     <p>
-                      Die Wanderung muss spätestens am{' '}
+                      {t('submitBefore')}{' '}
                       <strong className="text-white">
-                        15. Dezember 2026
+                        {t('endDate')}
                       </strong>{' '}
-                      vollständig eingereicht und verifiziert worden sein.
-                      Nachträgliche Einreichungen oder Verifizierungen werden für
-                      die Christmas Challenge nicht berücksichtigt – auch dann
-                      nicht, wenn die Wanderung innerhalb des Challenge-Zeitraums
-                      stattgefunden hat.
+                      {t('verificationDeadline')}
                     </p>
 
                     <p>
-                      Die Kilometer werden nicht separat für die Challenge
-                      eingereicht. Ein regulär eingereichter und rechtzeitig
-                      verifizierter Liga-Eintrag wird automatisch berücksichtigt,
-                      sofern er die Challenge-Bedingungen erfüllt. Die Kilometer
-                      zählen gleichzeitig weiterhin für die regulären
-                      UHL-Wertungen.
+                      {t('noSeparateSubmission')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    3. Rangliste
+                    {t('sectionRanking')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Alle angemeldeten Teilnehmer werden in der öffentlichen
-                      Challenge-Rangliste geführt und starten mit 0,00 Kilometern.
+                      {t('rankInitial')}
                     </p>
 
                     <p>
-                      Die Platzierung richtet sich nach der Summe aller während
-                      des Challenge-Zeitraums gültigen und verifizierten
-                      Challenge-Kilometer.
+                      {t('rankDistance')}
                     </p>
 
                     <p>
-                      Es gibt keine Mindestgesamtleistung. Auch Teilnehmer ohne
-                      gewertete Kilometer bleiben Bestandteil der Rangliste.
+                      {t('noMinimumTotal')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    4. Gleichstand
+                    {t('sectionTies')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Erreichen zwei oder mehrere Teilnehmer exakt dieselbe
-                      Gesamtdistanz, wird die Platzierung in folgender Reihenfolge
-                      entschieden:
+                      {t('tieIntro')}
                     </p>
 
                     <ol className="list-decimal space-y-2 pl-5">
                       <li>
-                        Geringere Anzahl gewerteter Aktivitäten.
+                        {t('tieFewer')}
                       </li>
                       <li>
-                        Längste einzelne gewertete Aktivität.
+                        {t('tieLongest')}
                       </li>
                       <li>
-                        Der betreffende Kilometer-Endstand wurde an einem früheren
-
-                        Kalendertag erreicht.
+                        {t('tieEarlier')}
                       </li>
                       <li>
-                        Höhere Summe der verifizierten Höhenmeter aus allen
-                        gewerteten Challenge-Aktivitäten.
+                        {t('tieElevation')}
                       </li>
                     </ol>
 
                     <p>
-                      Die Gewinnerermittlung erfolgt damit anhand der
-                      verifizierten Leistungen innerhalb der Challenge. Eine
-                      zufällige Auslosung findet nicht statt.
+                      {t('tieNoDraw')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-amber-300/20 bg-amber-300/[0.04] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    5. Hauptpreis
+                    {t('sectionPrize')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Der Teilnehmer auf Platz 1 der endgültigen
-                      Challenge-Rangliste gewinnt eine{' '}
+                      {t('firstPlace')}{' '}
                       <strong className="text-white">
-                        neue Garmin Venu Sq in Schwarz
+                        {t('watch')}
                       </strong>.
                     </p>
 
                     <p>
-                      Der Gewinn wird postalisch zugesandt. Hierfür stellt der
-                      Gewinner nach Abschluss der Challenge eine geeignete
-                      Versandadresse zur Verfügung und stimmt deren einmaliger
-                      Verarbeitung zum Zweck des Gewinnversands zu.
+                      {t('delivery')}
                     </p>
 
                     <p>
-                      Die Versandadresse wird ausschließlich zur Abwicklung des
-                      Gewinnversands verwendet und nicht öffentlich angezeigt.
+                      {t('addressPrivacy')}
                     </p>
 
                     <p>
-                      Eine Barauszahlung oder ein Umtausch des Gewinns durch die
-                      Ultimate European Hiking League ist ausgeschlossen. Nach
-                      Übergabe kann der Gewinner frei über den Sachpreis verfügen.
+                      {t('noCash')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    6. Verifizierung & Fairness
+                    {t('sectionFairness')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Für sämtliche gewerteten Aktivitäten gelten die regulären
-                      Nachweis- und Verifizierungsregeln der Ultimate European
-                      Hiking League.
+                      {t('evidence')}
                     </p>
 
                     <p>
-                      Offensichtlich fehlerhafte, unvollständige oder manipulierte
-                      Angaben können von der Wertung ausgeschlossen oder
-                      korrigiert werden. Werden bereits gewertete Aktivitäten
-                      später als ungültig erkannt, können die entsprechenden
-                      Kilometer aus der Challenge-Wertung entfernt werden.
+                      {t('invalidEntries')}
                     </p>
 
                     <p>
-                      Bewusste Manipulationsversuche können zum Ausschluss aus der
-                      Christmas Challenge führen.
+                      {t('manipulation')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    7. Abschluss & Gewinner
+                    {t('sectionWinner')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Die Christmas Challenge endet am 15. Dezember 2026. Danach
-                      wird die Rangliste abschließend geprüft und der Endstand
-                      festgestellt.
+                      {t('finalDate')}
                     </p>
 
                     <p>
-                      Nach Challenge-Ende können keine zusätzlichen Kilometer mehr
-                      in die Wertung aufgenommen werden. Maßgeblich für die
-                      Gewinnvergabe ist die anschließend festgestellte endgültige
-                      Rangliste.
+                      {t('finalStandings')}
                     </p>
 
                     <p>
-                      Der Gewinner wird über die bei seinem Liga-Account
-                      hinterlegten Kontaktmöglichkeiten benachrichtigt und zur
-                      Bereitstellung einer Versandadresse aufgefordert.
+                      {t('contactWinner')}
                     </p>
 
                     <p>
-                      Meldet sich der Gewinner trotz Benachrichtigung innerhalb
-                      von 14 Tagen nicht zurück oder stellt keine für den Versand
-                      erforderliche Adresse zur Verfügung, kann der Gewinn an den
-                      nach diesen Regeln nächstplatzierten Teilnehmer übergehen.
+                      {t('winnerDeadline')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    8. Öffentliche Darstellung
+                    {t('sectionPublic')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Mit der Teilnahme erklärt sich der Teilnehmer damit
-                      einverstanden, dass sein öffentliches Liga-Profil während
-                      der Challenge mit Anzeigename, Länderzuordnung, Platzierung
-                      und gewerteten Challenge-Kilometern in der öffentlich
-                      einsehbaren Challenge-Rangliste dargestellt wird.
+                      {t('publicProfile')}
                     </p>
 
                     <p>
-                      Weitere personenbezogene Daten, insbesondere
-                      E-Mail-Adressen und Versandadressen, werden dadurch nicht
-                      veröffentlicht.
+                      {t('privateData')}
                     </p>
                   </div>
                 </details>
 
                 <details className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <summary className="cursor-pointer list-none font-semibold text-white">
-                    9. Änderungen & außergewöhnliche Umstände
+                    {t('sectionChanges')}
                   </summary>
 
                   <div className="mt-4 space-y-3 text-sm leading-6 text-stone-300">
                     <p>
-                      Die Ultimate European Hiking League behält sich vor, die
-                      Challenge bei technischen Problemen, höherer Gewalt oder
-                      anderen außergewöhnlichen Umständen anzupassen, zu
-                      unterbrechen oder vorzeitig zu beenden, sofern eine
-                      ordnungsgemäße Durchführung andernfalls nicht möglich ist.
+                      {t('exceptional')}
                     </p>
 
                     <p>
-                      Bereits laufende Wertungsregeln werden nicht nachträglich
-                      willkürlich verändert. Notwendige Änderungen werden
-                      transparent kommuniziert und sollen alle Teilnehmer
-                      möglichst gleich behandeln.
+                      {t('existingRules')}
                     </p>
                   </div>
                 </details>

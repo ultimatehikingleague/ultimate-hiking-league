@@ -1,7 +1,8 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { LiveBrandPlacement } from '../components/PartnerPlacements'
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
 import BrandHeader from '../components/BrandHeader'
 
 const divisions = [
@@ -9,7 +10,7 @@ const divisions = [
     name: 'Silver',
     slug: 'silver',
     description:
-      'Der Einstieg in die Liga – hier beginnt jede Journey. Fokus auf Erfahrung, Ausdauer und erste große Distanzen.',
+      "silverDescription",
     badgeClass:
       'border border-stone-300/25 bg-stone-300/10 text-stone-100',
   },
@@ -17,7 +18,7 @@ const divisions = [
     name: 'Gold',
     slug: 'gold',
     description:
-      'Konstante Leistungen und starke Ergebnisse. Hiker in dieser Division zeigen regelmäßig Ausdauer und Tempo.',
+      "goldDescription",
     badgeClass:
       'border border-yellow-400/30 bg-yellow-400/12 text-yellow-200',
   },
@@ -25,13 +26,14 @@ const divisions = [
     name: 'Platinum',
     slug: 'platinum',
     description:
-      'Fokus auf Geschwindigkeit und Effizienz. Hiker in dieser Division erreichen ihre Distanzen in besonders kurzer Zeit.',
+      "speedDescription",
     badgeClass:
       'border border-fuchsia-400/30 bg-fuchsia-400/12 text-fuchsia-200',
   },
-]
+] as const
 
 export default function DivisionHubPage() {
+  const t = useTranslations('ui')
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
       <section
@@ -49,22 +51,14 @@ export default function DivisionHubPage() {
           <Link
             href="/"
             className="inline-block text-sm text-stone-300 transition hover:text-white"
-          >
-            ← Zurück
-          </Link>
+          >{t("backArrow")}</Link>
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
-            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">
-              Divisionen
-            </div>
+            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">{t("divisions")}</div>
 
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Liga-Struktur
-            </h1>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">{t("leagueStructure")}</h1>
 
-            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">
-              Wähle eine Division, um die zugehörige Rangliste und die Hiker dieser Stufe zu sehen.
-            </p>
+            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">{t("divisionChoices")}</p>
           </div>
         </div>
       </section>
@@ -74,15 +68,11 @@ export default function DivisionHubPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Kern-Divisionen</h2>
-              <p className="mt-1 text-sm text-stone-400">
-                Drei klare Leistungsprofile innerhalb derselben Overall-Liga.
-              </p>
+              <h2 className="text-2xl font-bold text-white">{t("coreDivisions")}</h2>
+              <p className="mt-1 text-sm text-stone-400">{t("divisionProfiles")}</p>
             </div>
 
-            <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
-              Division Hub
-            </div>
+            <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">{t("divisionHub")}</div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -99,16 +89,13 @@ export default function DivisionHubPage() {
                 </div>
 
                 <h2 className="mt-4 text-2xl font-bold text-white">
-                  {division.name} Division
-                </h2>
+                  {division.name}{' '}{t("division")}{' '}</h2>
 
                 <p className="mt-3 text-sm leading-6 text-stone-400">
-                  {division.description}
+                  {t(division.description)}
                 </p>
 
-                <div className="mt-5 text-sm font-medium text-stone-300 transition group-hover:text-white">
-                  Zur Division →
-                </div>
+                <div className="mt-5 text-sm font-medium text-stone-300 transition group-hover:text-white">{t("viewDivision")}</div>
               </Link>
             ))}
           </div>

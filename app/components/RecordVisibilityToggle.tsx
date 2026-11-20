@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+import type { UiFeedback } from '../../i18n/feedback'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -12,9 +14,11 @@ export default function RecordVisibilityToggle({
   recordId,
   initialIsPublic,
 }: RecordVisibilityToggleProps) {
+  const t = useTranslations('recordVisibility')
+
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [saving, setSaving] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState<UiFeedback<'recordVisibility'> | null>(null)
 
   async function handleToggle() {
     if (saving) return
@@ -22,7 +26,7 @@ export default function RecordVisibilityToggle({
     const nextValue = !isPublic
 
     setSaving(true)
-    setErrorMessage('')
+    setErrorMessage(null)
 
     const { error } = await supabase
       .from('records')
@@ -32,7 +36,7 @@ export default function RecordVisibilityToggle({
       .eq('id', recordId)
 
     if (error) {
-      setErrorMessage('Sichtbarkeit konnte nicht geändert werden.')
+      setErrorMessage({ key: 'visibilityCouldNotBeChanged' })
       setSaving(false)
       return
     }
@@ -45,7 +49,7 @@ export default function RecordVisibilityToggle({
     <div className="mt-3">
       <div className="inline-flex items-center gap-3">
         <span className="text-xs text-stone-400">
-          {isPublic ? 'Öffentlich sichtbar' : 'Nur für mich sichtbar'}
+          {isPublic ? t('visibleToEveryone') : t('visibleOnlyToMe')}
         </span>
 
         <button
@@ -53,7 +57,7 @@ export default function RecordVisibilityToggle({
           onClick={handleToggle}
           disabled={saving}
           aria-pressed={isPublic}
-          aria-label="Sichtbarkeit ändern"
+          aria-label={t('changeVisibility')}
           className="relative shrink-0 rounded-full transition-all duration-200 disabled:opacity-50"
           style={{
             width: '52px',
@@ -79,14 +83,14 @@ export default function RecordVisibilityToggle({
 
         {saving ? (
           <span className="text-xs text-stone-600">
-            Speichert…
+            {t('saving')}
           </span>
         ) : null}
       </div>
 
       {errorMessage ? (
         <div className="mt-1 text-xs text-red-300">
-          {errorMessage}
+          {t(errorMessage.key)}
         </div>
       ) : null}
     </div>

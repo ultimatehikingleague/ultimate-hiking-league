@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { LiveBrandPlacement } from '../../components/PartnerPlacements'
-import Link from 'next/link'
+import { formatRankingDistance } from '../../../i18n/display'
+import { useEffect, useMemo, useState } from 'react'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { supabase } from '../../lib/supabase'
 import BrandHeader from '../../components/BrandHeader'
 import LeaderboardSubnav from '../../components/LeaderboardSubnav'
@@ -34,11 +36,11 @@ function countryToFlag(countryCode: string | null) {
   )
 }
 
-function countryNameFromCode(countryCode: string | null) {
+function countryNameFromCode(countryCode: string | null, locale = 'de') {
   if (!countryCode) return 'Unbekannt'
   const code = countryCode.trim().toUpperCase()
 
-  const names = new Intl.DisplayNames(['de'], { type: 'region' })
+  const names = new Intl.DisplayNames([locale], { type: 'region' })
   return names.of(code) ?? code
 }
 
@@ -116,6 +118,8 @@ async function fetchAllHikers() {
 }
 
 export default function CountryLeaderboardPage() {
+  const t = useTranslations('ui')
+  const locale = useLocale()
   const [users, setUsers] = useState<RankedUser[]>([])
   const [countries, setCountries] = useState<CountryOption[]>([])
   const [selectedCountry, setSelectedCountry] = useState<string>('')
@@ -269,7 +273,7 @@ export default function CountryLeaderboardPage() {
   }, [users, filteredUsers, currentPage, isSearchMode])
 
   const selectedCountryLabel = selectedCountry
-    ? countryNameFromCode(selectedCountry)
+    ? countryNameFromCode(selectedCountry, locale)
     : '—'
 
   const pageNumbers = getPageNumbers(currentPage, totalPages)
@@ -292,9 +296,7 @@ export default function CountryLeaderboardPage() {
           <Link
             href="/leaderboard"
             className="inline-block text-sm text-stone-300 transition hover:text-white"
-          >
-            ← Zurück zu Ranglisten
-          </Link>
+          >{t("backToRankings")}</Link>
 
           <div className="mt-4">
             <BackToHomeButton />
@@ -302,17 +304,11 @@ export default function CountryLeaderboardPage() {
 
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
-            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">
-              Ranglisten
-            </div>
+            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">{t("rankings")}</div>
 
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Länderrangliste
-            </h1>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">{t("countryRanking")}</h1>
 
-            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">
-              Vergleiche Hiker innerhalb ihrer Nationalität. Sichtbar werden automatisch nur Länder mit echten Daten.
-            </p>
+            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">{t("countryDetails")}</p>
           </div>
 
           <LeaderboardSubnav />
@@ -325,10 +321,8 @@ export default function CountryLeaderboardPage() {
         <LiveBrandPlacement surface="rankings" />
         <div className="mx-auto max-w-5xl">
           <div className="mb-5">
-            <h2 className="text-2xl font-bold text-white">Länder auswählen</h2>
-            <p className="mt-1 text-sm text-stone-400">
-              Neue Länder erscheinen automatisch, sobald dort Hiker mit gepflegter Nationalität und gewerteten Kilometern vorhanden sind.
-            </p>
+            <h2 className="text-2xl font-bold text-white">{t("chooseCountries")}</h2>
+            <p className="mt-1 text-sm text-stone-400">{t("newCountries")}</p>
           </div>
 
           <div className="mb-8 flex flex-wrap gap-3">
@@ -344,7 +338,7 @@ export default function CountryLeaderboardPage() {
                 }`}
               >
                 <span className="text-base">{countryToFlag(country.code)}</span>
-                <span>{country.label}</span>
+                <span>{countryNameFromCode(country.code, locale)}</span>
               </button>
             ))}
           </div>
@@ -354,22 +348,18 @@ export default function CountryLeaderboardPage() {
               <h2 className="text-2xl font-bold text-white">
                 {selectedCountry
                   ? `${countryToFlag(selectedCountry)} ${selectedCountryLabel}`
-                  : 'Länderrangliste'}
+                  : t("countryRanking")}
               </h2>
-              <p className="mt-1 text-sm text-stone-400">
-                50 Hiker pro Seite. Bei der Suche bleibt der echte Rang sichtbar.
-              </p>
+              <p className="mt-1 text-sm text-stone-400">{t("paginationHint")}</p>
             </div>
 
             <div className="w-full md:w-[340px]">
-              <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">
-                Hiker suchen
-              </label>
+              <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">{t("searchHikers")}</label>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Name eingeben…"
+                placeholder={t("namePlaceholder")}
                 className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-white/[0.06]"
               />
             </div>
@@ -379,20 +369,16 @@ export default function CountryLeaderboardPage() {
             <span>{selectedCountryLabel}</span>
             <span>
               {isSearchMode
-                ? `${filteredUsers.length} Treffer`
-                : `${users.length} Hiker · Seite ${currentPage} / ${totalPages}`}
+                ? t('found', { count: filteredUsers.length })
+                : `${t('numberOfHikers', { count: users.length })} · ${t('pageOf', { current: currentPage, count: totalPages })}`}
             </span>
           </div>
 
           <div className="space-y-3">
             {loading ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">
-                Lade Länderrangliste…
-              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">{t("loadingCountry")}</div>
             ) : paginatedUsers.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">
-                Noch keine passenden Hiker gefunden.
-              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">{t("noCountryHikers")}</div>
             ) : (
               paginatedUsers.map((user) => (
                 <div
@@ -414,7 +400,7 @@ export default function CountryLeaderboardPage() {
 
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-stone-400">
                         <span>
-                          {countryToFlag(user.country)} {countryNameFromCode(user.country)}
+                          {countryToFlag(user.country)} {countryNameFromCode(user.country, locale)}
                         </span>
 
                         <span>·</span>
@@ -432,11 +418,9 @@ export default function CountryLeaderboardPage() {
 
                   <div className="text-right">
                     <div className="text-lg font-bold text-white">
-                      {user.total_km} km
+                      {formatRankingDistance(user.total_km, locale)} km
                     </div>
-                    <div className="text-xs text-stone-400">
-                      Gesamtleistung
-                    </div>
+                    <div className="text-xs text-stone-400">{t("totalPerformance")}</div>
                   </div>
                 </div>
               ))
@@ -450,9 +434,7 @@ export default function CountryLeaderboardPage() {
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/[0.06]"
-              >
-                Zurück
-              </button>
+              >{t("back")}</button>
 
               {pageNumbers.map((page, index) =>
                 page < 0 ? (
@@ -485,9 +467,7 @@ export default function CountryLeaderboardPage() {
                 }
                 disabled={currentPage === totalPages}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/[0.06]"
-              >
-                Weiter
-              </button>
+              >{t("next")}</button>
             </div>
           ) : null}
         </div>

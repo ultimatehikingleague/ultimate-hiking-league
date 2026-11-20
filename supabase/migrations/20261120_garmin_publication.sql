@@ -6,7 +6,9 @@ alter table public.garmin_publications enable row level security;
 revoke all on public.garmin_publications from public, anon, authenticated, service_role;
 
 alter table public.records
-  add column garmin_verified boolean not null default false;
+  add column garmin_verified boolean not null default false,
+  add column custom_description text;
+alter table public.record_corrections add column description text;
 
 create function public.protect_garmin_record()
 returns trigger language plpgsql set search_path = '' as $$
@@ -23,9 +25,9 @@ begin
       row(old.distance_km, old.elevation_gain, old.time_text, old.time_hours,
         old.avg_speed, old.division, old.verified, old.record_status, old.record_source, old.event_master_id, old.event_distance_id, old.event_id)
       or (current_user in ('anon', 'authenticated') and
-        row(new.custom_title, new.activity_date, new.custom_location, new.custom_country)
+        row(new.custom_title, new.custom_description, new.activity_date, new.custom_location, new.custom_country)
         is distinct from
-        row(old.custom_title, old.activity_date, old.custom_location, old.custom_country))
+        row(old.custom_title, old.custom_description, old.activity_date, old.custom_location, old.custom_country))
     )) then
     raise exception 'Garmin provenance and measurements are immutable' using errcode = '42501';
   end if;
@@ -91,20 +93,16 @@ begin
   distance := (activity.summary->>'distanceKm')::numeric;
   ascent := (activity.summary->>'ascent')::numeric;
   seconds := (activity.file_metrics->>'fitElapsedSeconds')::numeric;
-  if distance <= 0 or ascent < 0
+  if distance <= 0 or ascent < 0 or (distance < 10 and ascent < 600)
     or seconds < 60 or seconds / 60 > 2147483647
     or distance * 3600 > 15 * seconds or ascent * 3600 > 2000 * seconds
-    or trunc((activity.summary->>'startTimeInSeconds')::numeric) <> (activity.summary->>'startTimeInSeconds')::numeric
     or (activity.summary->>'startTimeInSeconds')::numeric not between 1 and extract(epoch from now())
   then return 'ineligible'; end if;
-
-  distance := round(distance, 2);
-  ascent := round(ascent);
-  if distance < 10 and ascent < 600 then return 'ineligible'; end if;
 
   entered_date := (p_metadata->>'activity_date')::date;
   if entered_date is null or entered_date > (now() at time zone 'Europe/Berlin')::date
     or length(coalesce(p_metadata->>'activity_name', '')) > 240
+    or length(coalesce(p_metadata->>'description', '')) > 240
     or length(coalesce(p_metadata->>'location', '')) > 240
     or length(coalesce(p_metadata->>'country', '')) > 100
   then return 'ineligible'; end if;
@@ -118,26 +116,15 @@ begin
   display_time := case when minutes < 600 then '0' else '' end
     || (minutes / 60)::text || ':' || lpad((minutes % 60)::text, 2, '0');
 
-  -- Catch existing records filed through a different intake path. The hiker
-  -- lock serializes Garmin submissions, and a raised error rolls back the source claim.
-  if exists (
-    select 1 from public.records r
-    where r.hiker_id = p_hiker_id and r.activity_date = entered_date
-      and round(r.distance_km::numeric, 2) = distance
-      and (r.time_text = display_time or abs(r.time_hours::numeric * 60 - minutes) < 0.5)
-  ) then
-    raise exception 'Matching record already exists' using errcode = '23505';
-  end if;
-
   insert into public.records (
     hiker_id, is_public, distance_km, elevation_gain, time_text, time_hours, avg_speed,
     activity_date, verified, record_status, record_source, is_corrected, garmin_verified,
-    custom_title, custom_location, custom_country
+    custom_title, custom_description, custom_location, custom_country
   ) values (
     p_hiker_id, true, distance, ascent, display_time, minutes / 60.0, round(distance * 60 / minutes, 2),
     entered_date, true, 'verified_admin_submission', 'Garmin', false, true,
     coalesce(nullif(btrim(p_metadata->>'activity_name'), ''), 'Garmin-Wanderung'),
-    nullif(btrim(p_metadata->>'location'), ''),
+    nullif(btrim(p_metadata->>'description'), ''), nullif(btrim(p_metadata->>'location'), ''),
     nullif(btrim(p_metadata->>'country'), '')
   ) returning distance_km, elevation_gain, time_text, time_hours
     into stored_distance, stored_ascent, stored_time, stored_hours;
@@ -184,7 +171,7 @@ begin
     raise exception 'Garmin measurements cannot be proposed for correction' using errcode = '42501';
   end if;
   if new.activity_date > (now() at time zone 'Europe/Berlin')::date
-    or length(coalesce(new.activity_name, '')) > 240
+    or length(coalesce(new.activity_name, '')) > 240 or length(coalesce(new.description, '')) > 240
     or length(coalesce(new.location, '')) > 240 or length(coalesce(new.country, '')) > 100 then
     raise exception 'Invalid Garmin correction metadata' using errcode = '22023';
   end if;
@@ -192,6 +179,7 @@ begin
   if tg_op = 'UPDATE' and new.status = 'approved' then
     update public.records set
       custom_title = coalesce(nullif(btrim(new.activity_name), ''), custom_title),
+      custom_description = nullif(btrim(new.description), ''),
       custom_location = nullif(btrim(new.location), ''),
       custom_country = nullif(btrim(new.country), ''),
       activity_date = coalesce(new.activity_date, activity_date),

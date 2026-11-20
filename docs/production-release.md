@@ -1,21 +1,23 @@
 # Gemeinsamer Produktionsrelease für ULTIMATE
 
-Der Milestone Shop und der ULTIMATE OUTDOOR STORE haben getrennte Kataloge, Geschäftsregeln, Einlöse- beziehungsweise Bestellprozesse, Zahlungen und Fulfillment. Supabase, Anmeldung, neutrale UI-Komponenten und das Vercel-Projekt können gemeinsam genutzt werden. Jede Änderung bleibt im fachlich zuständigen Bereich.
-
-## Gemeinsamer Release-Stand
-
-1. Vor dem Build das Deployment der Hauptdomain `www.ultimatehikingleague.com` ermitteln. Dies ist der Basisstand für beide Shops. Einen isolierten Kandidaten aus genau diesem Stand zusammenstellen und nur die ausdrücklich vorgesehenen Änderungen auflegen. Ein lokaler Arbeitsstand kann unveröffentlichte Änderungen enthalten.
-2. Den Kandidaten mit Produktionskonfiguration und ohne Umschaltung der Hauptdomain bauen. Der Gelato-Statusschalter `SHOP_STATUS_SYNC_ENABLED=true` ist in Vercel für **Production** hinterlegt. Er gehört zum Outdoor Store und bleibt bei Milestone-Releases erhalten.
-3. Vor einer freigegebenen Umschaltung den Kandidaten testen und die gemeinsame Prüfung ausführen. Die Dateiliste muss den genehmigten Änderungen entsprechen.
+1. Das Deployment der Hauptdomain ermitteln und seinen vollständigen Quellstand sichern. Mit dem integrierten Hauptbranch vergleichen. Abweichungen fachlich klären, bevor ein neuer Kandidat gebaut wird. Die beiden Shops, Garmin, Partnerverwaltung und Liga teilen sich dasselbe Vercel-Projekt.
+2. Den Kandidaten isoliert erstellen. Die vollständige Liste gewünschter Änderungen vorab prüfen, einschließlich gelöschter Dateien und Konfiguration. Die Liste aus dem fachlich geprüften Umfang ableiten.
+3. Alle Releaseprüfungen ausführen. Dafür sind Node.js, die installierten Anwendungsabhängigkeiten, Playwright mit Chromium und ein isoliertes PGlite erforderlich. Der Nachweis gehört außerhalb des Quellordners.
 
    ```sh
-   node scripts/verify-production-release.mjs LIVE_DEPLOYMENT_ID KANDIDAT_DEPLOYMENT_ID \
-     app/admin/shop/shipping/page.tsx
+   PGLITE_MODULE=/absoluter/pfad/zu/pglite/dist/index.js      node scripts/check-release.mjs LIVE_DEPLOYMENT_ID /absoluter/pfad/release-proof.json
    ```
 
-   Die Prüfung vergleicht die tatsächliche Hauptdomain, alle hochgeladenen Quelldateien und die verfügbaren Namen der Produktionsvariablen. Sie stoppt bei einem verschobenen Basisstand, fremden Dateiänderungen oder fehlender Produktionskonfiguration. Vercel liefert hier die Namen der Variablen. Geplante Änderungen an ihren Werten brauchen eine eigene Konfigurationsprüfung.
-4. Pro Vercel-Projekt darf nur eine Person oder Aufgabe gleichzeitig die Produktionsdomain umschalten. Direkt nach erfolgreicher Prüfung umschalten und die neue Zuordnung sowie die betroffenen Funktionen prüfen. Falls inzwischen ein anderer Release live ist, die fremden Änderungen in den Kandidaten übernehmen, neu bauen und erneut prüfen. Die Vercel-Umschaltung ist technisch vom Prüfbefehl getrennt.
-5. Beim Rückweg ebenso beide Shops und die Produktionskonfiguration prüfen. Ein historisches Deployment kann ältere Umgebungswerte enthalten. Eine Rückschaltung auf ein Deployment ohne Gelato-Schalter würde den Abgleich erneut stoppen.
+   Die Prüfung umfasst Unit- und PostgreSQL-Tests, einen frischen Next.js-Produktionsbuild und Browsertests mit synthetischen Daten. Der Nachweis enthält die Prüfsumme jeder getesteten Quelldatei und die ID der erwarteten Live-Basis.
+4. Nur nach Freigabe den getesteten Stand als Vercel-Produktionskandidaten ohne Domainwechsel bauen. Den vollständigen Upload und das resultierende Deployment prüfen.
+
+   ```sh
+   UHL_RELEASE_PROOF=/absoluter/pfad/release-proof.json      node scripts/verify-production-release.mjs LIVE_DEPLOYMENT_ID KANDIDAT_DEPLOYMENT_ID        app/beispiel.tsx
+   ```
+
+   Der Dateivergleich stoppt bei unbeabsichtigten Änderungen, fehlenden Manifestdaten, Abweichungen vom getesteten Quellstand und einer inzwischen geänderten Hauptdomain. Vercel-Metadaten erlauben zusätzlich den Vergleich von Build-Einstellungen, Regionen und Variablennamen. Die tatsächlichen Konfigurationswerte müssen vor der Umschaltung separat überprüft werden. Für den wiederhergestellten Sprachstand müssen `UHL_WAVE1_RELEASE_BUILD`, `NEXT_PUBLIC_UHL_WAVE1`, `NEXT_PUBLIC_UHL_PL`, `NEXT_PUBLIC_UHL_IT`, `NEXT_PUBLIC_UHL_ES` und `NEXT_PUBLIC_UHL_CS` beim Produktionsbuild auf `1` stehen. `SHOP_STATUS_SYNC_ENABLED=true` bleibt bestehen. Die drei bestehenden Cronpfade und ihre Zeitpläne prüfen.
+5. Pro Projekt eine verantwortliche Person für die Umschaltung bestimmen. Direkt vor der Umschaltung erneut die Domainzuordnung prüfen. Danach öffentliche Routen, authentifizierte Profile und Adminfunktionen lesend prüfen. Bei einem Rückwechsel den zuvor bestätigten Live-Stand samt Einstellungen verwenden. Eine separate Produktionsfreigabe ist Voraussetzung für jede Umschaltung.
+6. Den geprüften vollständigen Quellstand im Hauptbranch verankern. Automatische Produktions-Deployments und die Rechte zur Domainumschaltung so konfigurieren, dass ungeprüfte Git-Stände den gemeinsamen Releaseprozess nicht umgehen können.
 
 ## Ursache des Release-Konflikts vom 8. November 2026
 

@@ -11,6 +11,7 @@ import Papa from 'papaparse'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import ProfileBrandBar from '../components/ProfileBrandBar'
+import GarminMonitoring from './GarminMonitoring'
 
 type AdminUserRow = {
   user_id: string
@@ -60,6 +61,7 @@ type RecordSubmission = {
 }
 
 type RecordCorrection = {
+  description: string | null
   id: number
   record_id: number
   hiker_id: number
@@ -148,6 +150,7 @@ type EventCsvImportResult = {
 }
 
 type CurrentCorrectionRecord = {
+  custom_description: string | null
   id: number
   distance_km: number | null
   time_text: string | null
@@ -462,8 +465,9 @@ function downloadEventCsvTemplate() {
 }
 
 async function findOrCreateEventMaster(
-  draft: SubmissionDraft
-): Promise<{ eventMasterId: number; matched: boolean }> {
+  draft: SubmissionDraft,
+  confirmEvent?: (event: Pick<EventMasterMatch, 'title' | 'city' | 'country' | 'event_date'>) => boolean,
+): Promise<{ eventMasterId: number; matched: boolean } | null> {
   const normalizedName = normalizeText(draft.activity_name)
   const normalizedLocation = getCanonicalLocation(draft.location)
   const normalizedCountryInputValue = normalizeCountryInput(draft.country)
@@ -479,7 +483,7 @@ async function findOrCreateEventMaster(
     )
   }
 
-  const matchedEvent = (existingEvents as EventMasterMatch[]).find((event) => {
+  const matches = (existingEvents as EventMasterMatch[]).filter((event) => {
     const eventTitle = normalizeText(event.title)
     const eventCity = getCanonicalLocation(event.city)
     const eventCountry = normalizeCountryInput(event.country)
@@ -510,9 +514,16 @@ async function findOrCreateEventMaster(
     return sameDate && sameName && sameCountry && locationCompatible
   })
 
+  const matchedEvent = (confirmEvent && matches.find(event =>
+    normalizeText(event.title) === normalizedName && getCanonicalLocation(event.city) === normalizedLocation)) || matches[0]
   if (matchedEvent) {
+    if (confirmEvent && !confirmEvent(matchedEvent)) return null
     return { eventMasterId: matchedEvent.id, matched: true }
   }
+
+  if (confirmEvent && !confirmEvent({
+    title: draft.activity_name, city: draft.location, country: draft.country, event_date: draft.activity_date,
+  })) return null
 
   const slugBase = normalizeText(draft.activity_name)
     .replace(/\s+/g, '-')
@@ -555,7 +566,8 @@ async function findOrCreateEventMaster(
 
 async function findOrCreateEventDistance(
   eventMasterId: number,
-  parsedDistance: number
+  parsedDistance: number,
+  preferExact = false,
 ): Promise<number> {
   const { data: existingDistances, error: existingDistancesError } = await supabase
     .from('event_distances')
@@ -568,9 +580,9 @@ async function findOrCreateEventDistance(
     )
   }
 
-  const matchedDistance = (existingDistances as EventDistanceMatch[]).find(
-    (distance) => isSameDistance(distance.distance_km, parsedDistance)
-  )
+  const distances = existingDistances as EventDistanceMatch[]
+  const matchedDistance = (preferExact && distances.find(distance => Number(distance.distance_km) === parsedDistance))
+    || distances.find(distance => isSameDistance(distance.distance_km, parsedDistance))
 
   if (matchedDistance) {
     return matchedDistance.id
@@ -821,7 +833,7 @@ export default function AdminPage() {
                     supabase
             .from('record_corrections')
             .select(
-              'id, record_id, hiker_id, user_id, activity_name, activity_date, official_distance_km, actual_distance_km, proposed_time_text, elevation_gain, country, location, record_source, notes, admin_note, proof_url, status, created_at, reviewed_at'
+              'id, record_id, hiker_id, user_id, activity_name, description, activity_date, official_distance_km, actual_distance_km, proposed_time_text, elevation_gain, country, location, record_source, notes, admin_note, proof_url, status, created_at, reviewed_at'
             )
             .order('created_at', { ascending: false }),
         ])
@@ -861,7 +873,7 @@ export default function AdminPage() {
             const { data: currentRecordRows, error: currentRecordsError } = await supabase
               .from('records')
               .select(
-                'id, distance_km, time_text, activity_date, elevation_gain, record_source, custom_title, custom_location, custom_country, event_master_id'
+                'id, distance_km, time_text, activity_date, elevation_gain, record_source, custom_title, custom_location, custom_country, custom_description, event_master_id'
               )
               .in('id', correctionRecordIds)
 
@@ -1100,7 +1112,7 @@ export default function AdminPage() {
     setPageMessage('')
 
     try {
-      if (submission.garmin_source_key) {
+      if (submission.garmin_source_key && submission.submission_type === 'private') {
         const review = {
           description: draft.description.trim() || null,
           country: draft.country.trim().toUpperCase() || null,
@@ -1194,21 +1206,54 @@ export default function AdminPage() {
           ? Number((parsedDistance / timeHours).toFixed(2))
           : null
 
+      const garminEvent = Boolean(submission.garmin_source_key)
+      if (garminEvent && (draft.submission_type !== 'official_event' || officialDistance === null ||
+        !Number.isFinite(officialDistance) || parsedDistance < officialDistance * 0.97)) {
+        setPageMessage('Die Garmin-Aktivität muss mindestens 97% der offiziellen Eventdistanz abdecken.')
+        return
+      }
+
       let eventMasterId: number | null = null
       let eventDistanceId: number | null = null
 
       if (draft.submission_type === 'official_event') {
+        const confirmEvent = (event: Pick<EventMasterMatch, 'title' | 'city' | 'country' | 'event_date'>) =>
+          window.confirm(`Garmin-Teilnahme für „${event.title}“ in ${[event.city, event.country].filter(Boolean).join(', ') || 'Ort nicht angegeben'} am ${event.event_date} freigeben? Offizielle Distanz: ${officialDistance} km.`)
         if (submission.event_master_id) {
           eventMasterId = submission.event_master_id
+          if (garminEvent) {
+            const { data: event, error } = await supabase.from('events_master')
+              .select('title,city,country,event_date').eq('id', eventMasterId).single()
+            if (error) throw error
+            if (!confirmEvent(event)) return
+          }
         } else {
-          const eventResult = await findOrCreateEventMaster(draft)
+          const eventResult = await findOrCreateEventMaster(draft, garminEvent ? confirmEvent : undefined)
+          if (!eventResult) return
           eventMasterId = eventResult.eventMasterId
         }
 
         eventDistanceId = await findOrCreateEventDistance(
           eventMasterId,
-          officialDistance ?? parsedDistance
+          officialDistance ?? parsedDistance,
+          garminEvent,
         )
+      }
+
+      if (garminEvent) {
+        const adminNote = draft.admin_note.trim() || null
+        const { error } = await supabase.rpc('approve_garmin_event_submission', {
+          p_id: submission.id, p_event_master_id: eventMasterId, p_event_distance_id: eventDistanceId,
+          p_official_distance: officialDistance, p_admin_note: adminNote,
+        })
+        if (error) throw error
+
+        setRecordSubmissions(prev => prev.map(item => item.id === submission.id ? {
+          ...item, event_master_id: eventMasterId, status: 'approved',
+          admin_note: adminNote, reviewed_at: new Date().toISOString(),
+        } : item))
+        setPageMessage('Die Garmin-Teilnahme wurde für die Eventrangliste freigegeben.')
+        return
       }
 
       const record = {
@@ -1932,6 +1977,8 @@ export default function AdminPage() {
           ← Zurück zur Startseite
         </Link>
 
+        <GarminMonitoring />
+
         <section className="mt-8 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-400">
@@ -2631,6 +2678,7 @@ export default function AdminPage() {
 
                     {[
                       renderDiffRow('Titel', currentRecord?.custom_title, correction.activity_name),
+                      renderDiffRow('Beschreibung', currentRecord?.custom_description, correction.description),
                       renderDiffRow('Datum', currentRecord?.activity_date, correction.activity_date),
                       !currentRecord?.event_master_id
                         ? renderDiffRow('Distanz', currentRecord?.distance_km, correction.actual_distance_km)
@@ -2799,6 +2847,7 @@ export default function AdminPage() {
                               <input
                                 type="text"
                                 value={draft.activity_name}
+                                readOnly={Boolean(submission.garmin_source_key && submission.event_master_id)}
                                 onChange={(e) =>
                                   updateSubmissionDraft(
                                     submission.id,
@@ -2958,6 +3007,7 @@ export default function AdminPage() {
                               <input
                                 type="text"
                                 value={draft.country}
+                                readOnly={Boolean(submission.garmin_source_key && submission.event_master_id)}
                                 onChange={(e) =>
                                   updateSubmissionDraft(
                                     submission.id,
@@ -2976,6 +3026,7 @@ export default function AdminPage() {
                               <input
                                 type="text"
                                 value={draft.location}
+                                readOnly={Boolean(submission.garmin_source_key && submission.event_master_id)}
                                 onChange={(e) =>
                                   updateSubmissionDraft(
                                     submission.id,
@@ -2994,7 +3045,7 @@ export default function AdminPage() {
                               <input
                                 type="text"
                                 value={draft.record_source}
-                                readOnly={Boolean(submission.garmin_source_key)}
+                                readOnly={Boolean(submission.garmin_source_key && (submission.submission_type === 'private' || submission.event_master_id))}
                                 onChange={(e) =>
                                   updateSubmissionDraft(
                                     submission.id,
@@ -3114,7 +3165,7 @@ export default function AdminPage() {
                         {actionLoadingKey ===
                         `submission-approve-${submission.id}`
                           ? 'Wird verarbeitet…'
-                          : submission.garmin_source_key ? 'Privat genehmigen' : 'Anpassen & genehmigen'}
+                          : submission.garmin_source_key && submission.submission_type === 'private' ? 'Privat genehmigen' : 'Anpassen & genehmigen'}
                       </button>
 
                       <button

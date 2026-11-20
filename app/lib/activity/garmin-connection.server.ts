@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { europeanGarminOrigin } from './garmin-oauth.server'
 
 export const garminAttemptSeconds = 600
 export const garminNonce = /^[A-Za-z0-9_-]{43}$/
@@ -227,7 +228,11 @@ export function encryptGarminValue(key: Buffer, aad: string, value: string) {
 export async function authenticateGarmin(request: Request) {
   const config = garminConfiguration()
   if (!config) return garminResponse(404)
-  if (request.method !== 'GET' && request.headers.get('origin') !== config.browserOrigin) return garminResponse(403)
+  const origin = request.headers.get('origin')
+  if (request.method !== 'GET' &&
+      (!origin || (origin !== config.browserOrigin && origin !== europeanGarminOrigin(config.browserOrigin)))) {
+    return garminResponse(403)
+  }
   const bearer = request.headers.get('authorization')?.match(/^Bearer (\S+)$/)?.[1]
   if (!bearer) return garminResponse(401)
   const { data: { user }, error } = await config.auth.getUser(bearer)

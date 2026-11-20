@@ -98,7 +98,7 @@ test('Garmin members list their own imports and submit only their own eligible a
           return [{ activity_id: row.activity_id, date }]
         }).sort((a, b) => (b.date ?? -1) - (a.date ?? -1) || b.activity_id.localeCompare(a.activity_id))
         return Response.json(rows.slice(0, 11))
-      case 'garmin_private_reviews':
+      case 'garmin_private_publication_reviews':
         assert.equal(query.get('owner_id'), `eq.${ownerId}`)
         return Response.json(withPrivateReview && (!query.get('activity_id')?.startsWith('eq.') || query.get('activity_id') === 'eq.6') ? [review] : [])
       case 'publish_garmin_activity':
@@ -126,10 +126,10 @@ test('Garmin members list their own imports and submit only their own eligible a
       .update(JSON.stringify(activity ? [activity.summary, activity.details, activity.file_metrics] : []))
       .digest('hex')
   }
-  const request = (method: string, id = '', owner = true, origin = 'https://uhl.example', key = reviewKey(id)) =>
+  const request = (method: string, id = '', owner = true, origin = 'https://uhl.example', key = reviewKey(id), fields: Record<string, unknown> = {}) =>
     new Request(`${endpoint}?id=${id}`, {
       method, headers: { Origin: origin, Authorization: owner ? 'Bearer owner-token' : 'Bearer other-token' },
-      body: method === 'POST' ? JSON.stringify({ hikerId: 42, activity_name: ' Titel ', activityDate: '2026-10-11', reviewKey: key, description: ' Test ', location: '', country: '', distance_km: 999, is_public: true, status: 'approved' }) : undefined,
+      body: method === 'POST' ? JSON.stringify({ hikerId: 42, activity_name: ' Titel ', activityDate: '2026-10-11', reviewKey: key, description: ' Test ', location: '', country: '', distance_km: 999, is_public: true, status: 'approved', kind: 'private', ...fields }) : undefined,
     })
   assert.equal((await GET(new Request(endpoint))).status, 401)
   assert.equal((await POST(request('POST', '2', false))).status, 404)
@@ -203,11 +203,39 @@ test('Garmin members list their own imports and submit only their own eligible a
   assert.equal(writes[0].p_owner, ownerId)
   assert.equal(writes[0].p_hiker_id, 42)
   assert.deepEqual(writes[0].p_metadata, {
-    activity_name: 'Titel', description: 'Test', country: null, location: null, activity_date: '2026-10-11',
+    activity_name: 'Titel', description: 'Test', country: null, location: null, activity_date: '2026-10-11', submission_type: 'private',
   })
   assert.deepEqual(writes.at(-1)?.p_expected, [
     privateSummary, {}, {}, [review.status, review.evidence, review.conflicting_feeds, review.reason],
   ])
+  const submitEvent = (fields = {}, owner = true) => POST(request('POST', '6', owner, 'https://uhl.example',
+    verifiedByFeeds.reviewKey, { kind: 'official_event', officialDistanceKm: 10, eventMasterId: 11, organizer: ' UHL ', ...fields }))
+  assert.equal((await submitEvent({ kind: undefined })).status, 400)
+  assert.equal((await submitEvent({ officialDistanceKm: 11 })).status, 422)
+  assert.equal((await submitEvent({}, false)).status, 404)
+  insertResult = 'submitted'
+  assert.equal((await submitEvent()).status, 202)
+  assert.deepEqual(writes.at(-1)?.p_metadata, {
+    activity_name: 'Titel', description: 'Test', country: null, location: null, activity_date: '2026-10-11',
+    submission_type: 'official_event', official_distance_km: 10, event_master_id: 11, organizer: 'UHL',
+  })
+  insertResult = 'duplicate-kind'
+  assert.equal((await submitEvent()).status, 409)
+  assert.equal((await submitPrivate(verifiedByFeeds.reviewKey)).status, 409)
+  insertResult = 'published'
+  for (const type of ['WALKING']) {
+    privateSummary.type = type
+    review.evidence.activityDetails.type = type
+    const { activities: [walking] } = await (await GET(request('GET'))).json()
+    assert.equal(walking.publishable, true, type)
+    assert.equal(walking.publicationIssue, null, type)
+    assert.equal(walking.privateOnly, true, type)
+    assert.equal((await submitPrivate(walking.reviewKey)).status, 201, type)
+    const writesBeforeEvent: number = writes.length
+    assert.equal((await POST(request('POST', '6', true, 'https://uhl.example', walking.reviewKey,
+      { kind: 'official_event', officialDistanceKm: 10, organizer: 'UHL' }))).status, 422, type)
+    assert.equal(writes.length, writesBeforeEvent, type)
+  }
   review.reason = 'manual-missing'
   assert.equal((await submitPrivate(verifiedByFeeds.reviewKey)).status, 409)
   const { activities: [unresolved] } = await (await GET(request('GET'))).json()

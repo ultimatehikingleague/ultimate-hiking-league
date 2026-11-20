@@ -1,9 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { LiveBrandPlacement } from '../../components/PartnerPlacements'
-import Link from 'next/link'
-import { supabase } from '../../lib/supabase'
+import { formatRankingDistance } from '../../../i18n/display'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from '@/i18n/prototype/LocalizedLink'
+import { fetchDistanceRanking, rankingResult } from '../../lib/rankings'
+import { getSeasonYear, SEASON_RANKINGS_START } from '../../lib/season'
+import SeasonRefresh from '../../components/SeasonRefresh'
 import BrandHeader from '../../components/BrandHeader'
 import LeaderboardSubnav from '../../components/LeaderboardSubnav'
 import BackToHomeButton from '../../components/BackToHomeButton'
@@ -74,83 +79,34 @@ function getPageNumbers(currentPage: number, totalPages: number) {
   return pages
 }
 
-async function fetchAllHikers() {
-  const pageSize = 1000
-  let from = 0
-  let allRows: any[] = []
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('hikers')
-      .select('id, display_name, country, division, total_km, profile_status')
-      .eq('profile_status', 'active')
-      .range(from, from + pageSize - 1)
-
-    if (error || !data || data.length === 0) {
-      break
-    }
-
-    allRows = allRows.concat(data)
-
-    if (data.length < pageSize) {
-      break
-    }
-
-    from += pageSize
-  }
-
-  return allRows
+export default function OverallLeaderboardPage() {
+  return <Suspense><OverallLeaderboard /></Suspense>
 }
 
-export default function OverallLeaderboardPage() {
-  const [users, setUsers] = useState<RankedUser[]>([])
-  const [loading, setLoading] = useState(true)
+function OverallLeaderboard() {
+  const seasonRequested = useSearchParams().get('season') === 'current'
+  const t = useTranslations('ui')
+  const locale = useLocale()
+  const year = getSeasonYear()
+  const useSeason = year >= SEASON_RANKINGS_START && seasonRequested
+  const rankingKey = useSeason ? year : 0
+  const [result, setResult] = useState<{ key: number; rows: RankedUser[] | null } | null>(null)
+  const currentResult = result?.key === rankingKey ? result : null
+  const users = useMemo(() => currentResult?.rows ?? [], [currentResult])
+  const loading = currentResult === null
+  const failed = currentResult?.rows === null
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
-    async function loadLeaderboard() {
-      try {
-        const hikers = await fetchAllHikers()
-
-        if (!hikers || hikers.length === 0) {
-          setLoading(false)
-          return
-        }
-
-        const rankedUsers: RankedUser[] = hikers
-          .map((h) => ({
-            id: h.id,
-            display_name: h.display_name,
-            country: h.country,
-            division: h.division,
-            total_km:
-              typeof h.total_km === 'number' && !Number.isNaN(h.total_km)
-                ? h.total_km
-                : 0,
-            rank: 0,
-          }))
-          .filter((u) => u.total_km > 0)
-          .sort((a, b) => b.total_km - a.total_km)
-          .map((u, index) => ({
-            ...u,
-            rank: index + 1,
-          }))
-
-        setUsers(rankedUsers)
-      } catch (error) {
-        console.error('Leaderboard load error:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void loadLeaderboard()
-  }, [])
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchQuery])
+    let cancelled = false
+    void rankingResult('Overall', fetchDistanceRanking(useSeason ? year : undefined)).then(ranking => {
+      if (cancelled) return
+      setResult({ key: rankingKey, rows: ranking })
+      setCurrentPage(1)
+    })
+    return () => { cancelled = true }
+  }, [rankingKey, useSeason, year])
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
 
@@ -176,6 +132,7 @@ export default function OverallLeaderboardPage() {
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
+      <SeasonRefresh />
       <section
         className="relative overflow-hidden border-b border-white/10"
         style={{
@@ -191,26 +148,18 @@ export default function OverallLeaderboardPage() {
           <Link
             href="/leaderboard"
             className="inline-block text-sm text-stone-300 transition hover:text-white"
-          >
-            ← Zurück zu Ranglisten
-          </Link>
+          >{t("backToRankings")}</Link>
 
           <div className="mt-2">
             <BackToHomeButton />
           </div>
 
           <div className="mt-6 max-w-3xl rounded-[2rem] border border-white/10 bg-black/25 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-8">
-            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">
-              Ranglisten
-            </div>
+            <div className="text-sm font-semibold uppercase tracking-[0.24em] text-stone-300">{t("rankings")}</div>
 
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Overall Ranking
-            </h1>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">{useSeason ? t("seasonRanking", { year }) : t("allTimeRanking")}</h1>
 
-            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">
-              Die allgemeine Liga-Rangliste aller Hiker nach insgesamt gewerteten Kilometern.
-            </p>
+            <p className="mt-3 text-sm leading-6 text-stone-300 md:text-base">{t(useSeason ? "seasonRankingDescription" : "overallDescription")}</p>
           </div>
 
           <LeaderboardSubnav />
@@ -222,44 +171,43 @@ export default function OverallLeaderboardPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Gesamtrangliste</h2>
-              <p className="mt-1 text-sm text-stone-400">
-                50 Hiker pro Seite. Bei der Suche bleibt der echte Rang sichtbar.
-              </p>
+              <h2 className="text-2xl font-bold text-white">{useSeason ? t("seasonRanking", { year }) : t("overallHeading")}</h2>
+              <p className="mt-1 text-sm text-stone-400">{t("paginationHint")}</p>
             </div>
 
             <div className="w-full md:w-[340px]">
-              <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">
-                Hiker suchen
-              </label>
+              <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-stone-500">{t("searchHikers")}</label>
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Name eingeben…"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
+                placeholder={t("namePlaceholder")}
                 className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-white/[0.06]"
               />
             </div>
           </div>
 
           <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-stone-500">
-            <span>Overall</span>
+            <span>{t("overall")}</span>
             <span>
               {isSearchMode
-                ? `${filteredUsers.length} Treffer`
-                : `${users.length} Hiker · Seite ${currentPage} / ${totalPages}`}
+                ? t('found', { count: filteredUsers.length })
+                : `${t('numberOfHikers', { count: users.length })} · ${t('pageOf', { current: currentPage, count: totalPages })}`}
             </span>
           </div>
 
           <div className="space-y-3">
             {loading ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">
-                Lade Ranking…
-              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">{t("loadingRankings")}</div>
+            ) : failed ? (
+              <p role="status" className="text-sm text-stone-400">{t('rankingUnavailable')}</p>
+            ) : users.length === 0 ? (
+              <p className="text-sm text-stone-400">{t('rankingEmpty')}</p>
             ) : paginatedUsers.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">
-                Keine passenden Hiker gefunden.
-              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-stone-400">{t("noHikers")}</div>
             ) : (
               paginatedUsers.map((user) => (
                 <div
@@ -299,11 +247,9 @@ export default function OverallLeaderboardPage() {
 
                   <div className="text-right">
                     <div className="text-lg font-bold text-white">
-                      {user.total_km} km
+                      {formatRankingDistance(user.total_km, locale)} km
                     </div>
-                    <div className="text-xs text-stone-400">
-                      Gesamtleistung
-                    </div>
+                    <div className="text-xs text-stone-400">{t("totalPerformance")}</div>
                   </div>
                 </div>
               ))
@@ -317,9 +263,7 @@ export default function OverallLeaderboardPage() {
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/[0.06]"
-              >
-                Zurück
-              </button>
+              >{t("back")}</button>
 
               {pageNumbers.map((page, index) =>
                 page < 0 ? (
@@ -352,9 +296,7 @@ export default function OverallLeaderboardPage() {
                 }
                 disabled={currentPage === totalPages}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/[0.06]"
-              >
-                Weiter
-              </button>
+              >{t("next")}</button>
             </div>
           ) : null}
         </div>

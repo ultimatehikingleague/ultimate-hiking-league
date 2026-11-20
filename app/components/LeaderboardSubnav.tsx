@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { usePathname } from 'next/navigation'
 
 const items = [

@@ -1,0 +1,86 @@
+'use strict'
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const {chromium}=require(process.env.UHL_PLAYWRIGHT || 'playwright')
+const {response,user}=require('./release-fixture.cjs')
+const languages=['de','en','fr','nl','pl','it','es','cs']
+;(async()=>{
+  const browser=await chromium.launch(process.env.UHL_CHROME ? {executablePath:process.env.UHL_CHROME} : {})
+  try{
+    for(const [port,year] of [[55826,2026],[55827,2027]]){
+      const base='http://127.0.0.1:'+port
+      const context=await browser.newContext({timezoneId:'America/Los_Angeles',viewport:{width:390,height:950}})
+      await context.addInitScript(user=>{
+        localStorage.setItem('uhl_cookie_consent','necessary_only')
+        const session=JSON.stringify({access_token:'fixture-token',refresh_token:'fixture-token',expires_at:1890000000,user})
+        for(const k of ['sb-astdepkrdkmufsydxviz-auth-token','sb-build-fixture-auth-token'])localStorage.setItem(k,session)
+      },user)
+      await context.route('**/*',route=>{
+        const request=route.request(),url=new URL(request.url())
+        if(url.hostname==='127.0.0.1')return route.continue()
+        if(!url.hostname.endsWith('.supabase.co')&&url.hostname!=='build-fixture.invalid')return route.abort()
+        const cors={'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,HEAD,OPTIONS','access-control-allow-headers':'*'}
+        if(request.method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
+        return route.fulfill({json:response(url,new Headers(request.headers())).body,headers:cors})
+      })
+      const page=await context.newPage()
+      await page.clock.setFixedTime(new Date(year===2026?'2026-12-31T22:59:59Z':'2026-12-31T23:00:00Z'))
+      const heading=name=>page.getByRole('heading',{name,exact:true})
+      const narrow=async()=>assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1))
+      for(const lang of languages){
+        const {ui}=JSON.parse(fs.readFileSync('messages/'+(['fr','nl'].includes(lang)?'wave1/':'')+lang+'.json'))
+        const entry=base+'/'+lang
+        assert.equal((await page.goto(entry)).status(),200)
+        await heading(ui.allTimeRanking).waitFor()
+        const sky=heading(ui.topDivisionLabel.replace('{division}','Skyscraper')).locator('../..')
+        await sky.getByText('Zora Season',{exact:true}).waitFor()
+        assert.equal(await page.locator('html').getAttribute('lang'),lang)
+        assert.equal(await heading(ui.latestActivities).count(),0)
+        assert.equal(await heading(ui.topSeason.replace('{year}','2027')).count(),Number(year===2027))
+        assert.equal(await sky.getByRole('link',{name:ui.more}).getAttribute('href'),'/'+lang+'/skyscraper')
+        await narrow()
+        await page.setViewportSize({width:1440,height:950})
+        const grid=sky.locator('..')
+        assert.equal(await grid.locator('> *').count(),year===2026?2:3)
+        await page.setViewportSize({width:390,height:950})
+        assert.equal((await page.goto(entry+'/1')).status(),200)
+        const season=page.getByText(ui.seasonDistance.replace('{year}',String(year)),{exact:true}).locator('..')
+        const lifetime=page.getByText(ui.allTimeDistance,{exact:true}).locator('..')
+        assert.match(await season.innerText(),year===2026?/33[,.]00 km/:/10[,.]00 km/)
+        assert.match(await lifetime.innerText(),/14[\s.,]?000[.,]00 km/)
+        await narrow()
+      }
+      if(year===2027){
+        await context.addCookies([{name:'uhl_language',value:'en',url:base}])
+        await page.goto(base+'/account')
+        const life=page.getByText('All-time kilometres',{exact:true}).locator('..')
+        await life.waitFor()
+        await page.getByText('Season kilometres 2027',{exact:true}).waitFor()
+        const before=await life.innerText()
+        await page.getByRole('button',{name:JSON.parse(fs.readFileSync('messages/en.json')).account.previousSeason,exact:true}).click()
+        await page.getByText('Season kilometres 2026',{exact:true}).waitFor()
+        assert.equal(await life.innerText(),before)
+        await page.goto(base+'/de/leaderboard/overall?season=current')
+        await page.getByText('Zora Season',{exact:true}).first().waitFor()
+        await page.goto(base+'/de/skyscraper')
+        await page.getByText('Zora Season',{exact:true}).first().waitFor()
+        await page.goto(base+'/admin')
+        await heading('Garmin-Monitoring').waitFor()
+        const monitor=page.locator('section[aria-labelledby="garmin-monitoring-title"]')
+        await monitor.getByText('9 / 1.000 · 0,9 %',{exact:true}).waitFor()
+        await monitor.getByRole('columnheader',{name:'Veröffentlicht'}).waitFor()
+        await monitor.getByRole('button',{name:'Gesamt',exact:true}).click()
+        await monitor.getByText('Alma Lifetime',{exact:true}).waitFor()
+        await page.goto(base+'/admin/partners')
+        await heading('Buchung anlegen').waitFor()
+        await page.locator('select option[value="test-partner"]').first().waitFor({state:'attached'})
+        assert.equal((await page.request.get(base+'/api/admin/partners/documents?id=00000000-0000-4000-8000-000000000001')).status(),403)
+        assert.equal((await page.request.get(base+'/shop')).status(),200)
+        assert.equal((await page.request.get(base+'/milestone-shop')).status(),404)
+      }
+      await context.close()
+      console.log('Browser: '+year+', eight languages, home and public profiles')
+    }
+    console.log('Browser: private season switch, rankings, Garmin monitor, partner admin and store passed')
+  } finally {await browser.close()}
+})().catch(error=>{console.error(error);process.exitCode=1})

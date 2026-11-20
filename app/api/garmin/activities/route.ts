@@ -136,7 +136,7 @@ export async function GET(request: Request) {
     const [activitiesResult, reviewsResult] = ids.length ? await Promise.all([
       config.db.from('garmin_activities').select('activity_id, summary, details, file_metrics')
         .eq('owner_id', owner).in('activity_id', ids),
-      config.db.from('garmin_private_reviews').select(garminPrivateReviewFields)
+      config.db.from('garmin_private_publication_reviews').select(garminPrivateReviewFields)
         .eq('owner_id', owner).in('activity_id', ids),
     ]) : [null, null]
     if (activitiesResult?.error || reviewsResult?.error) return garminResponse(503)
@@ -153,7 +153,8 @@ export async function GET(request: Request) {
         const reviewKey = garminDigest(JSON.stringify(garminSourceSnapshot(row, review)))
         const publicationIssue = garminPublicationIssue(metrics, review?.reason)
         return [{
-          publicationIssue, id: row.activity_id, name: metrics.name, device: metrics.device,
+          publicationIssue, privateOnly: row.summary.type !== 'HIKING',
+          id: row.activity_id, name: metrics.name, device: metrics.device,
           manual: metrics.manual, isWebUpload: metrics.isWebUpload, distanceKm: metrics.distanceKm, ascent: metrics.ascent,
           startTimeInSeconds: date,
           elapsed: metrics.elapsed, eligibility: metrics.eligibility, publishable: Boolean(metrics.verified), reviewKey,
@@ -175,6 +176,15 @@ export async function POST(request: Request) {
     if (!id?.trim() || id.length > 128) return garminResponse(400)
     const body = await request.json().catch(() => null)
     if (!body || !Number.isSafeInteger(body.hikerId) || body.hikerId <= 0) return garminResponse(400)
+
+    const kind = body.kind
+    if (kind !== 'private' && kind !== 'official_event') return garminResponse(400)
+    const event = kind === 'official_event'
+    if (event && (typeof body.officialDistanceKm !== 'number' || !Number.isFinite(body.officialDistanceKm) ||
+      body.officialDistanceKm <= 0 || typeof body.organizer !== 'string' || body.organizer.length > 240 ||
+      (body.eventMasterId != null && (!Number.isSafeInteger(body.eventMasterId) || body.eventMasterId <= 0)))) {
+      return garminResponse(400)
+    }
 
     if (typeof body.reviewKey !== 'string' || !/^[a-f0-9]{64}$/.test(body.reviewKey)) return garminResponse(400)
     const date = body.activityDate
@@ -199,13 +209,15 @@ export async function POST(request: Request) {
       .select('summary, details, file_metrics').eq('owner_id', owner).eq('activity_id', id).maybeSingle()
     if (activityError) return garminResponse(503)
     if (!activity) return garminResponse(404)
-    const { data: review, error: reviewError } = await config.db.from('garmin_private_reviews')
+    const { data: review, error: reviewError } = await config.db.from('garmin_private_publication_reviews')
       .select(garminPrivateReviewFields).eq('owner_id', owner).eq('activity_id', id).maybeSingle()
     if (reviewError) return garminResponse(503)
     const snapshot = garminSourceSnapshot(activity, review)
     if (garminDigest(JSON.stringify(snapshot)) !== body.reviewKey) return garminResponse(409)
     const metrics = mergeGarminMetrics(activity.summary, activity.details, activity.file_metrics, review).verified
     if (!metrics) return garminResponse(422)
+    if (event && (activity.summary.type !== 'HIKING' || !annotations.activity_name ||
+      metrics.distanceKm < body.officialDistanceKm * 0.97)) return garminResponse(422)
 
     // COMMON delivery is separate. Verify the current Garmin grant at publication time.
     try {
@@ -239,12 +251,18 @@ export async function POST(request: Request) {
       p_connection_id: connection.garmin_user_id,
       p_connected_at: connection.connected_at,
       p_expected: snapshot,
-      p_metadata: { ...annotations, activity_date: date },
+      p_metadata: {
+        ...annotations, activity_date: date, submission_type: kind,
+        ...(event && { official_distance_km: body.officialDistanceKm, organizer: body.organizer.trim(),
+          event_master_id: body.eventMasterId ?? null }),
+      },
     })
     if (error) return garminResponse(error.code === '23505' ? 409 : 503)
     switch (data) {
+      case 'submitted': return garminResponse(202)
+      case 'duplicate-kind': return garminResponse(409)
       case 'published': return garminResponse(201)
-      case 'already-published': return garminResponse(200)
+      case 'already-published': return event ? garminResponse(409) : garminResponse(200)
       case 'changed': return garminResponse(409)
       case 'not-found': return garminResponse(404)
       case 'revoked': return garminResponse(409)

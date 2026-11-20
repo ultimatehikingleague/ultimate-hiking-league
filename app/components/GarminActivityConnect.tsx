@@ -1,7 +1,9 @@
 'use client'
 
+import { useLocale, useTranslations } from 'next-intl'
+import { garminIssueKeys } from '../../i18n/activity-display-messages'
 import { formatDistanceKm, formatElevationMeters, formatElapsedTime } from '../lib/activity/display'
-import Link from 'next/link'
+import Link from '@/i18n/prototype/LocalizedLink'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { startVisiblePolling } from '../lib/visiblePolling'
@@ -23,14 +25,17 @@ type Connection = {
 
 const button = 'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/10 disabled:opacity-50 sm:w-auto'
 const primaryButton = 'inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-950 hover:bg-white disabled:opacity-50 sm:w-auto'
-const callbackMessages = new Map([
-  ['connected', 'Garmin Connect™ wurde verbunden.'],
-  ['cancelled', 'Die Garmin-Verbindung wurde abgebrochen.'],
-  ['permission-required', 'Garmin hat keine Freigabe für Aktivitätsdaten erteilt. Starte die Verbindung erneut und erteile die Freigabe.'],
-  ['already-linked', 'Dieses Garmin-Konto ist bereits verbunden.'],
-  ['retry', 'Dieser Garmin-Verbindungsversuch ist abgelaufen. Starte die Verbindung erneut.'],
-  ['unavailable', 'Garmin konnte gerade nicht verbunden werden. Bitte versuche es später erneut.'],
+type GarminMessage = keyof typeof import('../../messages/en.json')['garminDisplay']
+const callbackMessages = new Map<string, GarminMessage>([
+  ['connected', 'callbackConnected'],
+  ['cancelled', 'callbackCancelled'],
+  ['permission-required', 'callbackPermissionRequired'],
+  ['already-linked', 'callbackAlreadyLinked'],
+  ['retry', 'callbackRetry'],
+  ['unavailable', 'callbackUnavailable'],
 ])
+
+const actionErrors = ['signInOriginal', 'finishFailed', 'pleaseSignInAgain', 'actionFailed', 'invalidGarminAddress', 'startFailed', 'storageRequired'] as const
 
 const attemptKey = 'uhl-garmin-attempt'
 
@@ -43,16 +48,19 @@ async function request(path: string, method = 'GET', proof?: string) {
 }
 
 export default function GarminActivityConnect({ onSelect }: { onSelect?: (activity: GarminInboxActivity, submissionEnabled: boolean) => void }) {
+  const t = useTranslations('garminDisplay')
+  const locale = useLocale()
+
   const [connection, setConnection] = useState<Connection | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   const [pending, setPending] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [message, setMessage] = useState<GarminMessage | ''>('')
+  const [error, setError] = useState<GarminMessage | ''>('')
 
   const latestLoad = useRef(0)
-  const [loadError, setLoadError] = useState('')
-  const [moreError, setMoreError] = useState('')
+  const [loadError, setLoadError] = useState<GarminMessage | ''>('')
+  const [moreError, setMoreError] = useState<GarminMessage | ''>('')
   const [loadingMore, setLoadingMore] = useState(false)
   const moreInFlight = useRef(false)
   const expanded = useRef(false)
@@ -88,7 +96,7 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
         expanded.current = false
         setConnection(null)
         setUnavailable(true)
-        setLoadError('Bitte melde dich im UHL-Profil an, um deine Garmin-Aktivitäten zu sehen.')
+        setLoadError('signInRequired')
         return
       }
       if (response.status === 404) {
@@ -98,7 +106,7 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
         setLoadError('')
         return
       }
-      if (!response.ok) throw new Error('Garmin konnte gerade nicht geladen werden.')
+      if (!response.ok) throw new Error('Garmin inbox failed to load')
       const next: Connection = await response.json()
       if (loadId !== latestLoad.current) return
       const active = next.connected && !next.revoked
@@ -114,8 +122,8 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
       setLoadError('')
     } catch {
       if (loadId === latestLoad.current) {
-        if (append) setMoreError('Weitere Aktivitäten konnten gerade nicht geladen werden. Versuche es erneut.')
-        else setLoadError('Der Garmin-Posteingang konnte gerade nicht aktualisiert werden. Versuche es erneut.')
+        if (append) setMoreError('moreFailed')
+        else setLoadError('refreshFailed')
       }
     } finally {
       if (append) {
@@ -144,7 +152,7 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
   }, [importStatus?.workerEnabled, load])
 
   async function act(action: 'connect' | 'finish' | 'disconnect' | 'reload') {
-    if (action === 'disconnect' && !window.confirm('Garmin Connect™ trennen und private Garmin-Importe löschen? Bereits veröffentlichte UHL-Records bleiben bestehen.')) return
+    if (action === 'disconnect' && !window.confirm(t('disconnectConfirm'))) return
     setBusy(true)
     setMessage('')
     setError('')
@@ -159,19 +167,19 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
           throw new Error('Der Verbindungsversuch ist abgelaufen. Starte die Verbindung erneut.')
         }
         const response = await request('/api/garmin/finish', 'POST', attempt.proof)
-        if (!response || response.status === 401) throw new Error('Bitte melde dich erneut im ursprünglichen UHL-Kontext an.')
-        if (!response.ok) throw new Error('Die Verbindung konnte gerade nicht abgeschlossen werden. Prüfe deine Anmeldung und versuche es erneut.')
+        if (!response || response.status === 401) throw new Error('signInOriginal')
+        if (!response.ok) throw new Error('finishFailed')
         const { status } = await response.json()
         if (status === 'waiting') {
           await load()
-          setMessage('Es liegt noch kein Garmin-Rückruf für diesen Versuch vor. Prüfe die Zustimmung bei Garmin oder starte einen neuen Versuch.')
+          setMessage('noCallback')
           return
         }
         if (localStorage.getItem(attemptKey) === raw) {
           localStorage.removeItem(attemptKey)
           setPending(false)
         }
-        const feedback = callbackMessages.get(status) ?? callbackMessages.get('unavailable')!
+        const feedback = callbackMessages.get(status) ?? 'callbackUnavailable'
         if (status === 'connected' || status === 'cancelled') setMessage(feedback)
         else setError(feedback)
         await load()
@@ -179,25 +187,25 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
       }
       const response = action === 'connect' ? await request('/api/garmin/start', 'POST')
         : await request('/api/garmin/connection', 'DELETE')
-      if (!response || response.status === 401) throw new Error('Bitte melde dich erneut an.')
+      if (!response || response.status === 401) throw new Error('pleaseSignInAgain')
       if (!response.ok) {
         // A failed disconnect can still revoke import access. Read the current status.
         if (action === 'disconnect' || response.status === 409) await load()
-        throw new Error('Die Garmin-Aktion konnte nicht abgeschlossen werden. Bitte versuche es erneut.')
+        throw new Error('actionFailed')
       }
       if (action === 'connect') {
         const address = response.headers.get('x-garmin-authorization-url')
         const url = address && new URL(address)
-        if (!url || url.origin !== 'https://connect.garmin.com') throw new Error('Ungültige Garmin-Adresse.')
+        if (!url || url.origin !== 'https://connect.garmin.com') throw new Error('invalidGarminAddress')
         const proof = response.headers.get('x-garmin-attempt-proof')
         const expiresAt = Number(response.headers.get('x-garmin-attempt-expires-at'))
         if (!proof || !/^[A-Za-z0-9_-]{43}$/.test(proof) || !Number.isSafeInteger(expiresAt) || expiresAt <= 0) {
-          throw new Error('Der Garmin-Verbindungsversuch konnte nicht gestartet werden.')
+          throw new Error('startFailed')
         }
         try {
           localStorage.setItem(attemptKey, JSON.stringify({ proof, expiresAt }))
         } catch {
-          throw new Error('UHL benötigt für die Garmin-Verbindung lokalen Browserspeicher. Erlaube den Speicher und versuche es erneut.')
+          throw new Error('storageRequired')
         }
         setPending(true)
         window.location.assign(url)
@@ -207,9 +215,9 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
       expanded.current = false
       setMoreError('')
       setConnection({ connected: false })
-      setMessage('Garmin Connect™ wurde getrennt.')
+      setMessage('disconnected')
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Garmin ist derzeit nicht verfügbar.')
+      setError(actionErrors.find(key => error instanceof Error && error.message === key) ?? 'unavailable')
     } finally {
       setBusy(false)
     }
@@ -217,49 +225,49 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
 
   return (
     <section aria-labelledby="garmin-heading" className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-4 sm:p-5">
-      <h2 id="garmin-heading" className="text-lg font-semibold text-white">Private Garmin-Aktivitäten</h2>
+      <h2 id="garmin-heading" className="text-lg font-semibold text-white">{t('privateGarminActivities')}</h2>
       {connection && (
         <p className="text-sm text-stone-300" role="status">
           {connection.revoked
-            ? 'Aktivitätsfreigabe entzogen. Der Import ist gesperrt. Trenne Garmin, um die Verbindung erneut einzurichten.'
-            : connection.connected ? 'Verbunden · Aktivitätsfreigabe erteilt' : 'Nicht verbunden'}
+            ? t('permissionWithdrawn')
+            : connection.connected ? t('connectedActivityAccessGranted') : t('notConnected')}
         </p>
       )}
       {pending && connection && !connection.connected && (
-        <p className="text-sm text-stone-300">Kehre nach der Garmin-Zustimmung hierher zurück und schließe die Verbindung ab.</p>
+        <p className="text-sm text-stone-300">{t('returnHereAfterGrantingAccessIn')}</p>
       )}
-      {message && <p className="text-sm text-emerald-200" role="status">{message}</p>}
-      {error && <p className="text-sm text-rose-200" role="alert">{error}</p>}
-      {loadError && <p className="text-sm text-rose-200" role="alert">{loadError}</p>}
-      {unavailable && !loadError && <p className="text-sm text-stone-300" role="status">Die private Garmin-Inbox ist für dieses Konto nicht verfügbar.</p>}
-      {!connection && !unavailable && !error && !loadError && <p className="text-sm text-stone-300" role="status">Garmin wird geladen …</p>}
+      {message && <p className="text-sm text-emerald-200" role="status">{t(message)}</p>}
+      {error && <p className="text-sm text-rose-200" role="alert">{t(error)}</p>}
+      {loadError && <p className="text-sm text-rose-200" role="alert">{t(loadError)}</p>}
+      {unavailable && !loadError && <p className="text-sm text-stone-300" role="status">{t('thePrivateGarminInboxIsUnavailable')}</p>}
+      {!connection && !unavailable && !error && !loadError && <p className="text-sm text-stone-300" role="status">{t('loadingGarmin')}</p>}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {pending && connection && !connection.connected && (
-          <button type="button" className={primaryButton} disabled={busy} onClick={() => void act('finish')}>Verbindung abschließen</button>
+          <button type="button" className={primaryButton} disabled={busy} onClick={() => void act('finish')}>{t('finishConnecting')}</button>
         )}
         {connection && (connection.connected
-          ? <button type="button" className={button} disabled={busy} onClick={() => void act('disconnect')}>Garmin Connect™ trennen</button>
-          : <button type="button" className={primaryButton} disabled={busy} onClick={() => void act('connect')}>{pending ? 'Neuen Garmin-Versuch starten' : 'Garmin Connect™ verbinden'}</button>)}
+          ? <button type="button" className={button} disabled={busy} onClick={() => void act('disconnect')}>{t('disconnectGarminConnect')}</button>
+          : <button type="button" className={primaryButton} disabled={busy} onClick={() => void act('connect')}>{pending ? t('startANewGarminConnectionAttempt') : t('connectGarminConnect')}</button>)}
         {(error || loadError || (connection?.connected && !connection.revoked)) && (
-          <button type="button" className={button} disabled={busy || loadingMore} onClick={() => void act('reload')}>{busy ? 'Wird aktualisiert …' : 'Aktualisieren'}</button>
+          <button type="button" className={button} disabled={busy || loadingMore} onClick={() => void act('reload')}>{busy ? t('refreshing') : t('refresh')}</button>
         )}
       </div>
 
-      {connection && <Link href="/datenschutz#garmin-connect" className="inline-block text-sm text-stone-300 underline">Datenschutz zur Garmin-Verknüpfung</Link>}
+      {connection && <Link href="/datenschutz#garmin-connect" className="inline-block text-sm text-stone-300 underline">{t('privacyInformationForTheGarminConnection')}</Link>}
       {importStatus && (
         <div className="space-y-2 text-sm text-stone-300" role="status">
-          {!receiving && <p>Der automatische Garmin-Import ist derzeit pausiert.</p>}
-          {importStatus.pending && <p>{importStatus.workerEnabled ? 'Garmin-Daten sind eingegangen und werden verarbeitet.' : 'Garmin-Daten sind eingegangen und warten auf Verarbeitung.'}</p>}
+          {!receiving && <p>{t('automaticGarminImportIsCurrentlyPaused')}</p>}
+          {importStatus.pending && <p>{importStatus.workerEnabled ? t('garminDataWasReceivedAndIs') : t('dataPending')}</p>}
           {!connection?.activities?.length && (
-            <p>Noch keine Wanderung verfügbar. UHL zeigt hier neue Aktivitäten, sobald Garmin sie nach der Synchronisierung sendet und UHL sie verarbeitet hat. Ältere Garmin-Aktivitäten werden nicht nachgeladen.</p>
+            <p>{t('emptyInbox')}</p>
           )}
           {importStatus.recentFailure && (
-            <p>Ein Garmin-Import konnte in den letzten 24 Stunden nicht vollständig verarbeitet werden. Bereits empfangene Daten siehst du unten. Prüfe bei einer fehlenden Aktivität zuerst, ob sie in Garmin Connect angezeigt wird.</p>
+            <p>{t('recentFailure')}</p>
           )}
           {onSelect
-            ? <p>Importierte Aktivitäten bleiben privat. Du kannst die übernommenen Angaben im Formular prüfen.</p>
-            : <p>Erstelle dein Liga-Profil, um geeignete Garmin-Aktivitäten zu veröffentlichen.</p>}
+            ? <p>{t('importedActivitiesRemainPrivateYouCan')}</p>
+            : <p>{t('createYourLeagueProfileToPublish')}</p>}
         </div>
       )}
       {connection?.activities?.map(activity => {
@@ -270,29 +278,29 @@ export default function GarminActivityConnect({ onSelect }: { onSelect?: (activi
         return (
           <article key={activity.id} className="space-y-2 rounded-xl border border-white/10 p-3 text-sm">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <h3 className="font-semibold wrap-break-word">{activity.name || 'Garmin-Aktivität'}</h3>
-              <p className="text-xs text-stone-300">{incomplete ? 'Daten unvollständig' : activity.publishable ? 'Zur Veröffentlichung geeignet' : 'Nur Vorschau'}</p>
+              <h3 className="font-semibold wrap-break-word">{activity.name || t('garminActivity')}</h3>
+              <p className="text-xs text-stone-300">{incomplete ? t('incompleteData') : activity.publishable ? t('eligibleAsAPrivateHikeOr') : t('previewOnly')}</p>
             </div>
             <p className="text-stone-300">
-              {activity.startTimeInSeconds == null ? 'Datum fehlt' :
-                new Date(activity.startTimeInSeconds * 1000).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin' })} ·{' '}
+              {activity.startTimeInSeconds == null ? t('dateMissing') :
+                new Date(activity.startTimeInSeconds * 1000).toLocaleDateString(locale === 'de' ? 'de-DE' : locale === 'en' ? 'en-GB' : locale, { timeZone: 'Europe/Berlin' })} ·{' '}
               {attribution}
             </p>
-            <p>{formatDistanceKm(activity.distanceKm) ?? '—'} km · {formatElevationMeters(activity.ascent) ?? '—'} hm · {elapsed ? `Gesamtzeit ${elapsed}` : 'Gesamtzeit fehlt'}</p>
-            {activity.publicationIssue && <p className="text-stone-300">{activity.publicationIssue}</p>}
+            <p>{formatDistanceKm(activity.distanceKm) ?? '—'} km · {formatElevationMeters(activity.ascent) ?? '—'} hm · {elapsed ? t('elapsed', { time: elapsed }) : t('elapsedTimeMissing')}</p>
+            {activity.publicationIssue && <p className="text-stone-300">{locale === 'de' ? activity.publicationIssue : t(garminIssueKeys.get(activity.publicationIssue) ?? 'insufficientData')}</p>}
             {onSelect && (
               <button type="button" className={button} disabled={busy || Boolean(loadError)} onClick={() => onSelect(activity, connection.submissionEnabled === true)}>
-                Angaben übernehmen
+                {t('useActivityDetails')}
               </button>
             )}
           </article>
         )
       })}
-      {moreError && <p className="text-sm text-rose-200" role="alert">{moreError}</p>}
+      {moreError && <p className="text-sm text-rose-200" role="alert">{t(moreError)}</p>}
       {connection?.nextCursor && (
         <button type="button" className={button} disabled={busy || loadingMore} aria-busy={loadingMore}
           onClick={() => void load('more', connection.nextCursor ?? undefined)}>
-          {loadingMore ? 'Wird geladen …' : 'Mehr laden'}
+          {loadingMore ? t('loading') : t('loadMore')}
         </button>
       )}
     </section>
