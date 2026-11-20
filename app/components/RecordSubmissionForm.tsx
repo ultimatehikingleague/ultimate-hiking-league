@@ -5,13 +5,33 @@ import { supabase } from '../lib/supabase'
 import { formatActivityDistanceInput, normalizeActivityDurationText, readActivityDistanceInput } from '../lib/activity/normalize'
 import { isLocalActivityImport } from '../lib/activity/development'
 import { activityDateInBerlin } from '../lib/activity/compare'
-import ActivityScreenshotImport from './ActivityScreenshotImport'
 import type { ScreenshotValues } from '../lib/activity/screenshot'
 import { privateScreenshotPrefix, screenshotBucket } from '../lib/activity/screenshot-proof'
 import { ActivitySummary, type ActivityPreview } from './ActivityImportPreview'
+import { type GarminInboxActivity } from '../lib/activity/garmin-metrics'
+
+// Only a type reference is kept here so the OCR implementation stays out
+// of the website's JavaScript bundles.
+function screenshotImportComponent(): typeof import('./ActivityScreenshotImport').default | null {
+  return null
+}
+
+type EntryMode = 'screenshot' | 'import' | 'manual'
+
+function activityImportEnabled() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    (isLocalActivityImport(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
+      (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ACTIVITY_IMPORT_ENABLED === 'true'))
+}
+
+export function activityGpsImportEnabled() {
+  return activityImportEnabled() && process.env.NEXT_PUBLIC_ACTIVITY_GPS_ENABLED === 'true'
+}
 
 type RecordSubmissionFormProps = {
-  previewOnly?: boolean
+  initialEntryMode?: EntryMode
+  garminActivity?: GarminInboxActivity
+  garminSubmissionEnabled?: boolean
   hikerId: number
   onSuccess?: () => void
   onCancel?: () => void
@@ -28,23 +48,27 @@ type RecordSubmissionFormProps = {
 
 export default function RecordSubmissionForm({
   hikerId,
-  previewOnly = false,
   onSuccess,
   onCancel,
   preselectedEvent,
+  initialEntryMode = 'manual',
+  garminActivity,
+  garminSubmissionEnabled,
 }: RecordSubmissionFormProps) {
-  const [isOfficialEvent, setIsOfficialEvent] = useState(true)
-  const [activityName, setActivityName] = useState('')
+  const [isOfficialEvent, setIsOfficialEvent] = useState(!garminActivity)
+  const [activityName, setActivityName] = useState(garminActivity?.name ?? '')
   const [description, setDescription] = useState('')
   const [officialDistanceKm, setOfficialDistanceKm] = useState('')
-  const [actualDistanceKm, setActualDistanceKm] = useState('')
-  const [activityDate, setActivityDate] = useState('')
-  const [elapsedTimeText, setElapsedTimeText] = useState('')
-  const [elevationGain, setElevationGain] = useState('')
+  const [actualDistanceKm, setActualDistanceKm] = useState(garminActivity?.distanceKm?.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }) ?? '')
+  const [activityDate, setActivityDate] = useState(() => garminActivity?.startTimeInSeconds == null
+    ? ''
+    : activityDateInBerlin(new Date(garminActivity.startTimeInSeconds * 1000).toISOString()) ?? '')
+  const [elapsedTimeText, setElapsedTimeText] = useState(garminActivity?.elapsed ?? '')
+  const [elevationGain, setElevationGain] = useState(garminActivity?.ascent?.toString() ?? '')
   const [country, setCountry] = useState('')
   const [location, setLocation] = useState('')
   const [organizer, setOrganizer] = useState('')
-  const [isPublic, setIsPublic] = useState(true)
+  const [isPublic, setIsPublic] = useState(!garminActivity)
   
   const [notes, setNotes] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
@@ -56,13 +80,15 @@ export default function RecordSubmissionForm({
   const [screenshotPending, setScreenshotPending] = useState(false)
   const [imported, setImported] = useState<{ file: File; activity: ActivityPreview; repeated: boolean; id: string }>()
   const [readingActivity, setReadingActivity] = useState(false)
-  const [entryMode, setEntryMode] = useState<'screenshot' | 'import' | 'manual'>('screenshot')
+  const [entryMode, setEntryMode] = useState<EntryMode>(initialEntryMode)
   const fileInputId = useId()
   const activeRead = useRef(false)
-  const importEnabled = previewOnly || Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-    (isLocalActivityImport(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
-      (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ACTIVITY_IMPORT_ENABLED === 'true'))
-  const gpsEnabled = importEnabled && !previewOnly && process.env.NEXT_PUBLIC_ACTIVITY_GPS_ENABLED === 'true'
+  // Keep the OCR flow in source for future providers. Website entry points are disabled.
+  const ActivityScreenshotImport = screenshotImportComponent()
+  const screenshotImportEnabled = Boolean(ActivityScreenshotImport)
+  const importEnabled = !garminActivity && (screenshotImportEnabled || activityGpsImportEnabled())
+  const gpsEnabled = !garminActivity && activityGpsImportEnabled()
+  const garminReady = garminActivity?.publishable
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -205,9 +231,10 @@ export default function RecordSubmissionForm({
     if (values.ascent) setElevationGain(values.ascent)
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (previewOnly || activeRead.current || submitting || screenshotPending) return
+  async function handleSubmit(e?: React.FormEvent<HTMLFormElement>) {
+    e?.preventDefault()
+    if (e && garminActivity) return
+    if ((garminActivity && (!garminSubmissionEnabled || !garminReady)) || activeRead.current || submitting || screenshotPending) return
     setSubmitting(true)
     setSuccessMessage('')
     setErrorMessage('')
@@ -220,6 +247,34 @@ export default function RecordSubmissionForm({
       if (!session?.user) {
         setErrorMessage('Bitte logge dich zuerst ein.')
         setSubmitting(false)
+        return
+      }
+
+      if (garminActivity) {
+        if (!activityDate) {
+          setErrorMessage('Bitte gib ein Datum an.')
+          return
+        }
+        const response = await fetch(`/api/garmin/activities?id=${encodeURIComponent(garminActivity.id)}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hikerId, activity_name: activityName, activityDate, country, location, reviewKey: garminActivity.reviewKey,
+          }),
+          cache: 'no-store',
+        })
+        if (response.ok) {
+          setSuccessMessage(response.status === 201 ? 'Deine Wanderung wurde veröffentlicht.' : 'Diese Wanderung wurde bereits veröffentlicht.')
+          onSuccess?.()
+        } else {
+          const messages: Record<number, string> = {
+            400: 'Bitte prüfe die Länge deiner Angaben.',
+            404: 'Die Garmin-Aktivität oder dein Wanderprofil ist nicht verfügbar.',
+            409: 'Die Daten oder die Freigabe haben sich geändert oder ein passender Record existiert bereits. Öffne die Garmin-Übersicht erneut.',
+            422: 'Die Garmin-Aktivität erfüllt die UHL-Zulassung nicht oder es fehlen erforderliche Daten.',
+          }
+          setErrorMessage(messages[response.status] ?? 'Die Veröffentlichung ist gerade nicht möglich. Bitte versuche es erneut.')
+        }
         return
       }
 
@@ -429,15 +484,15 @@ if (isOfficialEvent) {
     <div className={`rounded-[1.75rem] border border-white/10 p-4 shadow-xl shadow-black/10 sm:p-6 ${importEnabled ? "bg-stone-900 text-stone-100 [color-scheme:dark] [&_.text-stone-500]:text-stone-400" : "bg-white/[0.04]"}`}>
       <div className="mb-4">
         <h3 className="text-xl font-semibold text-white">Wanderung hinzufügen</h3>
-        <p className="mt-1 text-sm text-stone-400">
-          Reiche hier eine neue Wanderung zur Prüfung ein.
-        </p>
-        <p className="mt-2 text-xs uppercase tracking-[0.18em] text-stone-500">
-          * Pflichtfelder
-        </p>
+        {!garminActivity && <p className="mt-1 text-sm text-stone-400">Reiche hier eine neue Wanderung zur Prüfung ein.</p>}
+        {garminActivity && (
+          <p className="mt-2 text-sm text-stone-300" role="status">
+            {garminActivity.publicationIssue ?? 'Prüfe die aus Garmin übernommenen Angaben.'}
+          </p>
+        )}
       </div>
 
-      {importEnabled && <div className="mb-5 grid gap-3 sm:grid-cols-3" role="group" aria-label="Art der Erfassung">
+      {screenshotImportEnabled && importEnabled && <div className="mb-5 grid gap-3 sm:grid-cols-3" role="group" aria-label="Art der Erfassung">
         <button type="button" disabled={readingActivity || submitting} aria-pressed={entryMode === 'screenshot'}
           onClick={() => { setEntryMode('screenshot'); setErrorMessage('') }}
           className={`min-h-12 rounded-2xl px-4 py-3 text-left font-semibold ${entryMode === 'screenshot' ? 'bg-emerald-200 text-emerald-950' : 'border border-white/15 text-white'}`}>
@@ -463,7 +518,7 @@ if (isOfficialEvent) {
         </button>
       </div>}
 
-      {importEnabled && <div hidden={entryMode !== 'screenshot'}>
+      {ActivityScreenshotImport && importEnabled && <div hidden={entryMode !== 'screenshot'}>
         <ActivityScreenshotImport key={screenshotSelection} disabled={submitting || readingActivity}
           onChange={hasFiles => { clearScreenshotValues(); setScreenshotPending(hasFiles) }}
           onConfirm={confirmScreenshots} />
@@ -510,10 +565,10 @@ if (isOfficialEvent) {
         </section>
       )}
 
-      {(!importEnabled || entryMode === 'manual' || imported || screenshots.length > 0) && (
+      {(!importEnabled || garminActivity || entryMode === 'manual' || imported || screenshots.length > 0) && (
       <form onSubmit={handleSubmit} className="space-y-4">
       {imported && <h4 className="font-semibold text-white">3. Fehlende Angaben ergänzen</h4>}
-      <div className="flex gap-3 mb-4">
+      {!garminActivity && <div className="flex gap-3 mb-4">
   <button
     type="button"
     onClick={() => setIsOfficialEvent(true)}
@@ -537,35 +592,18 @@ if (isOfficialEvent) {
   >
     Private Wanderung
   </button>
-</div>
-        {isOfficialEvent ? (
-  <div>
-    <label className="mb-2 block text-sm font-medium text-stone-200">
-      Name des offiziellen Events * <span className="text-stone-500">Pflichtangabe</span>
-    </label>
-    <input
-      type="text"
-      value={activityName}
-      onChange={(e) => setActivityName(e.target.value)}
-      placeholder="z. B. Ultimatemarsch Mallorca"
-      className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
-    />
-  </div>
-) : (
-  <div>
-    <label className="mb-2 block text-sm font-medium text-stone-200">
-      Beschreibung <span className="text-stone-500">optional</span>
-    </label>
-    <input
-      type="text"
-      value={description}
-      onChange={(e) => setDescription(e.target.value)}
-      placeholder="z. B. Chiemsee-Umrundung oder Zugspitzbesteigung"
-      className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
-    />
-  </div>
-)}
-
+</div>}
+        <label className="block text-sm font-medium text-stone-200">
+          Titel {isOfficialEvent && '*'}
+          <input
+            type="text"
+            value={garminActivity || isOfficialEvent ? activityName : description}
+            maxLength={garminActivity ? 240 : undefined}
+            onChange={event => (garminActivity || isOfficialEvent ? setActivityName : setDescription)(event.target.value)}
+            placeholder={isOfficialEvent ? 'z. B. Ultimatemarsch Mallorca' : 'z. B. Chiemsee-Umrundung'}
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
+          />
+        </label>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-200">
@@ -574,6 +612,7 @@ if (isOfficialEvent) {
             <input
               type="date"
               value={activityDate}
+              required={Boolean(garminActivity)}
               onChange={(e) => setActivityDate(e.target.value)}
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition focus:border-white/20 focus:bg-black/20"
             />
@@ -601,6 +640,7 @@ if (isOfficialEvent) {
       <input
         type="text"
         value={actualDistanceKm}
+              readOnly={Boolean(garminActivity)}
         onChange={(e) => setActualDistanceKm(e.target.value)}
         placeholder="z. B. 48.7"
         className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
@@ -615,6 +655,7 @@ if (isOfficialEvent) {
     <input
       type="text"
       value={actualDistanceKm}
+              readOnly={Boolean(garminActivity)}
       onChange={(e) => setActualDistanceKm(e.target.value)}
       placeholder="z. B. 12.5"
       className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
@@ -631,14 +672,15 @@ if (isOfficialEvent) {
             <input
               type="text"
               value={elapsedTimeText}
+              readOnly={Boolean(garminActivity)}
               onChange={(e) => setElapsedTimeText(e.target.value)}
               placeholder="z. B. 08:34"
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
 
-            <p className="text-xs text-yellow-400 mt-1">
+            {!garminActivity && <p className="text-xs text-yellow-400 mt-1">
               Bitte Gesamtzeit (inkl. Pausen), nicht nur Gehzeit.
-            </p>
+            </p>}
             
           </div>
 
@@ -649,6 +691,7 @@ if (isOfficialEvent) {
             <input
               type="text"
               value={elevationGain}
+              readOnly={Boolean(garminActivity)}
               onChange={(e) => setElevationGain(e.target.value)}
               placeholder="z. B. 1200"
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
@@ -664,6 +707,7 @@ if (isOfficialEvent) {
             <input
               type="text"
               value={country}
+            maxLength={garminActivity ? 100 : undefined}
               onChange={(e) => setCountry(e.target.value)}
               placeholder="z. B. Deutschland"
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
@@ -677,13 +721,14 @@ if (isOfficialEvent) {
             <input
               type="text"
               value={location}
+            maxLength={garminActivity ? 240 : undefined}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="z. B. Hamburg"
               className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
             />
           </div>
 
-          {!isOfficialEvent ? (
+          {!isOfficialEvent && !garminActivity ? (
             <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -747,7 +792,7 @@ if (isOfficialEvent) {
             }}>Screenshot-Nachweise entfernen</button>
         </div>}
 
-        {!imported && !screenshots.length && <div>
+        {!garminActivity && !imported && !screenshots.length && <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
             Nachweis hochladen *
           </label>
@@ -770,7 +815,7 @@ if (isOfficialEvent) {
           ) : null}
         </div>}
 
-        <div>
+        {!garminActivity && <div>
           <label className="mb-2 block text-sm font-medium text-stone-200">
             Notiz
           </label>
@@ -781,10 +826,10 @@ if (isOfficialEvent) {
             rows={4}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
           />
-        </div>
+        </div>}
 
         {errorMessage ? (
-          <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+          <div role="alert" className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
             {errorMessage}
           </div>
         ) : null}
@@ -797,11 +842,12 @@ if (isOfficialEvent) {
 
         <div className="flex flex-wrap gap-3">
           <button
-            type="submit"
-            disabled={previewOnly || submitting || readingActivity || screenshotPending}
-            className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            type={garminActivity ? 'button' : 'submit'}
+            onClick={garminActivity ? () => void handleSubmit() : undefined}
+            disabled={Boolean(garminActivity && (!garminReady || !garminSubmissionEnabled)) || submitting || readingActivity || screenshotPending}
+            className="min-h-11 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-stone-100 transition hover:-translate-y-0.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? 'Wird gesendet…' : imported ? '4. Wanderung einreichen' : 'Wanderung einreichen'}
+            {submitting ? 'Wird gesendet…' : garminActivity ? 'Wanderung veröffentlichen' : imported ? '4. Wanderung einreichen' : 'Wanderung einreichen'}
           </button>
 
           {onCancel ? (
@@ -810,14 +856,14 @@ if (isOfficialEvent) {
               onClick={onCancel}
               className="rounded-2xl border border-white/10 bg-transparent px-5 py-3 text-sm font-medium text-stone-300 transition hover:bg-white/[0.04] hover:text-white"
             >
-              Abbrechen
+              Zurück zur Auswahl
             </button>
           ) : null}
         </div>
       </form>
       )}
       {gpsEnabled && entryMode === 'import' && !imported && onCancel && (
-        <button type="button" onClick={onCancel} className="min-h-11 text-sm text-stone-300">Abbrechen</button>
+        <button type="button" onClick={onCancel} className="min-h-11 text-sm text-stone-300">Zurück zur Auswahl</button>
       )}
     </div>
   )

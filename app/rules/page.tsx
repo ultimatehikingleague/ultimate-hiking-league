@@ -367,9 +367,8 @@ export default function RulesPage() {
                 <>Alle Daten müssen korrekt, vollständig und plausibel sein.</>,
                 <>Unplausible oder manipulierte Einreichungen können abgelehnt oder entfernt werden.</>,
                 <>Claims, Nachweise und Korrekturen können manuell geprüft werden.</>,
-                <>Wanderungen können über die im Formular angebotenen Wege eingereicht werden. Dazu gehören die manuelle Einreichung mit Nachweis und der Garmin-Connect-Screenshot-Import. Die Nachweisanforderungen für private Wanderungen und offizielle Events gelten für beide Wege.</>,
-                <>Beim Screenshot-Import schlägt die automatische Texterkennung Werte für das Formular vor. Fehlende Angaben dürfen ergänzt und falsch erkannte Werte korrigiert werden, sofern sie aus dem Originalnachweis hervorgehen. Bei Abweichungen kann das Prüfteam eine Erläuterung oder einen ergänzenden Nachweis verlangen. Manipulierte Nachweise und bewusst falsche Angaben sind unzulässig.</>,
-                <>Jede Einreichung benötigt eine administrative Freigabe, bevor sie gewertet wird.</>,
+                <>Manuell eingereichte Wanderungen benötigen einen Nachweis und die Freigabe durch das Prüfteam.</>,
+                <>Sobald die Veröffentlichung aus Garmin freigeschaltet ist, können verifizierbare Geräteaufzeichnungen nach automatischer Prüfung und ausdrücklicher Bestätigung gewertet werden.</>,
                 <>Dieselbe Wanderung darf nur einmal zur Wertung eingereicht werden. Das gilt auch bei unterschiedlichen Nachweiswegen. Beziehe dich bei einer Berichtigung auf die bestehende Einreichung.</>,
                 <>Ziel der Liga ist ein faires, transparentes und nachvollziehbares Bewertungssystem.</>,
               ]}

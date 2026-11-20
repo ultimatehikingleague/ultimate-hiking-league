@@ -1,3 +1,5 @@
+import { BrandPlacement } from '../components/PartnerPlacements'
+import { getPartnerAds } from '../lib/partnerBookings'
 import Link from 'next/link'
 import { supabase } from '../lib/supabase'
 import CorrectionRequestForm from '../components/CorrectionRequestForm'
@@ -369,6 +371,8 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
   return allRows
 }
 
+  const partnerAds = await getPartnerAds('profile')
+
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
       <div className="mx-auto max-w-5xl">
@@ -545,6 +549,8 @@ async function fetchAllRankedHikers(): Promise<RankedHiker[]> {
             </div>
           </div>
         </section>
+
+        {partnerAds.length > 0 && <div className="mb-8"><BrandPlacement ads={partnerAds} label="Werbung im öffentlichen Profil" /></div>}
 
         <section>
           <div className="mb-4 flex items-center justify-between">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { LiveBrandPlacement } from '../../components/PartnerPlacements'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import BrandHeader from '../../components/BrandHeader'
@@ -217,6 +218,7 @@ export default function OverallLeaderboardPage() {
       </section>
 
       <section className="px-6 py-10 md:px-10 md:py-12">
+        <LiveBrandPlacement surface="rankings" />
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>

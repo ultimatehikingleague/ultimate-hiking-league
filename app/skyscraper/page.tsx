@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../lib/supabase'
 import BrandHeader from '../components/BrandHeader'
+import { LiveBrandPlacement } from '../components/PartnerPlacements'
 import LeaderboardSubnav from '../components/LeaderboardSubnav'
 import BackToHomeButton from '../components/BackToHomeButton'
 import { countryToFlag } from '../lib/country'
@@ -58,7 +59,7 @@ function getPageNumbers(currentPage: number, totalPages: number) {
 async function fetchAllHikers() {
   const pageSize = 1000
   let from = 0
-  let allRows: any[] = []
+  let allRows: Pick<RankedUser, 'id' | 'display_name' | 'country'>[] = []
 
   while (true) {
     const { data, error } = await supabase
@@ -82,7 +83,7 @@ async function fetchAllHikers() {
 async function fetchAllElevationRecords() {
   const pageSize = 1000
   let from = 0
-  let allRows: any[] = []
+  let allRows: { hiker_id: number | null; elevation_gain: unknown }[] = []
 
   while (true) {
     let query
@@ -105,11 +106,11 @@ async function fetchAllElevationRecords() {
     if (error || !data || data.length === 0) break
 
     allRows = allRows.concat(
-      data.map((row: any) => ({
+      data.map((row) => ({
         hiker_id: row.hiker_id,
         elevation_gain: USE_SEASON_RANKING
-          ? row.season_elevation_gain
-          : row.elevation_gain,
+          ? ('season_elevation_gain' in row ? row.season_elevation_gain : null)
+          : ('elevation_gain' in row ? row.elevation_gain : null),
       }))
     )
 
@@ -142,7 +143,7 @@ export default function SkyscraperPage() {
 
         const elevationByHiker = new Map<number, number>()
 
-        records.forEach((record: any) => {
+        records.forEach((record) => {
           const hikerId = record.hiker_id
           const elevation =
             typeof record.elevation_gain === 'number' &&
@@ -157,7 +158,7 @@ export default function SkyscraperPage() {
         })
 
         const rankedUsers: RankedUser[] = hikers
-          .map((hiker: any) => ({
+          .map((hiker) => ({
             id: hiker.id,
             display_name: hiker.display_name,
             country: hiker.country,
@@ -254,6 +255,7 @@ export default function SkyscraperPage() {
 
       <section className="px-6 py-10 md:px-10 md:py-12">
         <div className="mx-auto max-w-5xl">
+          <LiveBrandPlacement surface="rankings" />
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">Skyscraper</h2>
@@ -321,7 +323,7 @@ export default function SkyscraperPage() {
 
                   <div className="text-right">
                     <div className="text-lg font-bold text-white">
-                      {user.totalElevation} hm
+                      {user.totalElevation.toLocaleString('de-DE', { maximumFractionDigits: 0 })} hm
                     </div>
                     <div className="text-xs text-stone-400">Höhenmeter</div>
                   </div>

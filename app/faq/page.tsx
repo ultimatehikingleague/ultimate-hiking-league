@@ -77,6 +77,32 @@ export default function FAQPage() {
           </div>
 
           <div>
+            <h2 className="font-semibold text-lg">Wie verbinde ich Garmin Connect mit der Ultimate Hiking League?</h2>
+            <p className="text-stone-400 mt-2">
+              Mit Garmin Connect kannst du deine aufgezeichneten Wanderungen bequem in die Ultimate Hiking League übernehmen – ohne Distanz, Zeit und Höhenmeter selbst eingeben zu müssen.
+            </p>
+            <p className="text-stone-400 mt-2">So funktioniert’s:</p>
+            <ol className="text-stone-400 mt-2 list-decimal space-y-1 pl-6">
+              <li>Melde dich bei der Ultimate Hiking League an und öffne deinen Account.</li>
+              <li>Verbinde dort dein Garmin-Konto mit UHL und erteile die erforderlichen Berechtigungen.</li>
+              <li>Zeichne deine Wanderungen wie gewohnt mit deiner Garmin-Uhr auf und synchronisiere sie mit Garmin Connect.</li>
+              <li>Klicke in der Ultimate Hiking League auf „Wanderung hinzufügen“ und wähle „Aus Garmin importieren“.</li>
+              <li>Wähle die gewünschte Wanderung aus und überprüfe die automatisch übernommenen Angaben.</li>
+              <li>Klicke auf „Wanderung veröffentlichen“.</li>
+            </ol>
+            <p className="text-stone-400 mt-2">
+              Erfüllt deine Aktivität die Teilnahmebedingungen, wird sie automatisch als verifizierter Eintrag in die Liga übernommen.
+            </p>
+            <p className="text-stone-400 mt-2">Gut zu wissen:</p>
+            <ul className="text-stone-400 mt-2 list-disc space-y-1 pl-6">
+              <li>Es werden nur Aktivitäten übernommen, die Garmin nach deiner Kontoverknüpfung an UHL übermittelt. Ältere Wanderungen werden nicht nachträglich importiert.</li>
+              <li>Eine Wanderung muss mindestens 10 km lang sein. Kürzere Wanderungen zählen ebenfalls, wenn sie mindestens 600 positive Höhenmeter aufweisen.</li>
+              <li>Deine Garmin-Messwerte werden automatisch übernommen und können nicht manuell verändert werden.</li>
+              <li>Du kannst die Garmin-Verbindung jederzeit in deinem Account wieder trennen.</li>
+            </ul>
+          </div>
+
+          <div>
             <h2 className="font-semibold text-lg">
               Warum zählt nur die Gesamtzeit und nicht die Gehzeit?
             </h2>

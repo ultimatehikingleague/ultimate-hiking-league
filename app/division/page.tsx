@@ -1,5 +1,6 @@
 'use client'
 
+import { LiveBrandPlacement } from '../components/PartnerPlacements'
 import Link from 'next/link'
 import BrandHeader from '../components/BrandHeader'
 
@@ -69,6 +70,7 @@ export default function DivisionHubPage() {
       </section>
 
       <section className="px-6 py-10 md:px-10 md:py-12">
+        <LiveBrandPlacement surface="rankings" />
         <div className="mx-auto max-w-5xl">
           <div className="mb-5 flex items-center justify-between">
             <div>

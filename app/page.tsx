@@ -2,7 +2,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from './lib/supabase'
 import Nav from './components/Nav'
-import { getActivePartnerBookings } from './lib/partnerBookings'
+import { getPartnerAds } from './lib/partnerBookings'
+import { BrandPlacement, HomePartnerPlacements } from './components/PartnerPlacements'
 import ChristmasChallengeJoinButton from './components/ChristmasChallengeJoinButton'
 import { CalendarDays, Trophy, CircleCheck } from 'lucide-react'
 
@@ -276,22 +277,12 @@ export default async function Home() {
       homepageSilverData = applySeasonRanking(silverData ?? [])
     }
 
-  const [homeEvents, activePartnerBookings] = await Promise.all([
+  const [homeEvents, partnerAds] = await Promise.all([
     fetchUpcomingHomeEvents(),
-    getActivePartnerBookings(),
+    getPartnerAds('home'),
   ])
-
-  const premiumHomepageBookings = activePartnerBookings.filter(
-    (booking) =>
-      booking.booking_type === 'brand_partner' &&
-      booking.package_code === 'E'
-  )
-
-  const officialPartnerBookings = activePartnerBookings.filter(
-    (booking) =>
-      booking.booking_type === 'brand_partner' &&
-      booking.package_code === 'F'
-  )
+  const middleAds = partnerAds.filter(ad => ad.booking_type === 'brand_partner' && ad.package_code === 'A')
+  const topAds = partnerAds.filter(ad => ad.booking_type !== 'brand_partner' || ad.package_code !== 'A')
 
   const { data: recentRecords } = await supabase
     .from('records')
@@ -375,7 +366,8 @@ export default async function Home() {
             </div>
 
             <div className="mx-auto mt-8 max-w-7xl">
-              <Nav />
+              <Nav compactOnMobile={topAds.length > 0} />
+              <HomePartnerPlacements ads={topAds} />
             </div>
 
             <div className="mt-7 flex justify-center">
@@ -400,39 +392,6 @@ export default async function Home() {
       </section>
 
       <div className="mx-auto max-w-7xl px-6 pb-8 md:px-10">
-        {premiumHomepageBookings.length > 0 ? (
-          <section className="mb-8">
-            <div className="grid gap-4 md:grid-cols-3">
-              {premiumHomepageBookings.slice(0, 3).map((booking) => {
-                const mediaUrl =
-                  booking.banner_url || booking.logo_url || booking.partners?.logo_url
-
-                const targetUrl =
-                  booking.target_url || booking.partners?.website_url || '#'
-
-                if (!mediaUrl) return null
-
-                const image = (
-                  <img
-                    src={mediaUrl}
-                    alt="Partner"
-                    loading="lazy"
-                    decoding="async"
-                    className="h-32 w-full rounded-[1.75rem] border border-white/10 object-cover shadow-2xl shadow-black/20 transition hover:-translate-y-0.5 hover:border-white/20 hover:opacity-95 md:h-40"
-                  />
-                )
-
-                return targetUrl !== '#' ? (
-                  <a key={booking.id} href={targetUrl} target="_blank" rel="noreferrer">
-                    {image}
-                  </a>
-                ) : (
-                  <div key={booking.id}>{image}</div>
-                )
-              })}
-            </div>
-          </section>
-        ) : null}
                 {christmasChallenge && christmasChallenge.status !== 'archived' ? (
                   <section
                     className="mb-8 overflow-hidden rounded-[2rem] border border-white/15 shadow-2xl shadow-black/30"
@@ -547,45 +506,7 @@ export default async function Home() {
                   </div>
                 </section>
 
-           {officialPartnerBookings.length > 0 ? (
-              <section className="mb-8 rounded-[1.75rem] border border-white/8 bg-white/[0.03] px-6 py-5 shadow-lg shadow-black/10 backdrop-blur-sm">
-                <div className="flex flex-wrap items-center justify-center gap-8">
-                  {officialPartnerBookings.map((booking) => {
-                    const mediaUrl =
-                      booking.logo_url || booking.banner_url || booking.partners?.logo_url
-
-                    const targetUrl =
-                      booking.target_url || booking.partners?.website_url || '#'
-
-                    if (!mediaUrl) return null
-
-                    const image = (
-                      <img
-                        src={mediaUrl}
-                        alt="Official Partner"
-                        loading="lazy"
-                        decoding="async"
-                        className="h-10 max-w-[180px] object-contain opacity-90 transition hover:opacity-100"
-                      />
-                    )
-
-                    return targetUrl !== '#' ? (
-                      <a
-                        key={booking.id}
-                        href={targetUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="transition hover:-translate-y-0.5"
-                      >
-                        {image}
-                      </a>
-                    ) : (
-                      <div key={booking.id}>{image}</div>
-                    )
-                  })}
-                </div>
-              </section>
-            ) : null}
+        {middleAds.length > 0 && <div className="mb-8"><BrandPlacement ads={middleAds} /></div>}
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>

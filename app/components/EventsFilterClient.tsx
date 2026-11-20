@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { CalendarDays } from 'lucide-react'
+import { EventSponsors } from './PartnerPlacements'
+import { eventAdIndex, type PartnerAd } from '../lib/partnerBookings'
 import { supabase } from '../lib/supabase'
 
 type EventItem = {
@@ -84,15 +86,19 @@ function EventCard({
   isSaved,
   calendarLoading,
   onAddToCalendar,
+  ads,
 }: {
   event: EventItem
   userId: string | null
   isSaved: boolean
   calendarLoading: boolean
   onAddToCalendar: (eventId: number) => Promise<void>
+  ads?: PartnerAd[]
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-5 shadow-xl shadow-black/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]">
+    <div className={'rounded-3xl border p-5 shadow-xl shadow-black/10 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 ' +
+      (ads?.[0]?.package_code === 'D' ? 'border-amber-200/50 bg-[#372e1d]' : ads ? 'border-emerald-200/35 bg-[#213125]' : 'border-white/10 bg-white/[0.05] hover:bg-white/[0.08]')}>
+      {ads && <div className="mb-4"><EventSponsors ads={ads} /></div>}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
@@ -171,8 +177,10 @@ function EventCard({
 
 export default function EventsFilterClient({
   events,
+  partnerAds = [],
 }: {
   events: EventItem[]
+  partnerAds?: PartnerAd[]
 }) {
   const [selectedCountry, setSelectedCountry] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -274,10 +282,14 @@ export default function EventsFilterClient({
     })
   }, [events, selectedCountry, searchQuery])
 
+  const adsByEvent = useMemo(() => eventAdIndex(partnerAds), [partnerAds])
+  const featuredEvents = filteredEvents.filter(event => adsByEvent.has(event.id))
+
   const groupedEvents = useMemo<MonthGroup[]>(() => {
     const groups = new Map<string, MonthGroup>()
 
     filteredEvents.forEach((event) => {
+      if (adsByEvent.has(event.id)) return
       const key = getMonthKey(event.date)
       const label = getMonthLabel(event.date)
 
@@ -295,7 +307,7 @@ export default function EventsFilterClient({
     return Array.from(groups.values()).sort((a, b) =>
       a.key.localeCompare(b.key)
     )
-  }, [filteredEvents])
+  }, [filteredEvents, adsByEvent])
 
   return (
     <>
@@ -365,6 +377,15 @@ export default function EventsFilterClient({
         <span>{filteredEvents.length} Events</span>
       </div>
 
+      {featuredEvents.length > 0 && (
+        <div className="mb-8 grid gap-4 xl:grid-cols-2">
+          {featuredEvents.map(event => (
+            <EventCard key={event.id} event={event} ads={adsByEvent.get(event.id)} userId={userId}
+              isSaved={savedEventIds.has(event.id)} calendarLoading={calendarLoading} onAddToCalendar={addEventToCalendar} />
+          ))}
+        </div>
+      )}
+
       {groupedEvents.length > 0 ? (
         <>
           <div className="sticky top-0 z-20 mb-8 -mx-2 px-2 py-2">
@@ -415,11 +436,11 @@ export default function EventsFilterClient({
             ))}
           </div>
         </>
-      ) : (
+      ) : featuredEvents.length === 0 ? (
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
           Keine passenden kommenden Events gefunden.
         </div>
-      )}
+      ) : null}
     </>
   )
 }

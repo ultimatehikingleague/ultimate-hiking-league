@@ -1,49 +1,35 @@
 import { supabase } from './supabase'
 
-export type ActivePartnerBooking = {
-  id: string
-  partner_id: string
-  booking_type: 'event_partner' | 'brand_partner'
+export type PartnerSurface = 'home' | 'rankings' | 'profile' | 'account' | 'footer' | 'events' | 'milestone'
+
+export type PartnerAd = {
+  booking_id: string
+  booking_type: 'brand_partner' | 'event_partner'
   package_code: string
-  package_name: string
-  duration_days: number | null
-  start_date: string
-  end_date: string
-  target_url: string | null
+  partner_name: string
   banner_url: string | null
   logo_url: string | null
+  target_url: string | null
   custom_text: string | null
-  status: 'active'
-  notes: string | null
-  partners?: {
-    name: string
-    website_url: string | null
-    logo_url: string | null
-  } | null
+  event_id: number | null
+  event_slug: string | null
+  event_title: string | null
 }
 
-export async function getActivePartnerBookings() {
-  const today = new Date().toISOString().slice(0, 10)
+export async function getPartnerAds(surface: PartnerSurface) {
+  const { data, error } = await supabase.rpc('uhl_partner_ads', { p_surface: surface })
+  if (error) return []
+  return (data ?? []) as PartnerAd[]
+}
 
-  const { data, error } = await supabase
-    .from('partner_bookings')
-    .select(
-      'id, partner_id, booking_type, package_code, package_name, duration_days, start_date, end_date, target_url, banner_url, logo_url, custom_text, status, notes, partners(name, website_url, logo_url)'
-    )
-    .eq('status', 'active')
-    .lte('start_date', today)
-    .gte('end_date', today)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('getActivePartnerBookings error:', error.message)
-    return []
+export function eventAdIndex(ads: PartnerAd[]) {
+  const indexed = new Map<number, PartnerAd[]>()
+  for (const ad of ads) {
+    if (ad.event_id === null) continue
+    const placed = indexed.get(ad.event_id) ?? []
+    placed.push(ad)
+    indexed.set(ad.event_id, placed)
   }
-
-  return ((data ?? []) as any[]).map((row) => ({
-    ...row,
-    partners: Array.isArray(row.partners)
-      ? row.partners[0] ?? null
-      : row.partners ?? null,
-  })) as ActivePartnerBooking[]
+  for (const placed of indexed.values()) placed.sort((a, b) => b.package_code.localeCompare(a.package_code))
+  return indexed
 }

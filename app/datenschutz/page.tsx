@@ -66,7 +66,7 @@ export default function DatenschutzPage() {
           </p>
 
           <h2 className="text-lg font-semibold text-white">
-            3a. Wanderungen, Nachweise und automatische Texterkennung
+            3a. Wanderungen und Nachweise
           </h2>
 
           <p>
@@ -81,16 +81,8 @@ export default function DatenschutzPage() {
           </p>
 
           <p>
-            Wenn du einen Garmin-Connect-Screenshot zum Import auswählst, liest
-            Tesseract.js mögliche Werte für das Formular direkt in deinem Browser
-            aus. Dabei wird das Bild an keinen externen OCR- oder KI-Dienst
-            gesendet. Für diesen Import brauchst du keine Kontoverknüpfung mit
-            Garmin. Du kannst die Vorschläge prüfen und korrigieren.
-            Beim Absenden werden die bestätigten Originalbilder in einem privaten
-            Speicherbereich bei Supabase abgelegt und mit der Einreichung
-            verknüpft. Zugriff auf diese Originale haben dein Konto und
-            berechtigte Mitglieder des Prüfteams. Jede Einreichung wird vor
-            der Wertung administrativ geprüft. Wir nutzen Vercel für die
+            Das Prüfteam prüft manuell eingereichte Wanderungen anhand der
+            hochgeladenen Nachweise. Wir nutzen Vercel für die
             Bereitstellung der Website und Supabase für Anmeldung, Datenbank
             und Nachweisspeicherung.
           </p>
@@ -100,8 +92,7 @@ export default function DatenschutzPage() {
             Leistungsdaten wie Distanz, Gesamtzeit, Höhenmeter und Platzierung
             öffentlich erscheinen. Freigegebene Ergebnisse offizieller Events
             werden öffentlich geführt. Bei privaten Wanderungen gilt die
-            im Formular gewählte Sichtbarkeit. Die privaten Originalbilder aus
-            dem Screenshot-Import erscheinen nicht in den Ranglisten.
+            im Formular gewählte Sichtbarkeit. Die Nachweisdateien erscheinen nicht in den Ranglisten.
           </p>
 
           <p>
@@ -142,19 +133,17 @@ export default function DatenschutzPage() {
 
                     </>)}
           <h2 id="garmin-connect" className="scroll-mt-8 text-lg font-semibold text-white">
-            3c. Direkte Verknüpfung mit Garmin Connect (geplant)
+            3c. Direkte Verknüpfung mit Garmin Connect
           </h2>
 
           <p>
-            Die direkte Verknüpfung über die Garmin Connect Activity API ist
-            derzeit für Nutzerinnen und Nutzer nicht aktiviert. Der oben
-            beschriebene Screenshot-Import ist bereits verfügbar.
+            Synchronisierte Aktivitäten siehst du nach der Verknüpfung
+            in einer privaten Liste.
           </p>
 
           <p>
-            Nach dem geplanten Start sollst du dein UHL-Konto freiwillig mit
-            Garmin Connect verbinden können. Du sollst dich dazu bei Garmin
-            anmelden und dort den Zugriff auf deine Aktivitäten freigeben.
+            Für die freiwillige Verknüpfung meldest du dich bei Garmin an und
+            gibst dort den Zugriff auf deine Aktivitäten frei.
             Als Rechtsgrundlage für die Verknüpfung, die Übernahme der von
             Garmin übermittelten Daten und die private Anzeige ist deine
             Einwilligung nach Art. 6 Abs. 1
@@ -168,8 +157,8 @@ export default function DatenschutzPage() {
             Auswahl in deinem UHL-Konto und die anschließende Prüfung sind
             insbesondere Aktivitätskennung, Typ, Datum, Distanz, Gesamtzeit,
             Höhenmeter und gegebenenfalls Angaben zur Herkunft der Daten
-            vorgesehen. Du sollst selbst auswählen, welche Aktivität du zur
-            Prüfung einreichst. Soweit die Verarbeitung für die von dir
+            vorgesehen. Du sollst im Formular ausdrücklich auswählen, welche Aktivität
+            nach automatischer Prüfung veröffentlicht werden soll. Soweit die Verarbeitung für die von dir
             gewünschte Teilnahme erforderlich ist, ist dafür Art. 6 Abs. 1
             Buchst. b DSGVO vorgesehen.
           </p>
@@ -178,17 +167,17 @@ export default function DatenschutzPage() {
             Garmin verarbeitet Anmeldung und Freigabe nach seinen eigenen
             Datenschutzhinweisen. Für die technische Bereitstellung der
             Schnittstelle ist Vercel vorgesehen, für die Speicherung Supabase.
-            Berechtigte Mitglieder des Prüfteams sollen Zugriff auf eingereichte
-            Aktivitäten erhalten. Wir verkaufen keine Garmin-Daten. Eine
+            Berechtigte Mitglieder des Prüfteams sollen Zugriff auf spätere
+            Änderungsanträge erhalten. Wir verkaufen keine Garmin-Daten. Eine
             Weitergabe von API-Daten an externe OCR- oder KI-Anbieter ist
             nicht vorgesehen.
           </p>
 
           <p>
             Eine öffentliche Anzeige von Daten aus der direkten Verknüpfung
-            ist erst nach deiner gesonderten Einwilligung (Art. 6 Abs. 1
-            Buchst. a DSGVO), der Freigabe durch das Prüfteam und im Rahmen
-            der mit Garmin vereinbarten Nutzung vorgesehen. Vor der
+            ist nach deinem ausdrücklichen Klick auf „Wanderung veröffentlichen“,
+            erfolgreicher automatischer Prüfung und im Rahmen der mit Garmin
+            vereinbarten Nutzung vorgesehen. Vor der
             Einreichung soll erkennbar sein, welche Angaben öffentlich
             erscheinen können, etwa dein angezeigter Profilname, Distanz,
             Gesamtzeit, Höhenmeter und Platzierung in Ranglisten oder

@@ -1,19 +1,11 @@
-# Datenschutzhinweise zur Garmin-Connect-Verknüpfung
+# Datenschutzhinweise zur Garmin-Connect-Verknüpfung im privaten Pilot
 
-Redaktionsentwurf für den API-Start. Der Text ist erst nach Umsetzung und Prüfung der beschriebenen Datenflüsse zur Veröffentlichung vorgesehen.
+Entwurf zur Freigabe vor der Aktivierung. Der Pilot ist auf ein UHL-Konto begrenzt.
 
-## Freiwillige Verknüpfung mit Garmin Connect
+Du kannst dein UHL-Konto freiwillig mit Garmin Connect verbinden. Du meldest dich dazu bei Garmin an und erteilst dort Zugriff auf deine Aktivitäten. UHL verarbeitet deine Garmin-Kennung, die erteilte Berechtigung und verschlüsselte Zugangstokens für die Verbindung. Für die private Anzeige verarbeitet UHL Aktivitätskennung, Typ, Titel, Datum, Distanz, Gesamtzeit, Höhenmeter und verfügbare Angaben zum Garmin-Gerät. Die Anzeige ist nur in deinem UHL-Konto sichtbar. Mit „Wanderung veröffentlichen“ wählst du eine Aktivität ausdrücklich für die öffentliche UHL-Wertung aus. Nach automatischer Prüfung können Profilname, Titel, Datum, Ort, Land, Distanz, Gesamtzeit, Höhenmeter und Wertung in deinem öffentlichen Profil, in Challenges und Ranglisten erscheinen. Die Veröffentlichung kann sich auf Prämienpunkte auswirken. Für spätere Metadatenkorrekturen steht der bestehende Änderungsantrag mit Adminprüfung zur Verfügung.
 
-Du kannst dein UHL-Konto freiwillig mit Garmin Connect verbinden. Du meldest dich dafür bei Garmin an und erteilst dort die Freigabe. Garmin kann danach entsprechend deiner Berechtigung neue Aktivitäten an UHL übermitteln. Wir zeigen die für die Auswahl benötigten Angaben in einem privaten Bereich deines Kontos an. Du entscheidest, welche Aktivität du ausdrücklich zur Prüfung einreichst.
+Garmin verarbeitet Anmeldung und Freigabe nach eigenen Datenschutzhinweisen. Vercel stellt die Schnittstelle bereit, Supabase speichert die Daten. Garmin kann eine Originaldatei mit GPS- und Sensordaten bereitstellen. UHL verarbeitet sie im privaten Speicher. Sie wird nach 24 Stunden zur Löschung fällig und beim nächsten erfolgreichen Bereinigungslauf gelöscht. Die für die Kachel benötigten Angaben bleiben bis zur Trennung oder Kontolöschung gespeichert.
 
-Für die Verbindung verarbeiten wir die Garmin-Kennung, die erteilten Berechtigungen und technische Zugangstokens. Für Auswahl und Prüfung verwenden wir die erforderlichen Aktivitätsdaten wie Aktivitätskennung, Typ, Datum, Distanz, Gesamtzeit und Höhenmeter sowie gegebenenfalls Angaben zur Quellenkennzeichnung. Garmin verarbeitet Anmeldung und Freigabe nach seiner eigenen Datenschutzerklärung. Vercel stellt die technische Schnittstelle bereit. Supabase speichert die für Verbindung, Auswahl und Einreichung benötigten Daten.
+Über „Garmin Connect trennen“ kannst du die Verarbeitung in UHL beenden und die importierten Daten löschen. Bei Löschung deines UHL-Kontos werden Verbindung und Importdaten entfernt. Die Trennung löscht veröffentlichte Records nicht. UHL speichert einen privaten Hash zur Dublettenprüfung. Die Aufbewahrung veröffentlichter Records und dieses Hashes ist vor dem Start zu klären. Zurückgebliebene Originaldateien entfernt der nächste erfolgreiche Bereinigungslauf. Bis zur technischen Abnahme der automatischen Garmin-Widerrufsmeldungen kannst du eine bei Garmin widerrufene Freigabe zusätzlich in UHL trennen oder uns unter ultimatehikingleague@gmail.com kontaktieren.
 
-Jede ausgewählte und abgesendete Aktivität wird vor einer Wertung administrativ geprüft. Vor dem Absenden zeigen wir dir, welche freigegebenen Leistungsdaten für Ranglisten oder Challenges öffentlich sichtbar werden können. Zugangstokens und die private Aktivitätenliste werden nicht veröffentlicht.
-
-Du kannst die Verbindung in deinem UHL-Konto trennen oder die Freigabe bei Garmin widerrufen. Damit endet die Übermittlung neuer Aktivitäten. Wir löschen Zugangstokens und nicht eingereichte Aktivitäten nach Maßgabe der festgelegten Löschfristen. Für bereits eingereichte oder gewertete Daten gelten die gesonderten Aufbewahrungs- und Löschregeln. Eine Löschung kannst du unter ultimatehikingleague@gmail.com beantragen.
-
-## Vor Veröffentlichung ergänzen und prüfen
-
-- Rechtsgrundlage je Zweck einschließlich Veröffentlichung, Widerruf der Einwilligung, Garmin als Datenquelle und konkrete Empfänger, Speicherregionen und Drittlandgarantien ergänzen.
-- Löschfristen für nicht ausgewählte Aktivitäten, Tokens, Einreichungen, Wertungen und Sicherungen festlegen. Widerruf auf beiden Seiten und Löschung technisch prüfen.
-- Push-Datenumfang und öffentliche Ranglisten mit Garmin-Vertragsumfang, Sichtbarkeitsauswahl und Quellenkennzeichnung abgleichen. Besonders die heutige automatische Öffentlichkeit offizieller Events berücksichtigen.
+Vor Veröffentlichung den Umfang mit Garmin bestätigen und Rechtsgrundlage, Empfänger, Speicherregionen, etwaige Drittlandübermittlungen und Backup-Fristen in die Datenschutzhinweise der Website aufnehmen. Die Aktivierung richtet sich nach der [Release-Abnahme](garmin-release-abnahme.md).

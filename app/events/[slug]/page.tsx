@@ -1,3 +1,5 @@
+import { EventSponsors } from '../../components/PartnerPlacements'
+import { eventAdIndex, getPartnerAds } from '../../lib/partnerBookings'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 
@@ -161,7 +163,8 @@ export default async function EventDetailPage({
     )
   }
 
-  const records = await getEventRecords(event.id)
+  const [records, partnerAds] = await Promise.all([getEventRecords(event.id), getPartnerAds('events')])
+  const eventAds = eventAdIndex(partnerAds).get(event.id)
   const hikerIds = records
     .map((record) => record.hiker_id)
     .filter((id): id is number => typeof id === 'number')
@@ -277,6 +280,7 @@ export default async function EventDetailPage({
               </p>
             </div>
 
+            {eventAds && <div className="mb-5"><EventSponsors ads={eventAds} detail /></div>}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4">
                 <div className="text-xs uppercase tracking-[0.18em] text-stone-500">

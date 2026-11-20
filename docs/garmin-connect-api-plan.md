@@ -1,5 +1,8 @@
 # Offizielle Garmin Connect Activity API für UHL
 
+Für den aktuellen Ein-Konto-Pilot gilt die [Release-Abnahme](garmin-release-abnahme.md). Sie beschreibt den Weg über die bestehende Supabase-Instanz, den privaten Import ohne Wertung, die Löschfristen und die ausstehende COMMON-Abnahme. Die folgenden Abschnitte dokumentieren auch frühere und weitergehende Ausbaupläne.
+
+
 Stand 13. November 2026
 
 ## Portal und Vertrag
@@ -21,4 +24,47 @@ Stand 13. November 2026
 
 - Produktions-Callback: `https://www.ultimatehikingleague.com/api/garmin/callback`. Der Start ist ein gleichoriginiger POST an `/api/garmin/start` mit der UHL-Sitzung als Bearer-Token. Die Oberfläche kann anschließend aus dem Antwortheader `X-Garmin-Authorization-URL` zur Garmin-Einwilligung navigieren. Die Start- und Callback-Routen sind standardmäßig deaktiviert.
 - Für eine isolierte Testumgebung werden `GARMIN_OAUTH_ENABLED=true`, `GARMIN_CLIENT_ID`, `GARMIN_CLIENT_SECRET`, `GARMIN_REDIRECT_URI`, `GARMIN_TOKEN_KEY` und die Supabase-Zugangsdaten des Testprojekts benötigt. Der Tokenschlüssel muss aus 32 kryptografisch zufälligen Bytes im Base64url-Format bestehen. Garmin muss genau die konfigurierte Callback-Adresse akzeptieren. Die Migration `20261114_garmin_oauth.sql` ist für den isolierten Datenbanktest vorgesehen.
-- Der Callback speichert die Verbindung nach Prüfung von Garmin-Nutzer-ID und Activity-Export-Berechtigung. Oberfläche, Push-Empfang, Refresh und Widerruf bleiben offene Integrationsschritte. Bis zur Abnahme des vollständigen Verbindungs- und Trennungsablaufs bleibt die Funktion für Nutzer deaktiviert. Der [Datenschutzentwurf](garmin-api-datenschutz-entwurf.md) ist separat hinterlegt.
+- Der Callback hinterlegt die Garmin-Antwort. Der authentifizierte Abschluss prüft Garmin-Nutzer-ID und Activity-Export-Berechtigung und speichert die Verbindung. Oberfläche, Push-Empfang, Refresh und Widerruf bleiben offene Integrationsschritte. Bis zur Abnahme des vollständigen Verbindungs- und Trennungsablaufs bleibt die Funktion für Nutzer deaktiviert. Der [Datenschutzentwurf](garmin-api-datenschutz-entwurf.md) ist separat hinterlegt.
+
+## Activity API 2.1 – lokaler Push-Empfang
+
+Die bereitgestellte technische Referenz beschreibt in § 4 die drei Activity-Push-Listen, in § 6.3 den verschachtelten Detaildatensatz und in § 6.4 den einmaligen Activity-File-Abruf. Details liefern die Uhrzeitdauer pro Messpunkt. Der bisher höchste plausible Messwert wird übernommen. Ohne Messwert bleibt die Dauer offen. Die endgültige Eignung für die UHL-Zeitwertung ist mit realen Testzustellungen zu prüfen.
+
+Für die drei dokumentierten Feeds sind folgende Pfade lokal vorbereitet:
+
+- https://www.ultimatehikingleague.com/api/garmin/push/activities
+- https://www.ultimatehikingleague.com/api/garmin/push/activityDetails
+- https://www.ultimatehikingleague.com/api/garmin/push/activityFiles
+
+Die Endpunkte dürfen erst nach Abnahme des Workers aktiviert werden. Sie verwenden zusätzlich zur OAuth-Konfiguration `GARMIN_PUSH_ENABLED` und `GARMIN_PUSH_IP_RANGES`. Letzteres enthält die in § 4 dokumentierten IPv4-CIDRs, durch Kommas getrennt. Die IP muss in der Zielumgebung über Vercels geschützten Request-Header verifiziert werden. Der optionale Garmin-Client-ID-Header dient der Zuordnung. Die Spezifikation dokumentiert keine Signatur für diese Push-Nachrichten. Es ist vor Aktivierung ein echter Test mit Garmin-Absendern und einer Anfrage von außerhalb der erlaubten Bereiche erforderlich. [Vercel Request Headers](https://vercel.com/docs/headers/request-headers)
+
+Die Inbox speichert minimierte normalisierte Daten in einer Transaktion, ordnet sie einer bestehenden Garmin-Verbindung zu und bestätigt erst danach mit HTTP 200. Wiederholte identische Daten führen über den Fingerabdruck zum selben Inbox-Eintrag. Unbekannte Garmin-IDs werden verworfen. Die Download-URL ist verschlüsselt. Die Migration ist im isolierten Supabase-Projekt noch zu testen.
+
+### Nächster vertikaler Ausbauschritt
+
+Ein Worker muss Inbox-Zeilen mit Zeitbegrenzung exklusiv übernehmen und fachlich über Garmin-Nutzer und Aktivitäts-ID zusammenführen. Er muss Datei-Aufträge zeitnah und je Client-ID gedrosselt bearbeiten. Die dokumentierte URL bei jedem Abruf erneut validieren, Redirects ablehnen, Original privat ablegen und den erfolgreichen Abruf speichern. Ein Abbruch nach Verbrauch des Einmaltokens und vor Speicherung kann zu einem nicht wiederherstellbaren HTTP 410 führen. In diesem Fall einen sichtbaren Fehlerzustand setzen. Ein vorhandenes privates Original beim Wiederanlauf wiederverwenden. Das Größenlimit für Dateiimporte anhand realer Langstrecken-FIT-Testdaten prüfen.
+
+Für Deregistrations und User Permissions Change fehlen die vollständigen Push-Beispiele in Activity API 2.1. Für die Implementierung werden die beiden offiziellen JSON-Beispiele und ihre Zustell- und Statusregeln benötigt. Nach Worker, privater UI, Wiederholungsschutz der Einreichung, Tokenrotation und Trennung folgen isolierte RLS- und Garmin-Tests. Der bestehende Admin-Freigabepfad bleibt maßgeblich.
+
+## Phase 3 – Worker, privater Import und Trennung
+
+- `20261116_garmin_activity_processing.sql` folgt auf OAuth- und Inbox-Migration. Der Worker beansprucht Jobs exklusiv mit Ablaufzeit und priorisiert Datei-Jobs. Er arbeitet in Batches und drosselt Datei-Claims mit einem konservativen 90-Sekunden-Fenster. Rohdateien werden privat gespeichert und bei Wiederanlauf zuerst dort gesucht. Bei HTTP 410 endet der Dateiauftrag mit einem Fehlerstatus. Ein Abbruch nach Verbrauch des Tokens vor Speicherung bleibt ein dokumentierter Verlustfall. Für echte Langstrecken ist die derzeitige Grenze von 32 MiB zu prüfen.
+- Der Worker unter `GET /api/garmin/jobs` erwartet `Authorization: Bearer <CRON_SECRET>` sowie die vorhandene OAuth-Konfiguration. Nach Freigabe einen zusätzlichen Vercel-Cron für diesen Pfad mit `* * * * *` vorsehen. Der Zeitplan ist lokal in `vercel.json` vorbereitet. Für Tests den Worker in der isolierten Umgebung manuell aufrufen.
+- Die Feeds werden über Eigentümer und dokumentierte `activityId` zusammengeführt. Fehlt sie, wird der Auftrag zur Diagnose markiert. Feed-spezifische `summaryId`-Werte werden nicht geraten oder über Suffixe zusammengefügt. Die Dateizeit hat Vorrang vor der Details-Zeit. Die Aktivitätszusammenfassung liefert keinen Ersatz für die Gesamtzeit.
+- Activity Connect zeigt nur die Aktivitäten der authentifizierten Person. Ein ausdrücklicher Klick legt eine private Einreichung als `pending` an. Der persistente Quellenindex verhindert Wiederholung auch nach erneuter Verbindung desselben Garmin-Kontos. Ähnliche Werte am selben Tag erscheinen als Prüfhilfe. Die bestehende Admin-Ansicht zeigt den Garmin-Nachweistyp. Bei Garmin werden privater Record und Freigabestatus gemeinsam gespeichert.
+- Die Trennung beansprucht eine exklusive Sperrfrist, rotiert bei Bedarf die Tokens und ruft die dokumentierte Deregistrierung auf. Danach entfernt sie private Dateien und die Verbindung samt privatem Bestand. Bereits eingereichte Datensätze und Records bleiben bestehen. Abnahme mit gehosteter Testdatenbank und echten Garmin-Testzugängen erforderlich, insbesondere bei bereits abgelaufenem Refresh-Token, verlorener Refresh-Antwort und Teilfehlern der Löschung.
+- Für Deregistrations und User Permissions Change werden die exakten Push-Listen und Feldnamen, Nutzerzuordnung, Semantik von Berechtigungserteilung/-entzug, Reihenfolge und Wiederholungen sowie Anforderungen an Datenlöschung benötigt. Für beide Ereignisse sind außerdem die in der Endpoint Configuration tatsächlich verfügbaren Feed-Namen und die Testzustellung zu bestätigen.
+
+Die Testabdeckung, ausstehenden Prüfungen und Schritte zur Freigabe stehen in der [Release-Abnahme](garmin-release-abnahme.md).
+
+## OAuth-Rückkehr aus der iPhone-Web-App
+
+Die Home-Bildschirm-App und Safari oder Chrome können getrennte Speicher und UHL-Sitzungen haben. Ein `SameSite=Lax`-Cookie kann bei einer normalen Browsernavigation mitgesendet werden, ist aber im getrennten Speicher des Zielbrowsers nicht vorhanden. Ein anderes SameSite-Attribut würde diese Grenze nicht überbrücken. Die OAuth-Redirect-URI bleibt gleich.
+
+1. Der angemeldete Pilot startet im Profil. UHL erzeugt State, PKCE-S256-Verifier und einen unabhängigen zufälligen Nachweis. Der Server bindet die Hashes von State und Nachweis sowie den Verifier zehn Minuten an die UHL-Konto-ID. Der Startkontext speichert den Nachweis lokal. Er erscheint weder in der Garmin-URL noch in der Rücksprungadresse.
+2. Garmin liefert den Callback auch ohne UHL-Cookie oder Sitzung. Ein gültiger, noch offener State nimmt das erste Ergebnis an. Ein Code wird verschlüsselt und an den konkreten Versuch gebunden gespeichert. Die öffentliche Rückkehrseite enthält nur einen allgemeinen Status und erklärt den Wechsel zurück zur UHL-App.
+3. Im ursprünglichen Profil wählt der Nutzer **Verbindung abschließen**. Ein gleichoriginiger POST verlangt die serverseitig geprüfte UHL-Anmeldung des ursprünglichen Kontos und den lokalen Nachweis. Erst danach beansprucht der Server das Ergebnis einmalig und prüft bei Garmin Code, PKCE, Identität und Aktivitätsfreigabe. Ein abgelaufener Versuch oder ein verlorener Nachweis erfordert einen Neustart. Abgelaufene Serverzeilen werden beim nächsten Start bereinigt.
+
+Auch im selben Browser ist der Abschluss ein eigener Klick. iOS kann die installierte App offen lassen oder neu laden. Der Rückkehrbildschirm versucht nicht, iOS zum Öffnen der installierten App zu zwingen. Ein abgelaufener Garmin-Code kann vor Ablauf des UHL-Versuchs einen Neustart nötig machen. Vor Freigabe auf einem physischen iPhone mit installierter UHL-Web-App, Safari und Chrome prüfen. Vor einem später freigegebenen Code-Release muss die additive Migration `20261118_garmin_oauth_handoff.sql` angewendet werden. Bereits laufende Versuche aus der Cookie-Version müssen nach dem Wechsel neu gestartet werden.
+
+[WebKit zur Trennung des App-Speichers](https://webkit.org/blog/14787/webkit-features-in-safari-17-2/) · [OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html)

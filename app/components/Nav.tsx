@@ -36,7 +36,7 @@ function NavItem({ href, title, subtitle, active }: NavItemProps) {
   )
 }
 
-export default function Nav() {
+export default function Nav({ compactOnMobile = false }: { compactOnMobile?: boolean }) {
   const pathname = usePathname()
   const isShop = pathname === '/shop' || pathname.startsWith('/shop/')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -68,7 +68,9 @@ export default function Nav() {
   )
 
   return (
-    <nav className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+    <nav className={'grid w-full sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 ' + (compactOnMobile
+      ? 'grid-cols-2 gap-2 sm:gap-3 max-sm:[&>a]:flex max-sm:[&>a]:min-h-11 max-sm:[&>a]:items-center max-sm:[&>a]:justify-center max-sm:[&>a]:px-2 max-sm:[&>a]:py-1.5 max-sm:[&>a>div:last-child]:hidden'
+      : 'gap-3')}>
       <NavItem
         href="/"
         title="Startseite"

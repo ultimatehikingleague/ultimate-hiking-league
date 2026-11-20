@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 type Props = {
+  garminVerified: boolean
   recordId: number
   hikerId: number
   isOfficialEvent: boolean
@@ -19,6 +20,7 @@ type Props = {
 }
 
 export default function RecordEditRequestForm({
+  garminVerified,
   recordId,
   hikerId,
   isOfficialEvent,
@@ -38,7 +40,7 @@ export default function RecordEditRequestForm({
 
   const [activityName, setActivityName] = useState(initialActivityName || '')
   const [activityDate, setActivityDate] = useState(initialActivityDate || '')
-  const [officialDistanceKm, setOfficialDistanceKm] = useState(
+  const [officialDistanceKm] = useState(
     initialOfficialDistanceKm != null ? String(initialOfficialDistanceKm) : ''
   )
   const [actualDistanceKm, setActualDistanceKm] = useState(
@@ -114,19 +116,19 @@ export default function RecordEditRequestForm({
         user_id: session.user.id,
         activity_name: activityName.trim() || null,
         activity_date: activityDate || null,
-        official_distance_km: officialDistanceKm
+        official_distance_km: !garminVerified && officialDistanceKm
           ? Number(officialDistanceKm.replace(',', '.'))
           : null,
-        actual_distance_km: actualDistanceKm
+        actual_distance_km: !garminVerified && actualDistanceKm
           ? Number(actualDistanceKm.replace(',', '.'))
           : null,
-        proposed_time_text: elapsedTimeText.trim() || null,
-        elevation_gain: elevationGain
+        proposed_time_text: garminVerified ? null : elapsedTimeText.trim() || null,
+        elevation_gain: !garminVerified && elevationGain
           ? Number(elevationGain.replace(',', '.'))
           : null,
         country: country.trim() || null,
         location: location.trim() || null,
-        record_source: recordSource.trim() || null,
+        record_source: garminVerified ? null : recordSource.trim() || null,
         notes: notes.trim() || null,
         proof_url: proofUrl,
         status: 'pending',
@@ -140,8 +142,8 @@ export default function RecordEditRequestForm({
       setMessage('Änderung wurde eingereicht und wird geprüft.')
       setProofFile(null)
       setOpen(false)
-    } catch (error: any) {
-      setMessage(error?.message ?? 'Unbekannter Fehler')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unbekannter Fehler')
     } finally {
       setSaving(false)
     }
@@ -216,6 +218,7 @@ export default function RecordEditRequestForm({
               <input
                 type="text"
                 value={activityName}
+                maxLength={garminVerified ? 240 : undefined}
                 onChange={(e) => setActivityName(e.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
               />
@@ -240,6 +243,7 @@ export default function RecordEditRequestForm({
               <input
                 type="text"
                 value={actualDistanceKm}
+                readOnly={garminVerified}
                 onChange={(e) => setActualDistanceKm(e.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
               />
@@ -254,6 +258,7 @@ export default function RecordEditRequestForm({
           <input
             type="text"
             value={elapsedTimeText}
+            readOnly={garminVerified}
             onChange={(e) => setElapsedTimeText(e.target.value)}
             placeholder="z. B. 11:23"
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
@@ -267,6 +272,7 @@ export default function RecordEditRequestForm({
           <input
             type="text"
             value={elevationGain}
+            readOnly={garminVerified}
             onChange={(e) => setElevationGain(e.target.value)}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
           />
@@ -279,6 +285,7 @@ export default function RecordEditRequestForm({
           <input
             type="text"
             value={country}
+            maxLength={garminVerified ? 100 : undefined}
             onChange={(e) => setCountry(e.target.value)}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
           />
@@ -291,6 +298,7 @@ export default function RecordEditRequestForm({
           <input
             type="text"
             value={location}
+            maxLength={garminVerified ? 240 : undefined}
             onChange={(e) => setLocation(e.target.value)}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
           />
@@ -303,6 +311,7 @@ export default function RecordEditRequestForm({
           <input
             type="text"
             value={recordSource}
+            readOnly={garminVerified}
             onChange={(e) => setRecordSource(e.target.value)}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none"
           />

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabase } from '../lib/supabase'
+import { getPartnerAds } from '../lib/partnerBookings'
 import EventsFilterClient from '../components/EventsFilterClient'
 
 export const dynamic = 'force-dynamic'
@@ -165,7 +166,7 @@ function EventCard({ event }: { event: EventItem }) {
 }
 
 export default async function EventsPage() {
-  const events = await getEvents()
+  const [events, partnerAds] = await Promise.all([getEvents(), getPartnerAds('events')])
 
   const upcomingEvents = events
     .filter((event) => isUpcomingOrToday(event.event_date))
@@ -240,7 +241,7 @@ export default async function EventsPage() {
           </div>
 
           {upcomingEvents.length > 0 ? (
-            <EventsFilterClient events={upcomingEvents} />
+            <EventsFilterClient events={upcomingEvents} partnerAds={partnerAds} />
           ) : (
             <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">
               Aktuell sind keine kommenden Events hinterlegt.

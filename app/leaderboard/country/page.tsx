@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { LiveBrandPlacement } from '../../components/PartnerPlacements'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import BrandHeader from '../../components/BrandHeader'
@@ -321,6 +322,7 @@ export default function CountryLeaderboardPage() {
       
 
       <section className="px-6 py-10 md:px-10 md:py-12">
+        <LiveBrandPlacement surface="rankings" />
         <div className="mx-auto max-w-5xl">
           <div className="mb-5">
             <h2 className="text-2xl font-bold text-white">Länder auswählen</h2>

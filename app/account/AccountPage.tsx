@@ -1,11 +1,13 @@
 'use client'
 
+import { LiveBrandPlacement } from '../components/PartnerPlacements'
 import Link from 'next/link'
 import { useMilestoneLaunch } from '../lib/useMilestoneLaunch'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import ProfileBrandBar from '../components/ProfileBrandBar'
 import RecordSubmissionPanel from '../components/RecordSubmissionPanel'
+import GarminActivityConnect from '../components/GarminActivityConnect'
 import BackToHomeButton from '../components/BackToHomeButton'
 import RecordEditRequestForm from '../components/RecordEditRequestForm'
 import { countryToFlag, normalizeCountryCode } from '../lib/country'
@@ -48,6 +50,7 @@ type RawRecord = {
   record_source: string | null
   is_corrected: boolean | null
   elevation_gain: number | null
+  garmin_verified: boolean
   custom_title?: string | null
   custom_location?: string | null
   custom_country?: string | null
@@ -79,6 +82,7 @@ type RecordItem = {
   record_source: string | null
   is_corrected: boolean | null
   elevation_gain: number | null
+  garmin_verified: boolean
   event_name: string
   location: string
   country: string
@@ -379,6 +383,7 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserState | null>(null)
   const [hiker, setHiker] = useState<Hiker | null>(null)
+  const [recordRefresh, setRecordRefresh] = useState(0)
   const [records, setRecords] = useState<RecordItem[]>([])
   const [claimRequests, setClaimRequests] = useState<ClaimRequest[]>([])
   const [rejectedSubmissionNotices, setRejectedSubmissionNotices] = useState<RejectedSubmissionNotice[]>([])
@@ -633,7 +638,7 @@ export default function AccountPage() {
         const { data: recordRows, error: recordsError } = await supabase
           .from('records')
           .select(
-            'id, event_id, event_master_id, is_public, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain, custom_title, custom_location, custom_country'
+            'id, event_id, event_master_id, is_public, event_distance_id, distance_km, time_hours, avg_speed, activity_date, division, record_status, verified, time_text, record_source, is_corrected, elevation_gain, custom_title, custom_location, custom_country, garmin_verified'
           )
           .eq('hiker_id', currentHiker.id)
           .order('activity_date', { ascending: false })
@@ -819,7 +824,7 @@ export default function AccountPage() {
     }
 
     void loadData()
-  }, [])
+  }, [recordRefresh])
 
   useEffect(() => {
   try {
@@ -1113,6 +1118,9 @@ export default function AccountPage() {
                 Abmelden
               </button>
             </div>
+          </div>
+          <div id="garmin-connect" className="mt-6 scroll-mt-6">
+            <GarminActivityConnect />
           </div>
         </div>
       </main>
@@ -1726,13 +1734,12 @@ export default function AccountPage() {
           </section>
         )}
 
+        <LiveBrandPlacement surface="account" />
+
         <section className="mt-10">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">Meine Records</h2>
-              <div className="mt-4">
-                <RecordSubmissionPanel hikerId={hiker.id} />
-              </div>
               <p className="mt-1 text-sm text-stone-400">
                 Deine verknüpften Leistungen und Event-Ergebnisse.
               </p>
@@ -1741,6 +1748,10 @@ export default function AccountPage() {
             <div className="hidden text-xs uppercase tracking-[0.2em] text-stone-500 md:block">
               Privat
             </div>
+          </div>
+
+          <div className="mb-5">
+            <RecordSubmissionPanel hikerId={hiker.id} onPublished={() => setRecordRefresh(value => value + 1)} />
           </div>
 
           <div className="space-y-4">
@@ -1869,14 +1880,15 @@ export default function AccountPage() {
                    recordId={record.id}
                    hikerId={hiker.id}
                    isOfficialEvent={!!record.event_master_id}
+                   garminVerified={record.garmin_verified}
                    initialActivityName={record.event_name}
                    initialActivityDate={record.activity_date}
                    initialOfficialDistanceKm={record.official_distance_km}
                    initialActualDistanceKm={record.actual_distance_km}
                    initialElapsedTimeText={record.time_text}
                    initialElevationGain={record.elevation_gain}
-                   initialCountry={record.country}
-                   initialLocation={record.location}
+                   initialCountry={record.garmin_verified && record.country === '—' ? '' : record.country}
+                   initialLocation={record.garmin_verified && record.location === '—' ? '' : record.location}
                    initialRecordSource={record.record_source}
                  /> 
                 </div>

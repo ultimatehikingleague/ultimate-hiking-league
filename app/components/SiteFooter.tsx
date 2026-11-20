@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { LiveBrandPlacement, MilestonePartners } from './PartnerPlacements'
 import PartnershipFooter from './PartnershipFooter'
 
 const legalLinks = [
@@ -15,11 +16,15 @@ const legalLinks = [
 export default function SiteFooter() {
   const pathname = usePathname()
   const milestone = pathname === '/milestone-shop' || pathname.startsWith('/milestone-shop/') || pathname === '/account/rewards'
+  const leaguePage = pathname !== '/shop' && !pathname.startsWith('/shop/') && !pathname.startsWith('/admin')
   if (!milestone) return <>
           <PartnershipFooter />
+          {leaguePage && <MilestonePartners />}
 
          <footer className="border-t border-white/10 px-6 py-6 text-sm text-stone-500">
             <div className="mx-auto max-w-6xl">
+              {leaguePage &&
+                <LiveBrandPlacement surface="footer" />}
               <div className="flex flex-wrap items-center gap-6">
                 <Link href="/shop/bestellinformationen" className="hover:text-white transition">Bestellinformationen</Link>
                 <Link href="/shop/widerruf" className="hover:text-white transition">Widerrufsbelehrung</Link>

@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  if (/^\/(?:activity-ocr|api\/(?:activity-ocr|ocr))(?:\/|$)/.test(request.nextUrl.pathname)) {
+    return new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  }
+
   // Admin pages do their own identity + admin_users check; RLS protects data.
   if (request.nextUrl.pathname.startsWith('/admin/milestone-shop')) return NextResponse.next()
   try {
@@ -16,5 +20,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/milestone-shop/:path*', '/milestone-shop/:path*', '/account/rewards/:path*'],
+  matcher: ['/activity-ocr/:path*', '/api/activity-ocr/:path*', '/api/ocr/:path*', '/admin/milestone-shop/:path*', '/milestone-shop/:path*', '/account/rewards/:path*'],
 }

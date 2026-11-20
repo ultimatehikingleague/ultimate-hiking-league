@@ -6,6 +6,7 @@ import { eligibility, fullMinutes } from './normalize'
 export const maxActivityBytes = 4 * 1024 * 1024
 type Point = { lat?: number; lon?: number; time?: number; elevation?: number; segment: number }
 type Summary = {
+  garminElapsedSeconds?: number
   name?: string; sport?: string; start?: number; end?: number; elapsed?: number
   moving?: number; distance?: number; ascent?: number; descent?: number; speed?: number
 }
@@ -84,9 +85,16 @@ function readFit(bytes: Uint8Array) {
   const sessions = messages.sessionMesgs ?? []
   if (errors.length || sessions.length !== 1) throw Error('FIT-Datei muss eine lesbare Einzelaktivität enthalten.')
   const session = sessions[0]
+  const fileId = messages.fileIdMesgs?.[0]
+  const elapsed = positive(session.totalElapsedTime)
+  const timer = positive(session.totalTimerTime)
+  const garminElapsedSeconds = fileId?.type === 'activity' && fileId.manufacturer === 'garmin' &&
+    (session.sport === 'hiking' || session.sport === 'walking') &&
+    timestamp(session.startTime) !== undefined && elapsed !== undefined &&
+    timer !== undefined && timer > 0 && timer <= elapsed ? elapsed : undefined
   const summary: Summary = {
     start: timestamp(session.startTime), end: timestamp(session.timestamp),
-    elapsed: positive(session.totalElapsedTime), moving: positive(session.totalMovingTime),
+    garminElapsedSeconds, elapsed, moving: positive(session.totalMovingTime),
     distance: positive(session.totalDistance), ascent: positive(session.totalAscent),
     descent: positive(session.totalDescent),
     speed: positive(session.enhancedAvgSpeed ?? session.avgSpeed),
@@ -106,8 +114,8 @@ function validCoordinates(point: Point): point is Point & { lat: number; lon: nu
   return point.lat !== undefined && point.lon !== undefined && Math.abs(point.lat) <= 90 && Math.abs(point.lon) <= 180
 }
 
-export function parseActivity(bytes: Uint8Array, filename: string) {
-  if (!bytes.length || bytes.length > maxActivityBytes) throw Error('Die Datei muss zwischen 1 Byte und 4 MB groß sein.')
+export function parseActivity(bytes: Uint8Array, filename: string, byteLimit = maxActivityBytes) {
+  if (!bytes.length || bytes.length > byteLimit) throw Error(`Die Datei muss zwischen 1 Byte und ${byteLimit / 1024 / 1024} MB groß sein.`)
   const format = filename.split('.').pop()?.toLowerCase()
   if (format !== 'gpx' && format !== 'tcx' && format !== 'fit') throw Error('Bitte GPX, FIT oder TCX auswählen.')
   const { summary, points } = format === 'fit' ? readFit(bytes) : readXml(bytes, format)
@@ -152,6 +160,7 @@ export function parseActivity(bytes: Uint8Array, filename: string) {
     format, name: summary.name ?? null, sport: summary.sport ?? null,
     start: start === undefined ? null : new Date(start).toISOString(),
     end: end === undefined ? null : new Date(end).toISOString(),
+    garminElapsedSeconds: summary.garminElapsedSeconds ?? null,
     elapsedSeconds: elapsed ?? null, elapsed: fullMinutes(elapsed ?? null),
     moving: fullMinutes(summary.moving ?? null), distanceKm,
     distanceSource: summary.distance !== undefined ? 'device' : distance !== undefined ? 'gps' : null,
