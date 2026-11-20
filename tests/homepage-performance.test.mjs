@@ -28,7 +28,7 @@ async function render(source, year, sequential = false, empty = false) {
   const fakeRequire=name=>{
     if(name==='react/jsx-runtime')return {jsx,jsxs:jsx}
     if(name==='./lib/supabase')return {supabase:db}
-    if(name==='./lib/partnerBookings')return {getActivePartnerBookings:async()=>[]}
+    if(name==='./lib/partnerBookings')return {getPartnerAds:async()=>[]}
     return new Proxy({__esModule:true,default:'Component'},{get:(object,key)=>key in object?object[key]:String(key)})
   }
   class FixedDate extends Date {constructor(...args){super(...(args.length?args:[`${year}-11-06T12:00:00Z`]))}}
