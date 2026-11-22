@@ -36,6 +36,15 @@ test('Garmin Details use clock time including pauses and omit raw samples', () =
   }
 })
 
+test('Garmin Details without a clock value do not use timer or moving time', () => {
+  const [item] = normalizeGarminPush('activityDetails', { activityDetails: [{
+    userId: summary.userId, summaryId: 'detail', activityId: summary.activityId, summary,
+    samples: [{ timerDurationInSeconds: 7200, movingDurationInSeconds: 7000 }],
+  }] })
+  assert.equal(item.elapsed, null)
+  assert.equal(item.privateEvidence.elapsedSeconds, null)
+})
+
 test('Garmin file notifications accept only the documented download URL shape', () => {
   const file = { ...summary, fileType: 'FIT' }
   const normalize = (callbackURL: string) =>
@@ -62,14 +71,22 @@ test('Garmin receiver checks sender and confirms only persisted requests', async
   t.after(() => { process.env = env })
   let fail = true
   const calls: string[] = []
+  let expectedFeed = 'activityFiles'
   t.mock.method(globalThis, 'fetch', async (url: string | URL, init: RequestInit) => {
     assert.equal(new URL(url).pathname, '/rest/v1/rpc/enqueue_garmin_push')
     assert.equal(new Headers(init.headers).get('authorization'), 'Bearer service')
     const body = JSON.parse(String(init.body))
+    assert.equal(body.p_feed, expectedFeed)
     assert.equal(body.p_pilot_owner, undefined)
     assert.equal(body.p_items[0].garmin_user_id, 'synthetic-user')
     assert.equal('userId' in body.p_items[0].payload, false)
     assert.ok(!String(init.body).includes('sensitive-download-token'))
+    if (expectedFeed === 'activityDetails') {
+      const { payload } = body.p_items[0]
+      assert.equal(payload.privateEvidence.elapsedSeconds, 17_519)
+      assert.equal(payload.elapsed, '04:51')
+      assert.equal('samples' in payload, false)
+    }
     calls.push(body.p_items[0].fingerprint)
     return fail ? Response.json({ message: 'storage unavailable' }, { status: 500 }) : Response.json(null)
   })
@@ -85,5 +102,25 @@ test('Garmin receiver checks sender and confirms only persisted requests', async
   fail = false
   assert.equal((await invoke('192.0.2.5')).status, 200)
   assert.equal((await invoke('192.0.2.5')).status, 200)
+  assert.equal(new Set(calls).size, 1)
+
+  expectedFeed = 'activityDetails'
+  calls.length = 0
+  const detail = { userId: summary.userId, summaryId: 'detail', activityId: summary.activityId, summary,
+    samples: [{ clockDurationInSeconds: 17_519, timerDurationInSeconds: 17_000, padding: '' }],
+  }
+  const emptyBody = JSON.stringify({ activityDetails: [detail] })
+  const sendDetail = (totalBytes: number, sendLength = false) => {
+    const body = emptyBody.replace('"padding":""', '"padding":"' + 'x'.repeat(totalBytes - Buffer.byteLength(emptyBody)) + '"')
+    const headers = new Headers({ 'Content-Type': 'application/json', 'x-vercel-forwarded-for': '192.0.2.5' })
+    if (sendLength) headers.set('Content-Length', String(totalBytes))
+    return POST(new Request('https://uhl.example/api/garmin/push/activityDetails', { method: 'POST', body, headers }),
+      { params: Promise.resolve({ feed: 'activityDetails' }) })
+  }
+  assert.equal((await sendDetail(4_400_000)).status, 200)
+  assert.equal((await sendDetail(4_400_000, true)).status, 200)
+  assert.equal((await sendDetail(4_400_001)).status, 413)
+  assert.equal((await sendDetail(4_400_001, true)).status, 413)
+  assert.equal(calls.length, 2)
   assert.equal(new Set(calls).size, 1)
 })
