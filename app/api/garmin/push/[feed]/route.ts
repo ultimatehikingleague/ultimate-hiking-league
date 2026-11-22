@@ -5,6 +5,10 @@ import { garminActivityFeeds, normalizeGarminPush, type GarminActivityFeed } fro
 import { normalizeGarminCommonPush } from '../../../../lib/activity/garmin-permissions.server'
 
 const maxPushBytes = 4 * 1024 * 1024
+// Confirmed at the production Vercel ingress. Leave room below its limit.
+const maxDetailsBytes = 4_400_000
+
+class PushBodyTooLarge extends Error {}
 
 function ipv4Number(ip: string) {
   return ip.split('.').reduce((value, octet) => value * 256 + Number(octet), 0)
@@ -23,7 +27,9 @@ function permittedOrigin(request: Request) {
   })
 }
 
-async function readPayload(request: Request) {
+async function readPayload(request: Request, maxBytes = maxPushBytes) {
+  const declaredBytes = request.headers.get('content-length')
+  if (declaredBytes !== null && Number(declaredBytes) > maxBytes) throw new PushBodyTooLarge()
   const reader = request.body?.getReader()
   if (!reader) throw new Error('Missing push body')
   const chunks: Uint8Array[] = []
@@ -33,9 +39,9 @@ async function readPayload(request: Request) {
       const { value, done } = await reader.read()
       if (done) break
       size += value.length
-      if (size > maxPushBytes) {
-        await reader.cancel()
-        throw new RangeError('Push body too large')
+      if (size > maxBytes) {
+        await reader.cancel().catch(() => {})
+        throw new PushBodyTooLarge()
       }
       chunks.push(value)
     }
@@ -67,7 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ fee
       try {
         items = normalizeGarminCommonPush(feed, await readPayload(request))
       } catch (error) {
-        const status = error instanceof RangeError ? 413 : 400
+        const status = error instanceof PushBodyTooLarge ? 413 : 400
         console.warn('Garmin COMMON delivery rejected', { feed, status })
         return garminResponse(status)
       }
@@ -87,9 +93,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ fee
 
     let items
     try {
-      items = normalizeGarminPush(feed as GarminActivityFeed, await readPayload(request))
+      items = normalizeGarminPush(feed as GarminActivityFeed, await readPayload(
+        request, feed === 'activityDetails' ? maxDetailsBytes : maxPushBytes,
+      ))
     } catch (error) {
-      return garminResponse(error instanceof RangeError ? 413 : 400)
+      if (error instanceof PushBodyTooLarge) {
+        console.warn('Garmin push rejected by UHL body limit', { feed })
+        return garminResponse(413)
+      }
+      return garminResponse(400)
     }
 
     const { error } = await config.db.rpc('enqueue_garmin_push', {
