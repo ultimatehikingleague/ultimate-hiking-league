@@ -72,11 +72,11 @@ export default function Nav({ compactOnMobile = false }: { compactOnMobile?: boo
   }, [isShop])
 
   if (isShop) return (
-    <nav aria-label={t("shopNavigation")} className="flex w-full items-start justify-between gap-3">
-      <div className="grid w-full max-w-[180px]">
+    <nav aria-label={t("shopNavigation")} className="flex w-full flex-wrap items-start justify-between gap-3">
+      <div className="grid w-full max-w-[180px] shrink-0">
         <NavItem href="/" title={t("home")} subtitle={localizeSubtitles ? undefined : "Home"} />
       </div>
-      <LanguageSwitcher className="relative shrink-0" compact />
+      <LanguageSwitcher className="relative ml-auto shrink-0" compact />
     </nav>
   )
 
