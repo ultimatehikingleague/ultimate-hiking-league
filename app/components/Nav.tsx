@@ -72,11 +72,11 @@ export default function Nav({ compactOnMobile = false }: { compactOnMobile?: boo
   }, [isShop])
 
   if (isShop) return (
-    <nav aria-label={t("shopNavigation")} className="relative grid w-full gap-3">
+    <nav aria-label={t("shopNavigation")} className="flex w-full items-start justify-between gap-3">
       <div className="grid w-full max-w-[180px]">
         <NavItem href="/" title={t("home")} subtitle={localizeSubtitles ? undefined : "Home"} />
       </div>
-      <LanguageSwitcher className="absolute right-0 top-0" openUpOnMobile />
+      <LanguageSwitcher className="relative shrink-0" compact />
     </nav>
   )
 
@@ -84,7 +84,9 @@ export default function Nav({ compactOnMobile = false }: { compactOnMobile?: boo
     <nav className={'relative grid w-full sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 ' + (compactOnMobile
       ? 'grid-cols-2 gap-2 sm:gap-3 max-sm:[&>a]:flex max-sm:[&>a]:min-h-11 max-sm:[&>a]:items-center max-sm:[&>a]:justify-center max-sm:[&>a]:px-2 max-sm:[&>a]:py-1.5 max-sm:[&>a>div:nth-child(2)]:hidden'
       : 'gap-3')}>
-      <LanguageSwitcher className="absolute bottom-full right-0 mb-1" />
+      <div className="col-span-full flex justify-end">
+        <LanguageSwitcher className="relative" compact={pathname !== '/'} />
+      </div>
       <NavItem
         href="/"
         title={t("home")}
