@@ -28,9 +28,9 @@ export function LanguagePreference({ manual, contextual, browser, children }: {
   return <languagePreference.Provider value={{ manual, contextual, browser }}>{children}</languagePreference.Provider>
 }
 
-export default function LanguageSwitcher({ className = '', openUpOnMobile = false, preview }: {
+export default function LanguageSwitcher({ className = '', compact = false, preview }: {
   className?: string
-  openUpOnMobile?: boolean
+  compact?: boolean
   preview?: { locale: PreviewLocale; manual: boolean; browser?: PreviewLocale; explicit?: boolean }
 }) {
   const t = useTranslations('ui')
@@ -101,11 +101,8 @@ export default function LanguageSwitcher({ className = '', openUpOnMobile = fals
   }
 
   const row = 'flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-sm transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300 disabled:opacity-60 md:min-h-9'
-  const panelPosition = openUpOnMobile
-    ? 'bottom-full mb-1.5 md:bottom-auto md:top-full md:mb-0 md:mt-1.5'
-    : 'top-full mt-1.5'
   return (
-    <details ref={details} className={`group z-30 w-fit text-stone-100 ${className}`}
+    <details ref={details} className={`group relative z-30 w-fit max-w-full text-stone-100 ${className}`}
       onKeyDown={event => {
         if (event.key === 'Escape' && details.current?.open) {
           event.preventDefault()
@@ -113,12 +110,12 @@ export default function LanguageSwitcher({ className = '', openUpOnMobile = fals
         }
       }}>
       <summary ref={trigger} aria-label={`${t('language')}: ${current.name}`} aria-busy={pending}
-        className="flex min-h-11 min-w-11 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-white/15 bg-stone-950/85 px-2 font-semibold text-white shadow-sm transition hover:border-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 md:min-h-8 [&::-webkit-details-marker]:hidden">
+        className={`ml-auto flex min-h-11 min-w-11 w-fit cursor-pointer list-none items-center gap-1.5 rounded-lg px-2 font-semibold text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 [&::-webkit-details-marker]:hidden ${compact ? 'text-stone-300 hover:bg-white/10' : 'border border-white/15 bg-stone-950/85 shadow-sm hover:border-white/30'}`}>
         <LanguageIcon locale={locale} />
         <span translate="no" className="notranslate text-[11px] tracking-wider">{current.short}</span>
         <ChevronDown aria-hidden="true" className="h-3 w-3 text-stone-400 transition group-open:rotate-180" />
       </summary>
-      <div className={`absolute right-0 ${panelPosition} ${preview ? 'max-h-[min(20rem,55dvh)] overflow-y-auto overscroll-contain' : ''} w-max min-w-48 max-w-[calc(100vw-2rem)] rounded-xl border border-white/15 bg-[#201f1d] p-1.5 text-stone-100 shadow-xl shadow-black/45`}>
+      <div className={`relative mt-1.5 md:absolute md:right-0 md:top-full md:mt-1.5 max-h-[min(20rem,55dvh)] overflow-y-auto overscroll-contain w-max min-w-48 max-w-[min(100%,calc(100vw-2rem))] rounded-xl border border-white/15 bg-[#201f1d] p-1.5 text-stone-100 shadow-xl shadow-black/45`}>
         {choices.map(choice => (
           <button key={choice} type="button" className={row} lang={choice} translate="no"
             disabled={!hydrated || pending} aria-pressed={(manual || explicit) && choice === locale}

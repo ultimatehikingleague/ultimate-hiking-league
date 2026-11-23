@@ -21,7 +21,9 @@ export default function ContentLanguage({ children }: { children: ReactNode }) {
   const locale = useLocale()
   const hasOwnNavigation = pathname === '/' || pathname === '/shop' || pathname === '/shop/schorschys-wanderkalender-2027'
   return <>
-    {!hasOwnNavigation && <LanguageSwitcher className="absolute right-4 top-3 md:right-6" />}
+    {!hasOwnNavigation && <header className="mx-auto flex w-full max-w-7xl justify-end px-4 pt-3 md:px-6">
+      <LanguageSwitcher compact />
+    </header>}
     <main className="flex-1" lang={translated.has(pathname) || /^\/(events|challenges)\//.test(pathname) || /^\/\d+$/.test(pathname) ? locale : 'de'}>{children}</main>
   </>
 }
