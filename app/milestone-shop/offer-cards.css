@@ -1,0 +1,94 @@
+.milestone-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.milestone-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  border: 1px solid #6f98aa;
+  border-radius: 19px;
+  background: linear-gradient(150deg, #102d3c, #081a26 85%);
+}
+
+.milestone-artwork {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  height: clamp(135px, 15vw, 203px);
+  border-bottom: 1px solid #7098aa;
+  background: #162d3d center / cover;
+}
+
+.milestone-artwork img {
+  position: absolute;
+  inset: 20px 7.5% 8px;
+  width: 85%;
+  height: calc(100% - 28px);
+  object-fit: contain;
+  filter: drop-shadow(0 2px 5px #000a);
+}
+.milestone-label {
+  position: absolute;
+  z-index: 1;
+  inset: 10px auto auto 10px;
+  padding: 3px 11px;
+  border: 1px solid #b6dcea;
+  border-radius: 10px;
+  background: #183746;
+  color: white;
+  font-size: .8rem;
+  font-weight: 750;
+}
+
+.milestone-label[data-variant='discount'] { background: #9a350b; border-color: #ffbe75; }
+.milestone-label[data-variant='ticket'] { background: #671071; border-color: #f1a1ff; }
+.milestone-label[data-variant='free'] { background: #215912; border-color: #aff38b; }
+.milestone-card-body { display: flex; flex: 1; flex-direction: column; padding: 12px 16px 15px; }
+.milestone-card h2, .milestone-card h3 { font-size: clamp(1.05rem, 1.7vw, 1.4rem); font-weight: 800; line-height: 1.18; }
+.milestone-partner { margin-bottom: 4px; color: #79f2ff; font-size: .75rem; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
+.milestone-summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; margin-block: 8px; color: #e0edf5; font-size: .925rem; }
+.milestone-card-footer { margin-top: auto; padding-top: 9px; }
+.milestone-price { display: flex; min-height: 40px; align-items: center; gap: 6px; margin-bottom: 9px; border-top: 1px solid #446271; color: #83f5ff; font-size: .9rem; font-weight: 700; }
+.milestone-price strong { color: #f4f9ff; font-size: 1.35rem; }
+
+.milestone-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 14px;
+  border: 1px solid #6cefff;
+  border-radius: 999px;
+  background: linear-gradient(#0b596b, #073341);
+  box-shadow: inset 0 1px 6px #39d7ee45;
+  color: #fff;
+  text-align: center;
+  font-size: .9rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.milestone-button:hover:not(:disabled) { background: #11677a; }
+.milestone-button:disabled { background: #283b49; border-color: #627889; box-shadow: none; color: #e0edf5; cursor: default; }
+.milestone-benefits :focus-visible { outline: 3px solid #f8e387; outline-offset: 2px; }
+
+.milestone-benefits {
+  padding: clamp(12px, 2.25vw, 26px);
+  border: 1px solid #6397ab;
+  border-radius: 22px;
+  background: linear-gradient(#0d2637e6, #071a26), url('/images/milestone-shop/landscape-2.webp') center top / cover;
+  box-shadow: inset 0 1px 12px #7beaff20;
+}
+
+.milestone-benefits .milestone-artwork { height: clamp(115px, 12vw, 150px); }
+
+@media (max-width: 940px) {
+  .milestone-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .milestone-grid { grid-template-columns: minmax(0, 1fr); }
+  .milestone-artwork { height: 148px; }
+}

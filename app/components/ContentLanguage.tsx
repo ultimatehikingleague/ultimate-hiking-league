@@ -19,7 +19,7 @@ export default function ContentLanguage({ children }: { children: ReactNode }) {
   const currentPath = usePathname()
   const pathname = splitLanguagePath(currentPath)?.pathname ?? currentPath
   const locale = useLocale()
-  const hasOwnNavigation = pathname === '/' || pathname === '/shop' || pathname === '/shop/schorschys-wanderkalender-2027'
+  const hasOwnNavigation = pathname === '/' || pathname === '/shop' || pathname === '/shop/schorschys-wanderkalender-2027' || pathname === '/milestone-shop'
   return <>
     {!hasOwnNavigation && <header className="flex w-full justify-end bg-[#141312] px-4 pt-3 md:px-6">
       <LanguageSwitcher compact />

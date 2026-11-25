@@ -1,13 +1,25 @@
 'use client'
 
+import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from '@/i18n/prototype/LocalizedLink'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import PartnerBenefits from './PartnerBenefits'
+import { startVisiblePolling } from '../lib/visiblePolling'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import { usePartnerBenefits } from './PartnerBenefits'
+import PartnerBenefitCards from './PartnerBenefitCards'
+import OfferArtwork from './OfferArtwork'
+import OfferText, { externalOfferUrl } from './OfferText'
+import styles from './shop.module.css'
 
-type ShopReward = {
+type OfferTerms = {
+  redemption_url: string | null
+  redemption_instructions: string | null
+}
+
+type ShopReward = Partial<OfferTerms> & {
   id: number
   title: string
   description: string | null
@@ -18,603 +30,366 @@ type ShopReward = {
   is_available: boolean
 }
 
+const filters = ['allOffers', 'freeTickets', 'discounts', 'freeBenefits'] as const
+type Filter = typeof filters[number]
+const offersPerPage = 3
+
 export default function MilestoneShopPage() {
   const t = useTranslations('milestones')
-  const ui = useTranslations('ui')
-  const locale = useLocale()
   const router = useRouter()
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    let sessionVersion = 0
+    let expectedUser: string | null | undefined
+    let verification: ReturnType<typeof setTimeout> | undefined
+
+    async function verifyUser() {
+      const version = sessionVersion
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (!active || version !== sessionVersion) return
+      if (error || !user || (expectedUser !== undefined && user.id !== expectedUser)) {
+        setUserId(null)
+        router.replace('/login')
+        return
+      }
+      expectedUser = user.id
+      setUserId(user.id)
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return
+      const nextUser = session?.user.id ?? null
+      if (nextUser === expectedUser) return
+      expectedUser = nextUser
+      sessionVersion++
+      clearTimeout(verification)
+      setUserId(null)
+      if (nextUser) verification = setTimeout(() => void verifyUser(), 0)
+      else router.replace('/login')
+    })
+    void verifyUser()
+
+    return () => {
+      active = false
+      clearTimeout(verification)
+      subscription.unsubscribe()
+    }
+  }, [router])
+
+  if (!userId) {
+    return <main className="grid min-h-screen place-items-center bg-[#04121d] text-sm text-slate-300"><p role="status">{t('checkingSignIn')}</p></main>
+  }
+
+  return <MilestoneShop key={userId} />
+}
+
+function MilestoneShop() {
+  const t = useTranslations('milestones')
+  const partner = useTranslations('partnerBenefits')
+  const locale = useLocale()
   const [rewards, setRewards] = useState<ShopReward[]>([])
   const [balance, setBalance] = useState<number | null>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [redeemingRewardId, setRedeemingRewardId] = useState<number | null>(null)
   const [redemptionError, setRedemptionError] = useState<string | null>(null)
   const [redeemedVoucherCode, setRedeemedVoucherCode] = useState<string | null>(null)
+  const [filter, setFilter] = useState<Filter>('allOffers')
+  const [offerPage, setOfferPage] = useState(0)
+  const [selected, setSelected] = useState<ShopReward | null>(null)
+  const [terms, setTerms] = useState<OfferTerms | 'error' | null>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
+  const { benefits, status: benefitStatus } = usePartnerBenefits(true)
+
+  const active = useRef(false)
+  const balanceVersion = useRef(0)
+  const redemptionPending = useRef(false)
 
   useEffect(() => {
-    async function loadShop() {
-      setLoading(true)
-      setError(null)
+    active.current = true
+    let cancelled = false
 
-            const {
-                data: { user },
-                error: authError,
-            } = await supabase.auth.getUser()
-
-            if (authError || !user) {
-                router.replace('/login')
-                return
-            }
-
-            const { data: catalog, error: catalogError } =
-                await supabase.rpc('get_ordered_milestone_shop_catalog')
-
-            if (catalogError) {
-                console.error('Milestone catalog error:', catalogError)
-                setError('catalogError')
-           } else {
-                setRewards(catalog ?? [])
-                }
-
-      
-
-      setIsLoggedIn(!!user)
-
-      if (user) {
-        const { data: milestoneBalance, error: balanceError } =
-          await supabase.rpc('get_my_milestone_balance')
-
-        if (balanceError) {
-          console.error('Milestone balance error:', balanceError)
-        } else {
-          setBalance(Number(milestoneBalance ?? 0))
-        }
+    async function loadCatalogue() {
+      const { data, error } = await supabase.rpc('get_ordered_milestone_shop_catalog')
+      if (cancelled) return
+      if (error) {
+        console.error('Milestone catalog error:', error)
+        setError('catalogError')
+      } else {
+        setRewards(data ?? [])
       }
-
       setLoading(false)
     }
 
-    void loadShop()
-    }, [router])
+    async function refreshBalance() {
+      if (redemptionPending.current) return
+      const version = ++balanceVersion.current
+      const { data, error } = await supabase.rpc('get_my_milestone_balance')
+      if (cancelled || version !== balanceVersion.current) return
+      if (error) console.error('Milestone balance error:', error)
+      setBalance(error ? null : Number(data ?? 0))
+    }
 
-      async function handleRedeemReward(reward: ShopReward) {
-        if (!isLoggedIn || redeemingRewardId !== null || !reward.is_available || reward.reward_type === 'product') return
+    void loadCatalogue()
+    const stopPolling = startVisiblePolling(refreshBalance)
+    return () => {
+      cancelled = true
+      active.current = false
+      stopPolling()
+    }
+  }, [])
 
-        setRedeemingRewardId(reward.id)
-        setRedemptionError(null)
-        setRedeemedVoucherCode(null)
+  async function handleRedeemReward(reward: ShopReward) {
+    if (redemptionPending.current || !reward.is_available || reward.reward_type === 'product') return
 
-        try {
-        const { data, error: redeemError } = await supabase.rpc(
-            'redeem_reward',
-            { p_reward_id: reward.id }
-        )
+    redemptionPending.current = true
+    balanceVersion.current++
+    setRedeemingRewardId(reward.id)
+    setRedemptionError(null)
+    setRedeemedVoucherCode(null)
 
-        if (redeemError) {
-            throw redeemError
-        }
+    try {
+      const { data, error } = await supabase.rpc('redeem_reward', { p_reward_id: reward.id })
+      if (!active.current) return
+      if (error) throw error
+      const result = data?.[0]
+      if (!result) throw new Error('Keine Bestätigung der Einlösung erhalten.')
 
-        const result = data?.[0]
-
-        if (!result) {
-            throw new Error('Keine Bestätigung der Einlösung erhalten.')
-        }
-
-        setRedeemedVoucherCode(result.voucher_code)
-        setBalance(Number(result.remaining_points))
-
-        } catch (err) {
-        console.error('Milestone redemption error:', err)
-
-        setRedemptionError(
-            locale === 'de' && err && typeof err === 'object' && 'message' in err
-            ? String(err.message)
-            : t('redemptionError')
-        )
-        } finally {
+      setRedeemedVoucherCode(result.voucher_code)
+      setBalance(Number(result.remaining_points))
+    } catch (err) {
+      if (!active.current) return
+      console.error('Milestone redemption error:', err)
+      setRedemptionError(
+        locale === 'de' && err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : t('redemptionError')
+      )
+    } finally {
+      if (active.current) {
         // Recheck availability after success and after stock-related failures.
         try {
-          const { data: catalog, error: catalogError } = await supabase.rpc('get_ordered_milestone_shop_catalog')
-          if (catalogError) throw catalogError
-          setRewards(catalog ?? [])
-          setError(null)
+          const { data, error } = await supabase.rpc('get_ordered_milestone_shop_catalog')
+          if (error) throw error
+          if (active.current) {
+            setRewards(data ?? [])
+            setError(null)
+          }
         } catch {
-          setError('availabilityError')
+          if (active.current) setError('availabilityError')
         }
-        setRedeemingRewardId(null)
-        }
+        redemptionPending.current = false
+        if (active.current) setRedeemingRewardId(null)
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!selected) return
+    if (!dialog.current?.open) dialog.current?.showModal()
+    let cancelled = false
+
+    async function loadTerms(reward: ShopReward) {
+      if (reward.redemption_instructions !== undefined && reward.redemption_url !== undefined) {
+        setTerms({
+          redemption_instructions: reward.redemption_instructions,
+          redemption_url: reward.redemption_url,
+        })
+        return
+      }
+      const { data, error } = await supabase.from('reward_catalog')
+        .select('redemption_instructions,redemption_url')
+        .eq('id', reward.id)
+        .eq('is_active', true)
+        .single()
+      if (!cancelled) setTerms(error || !data ? 'error' : data)
     }
 
-      if (!isLoggedIn) {
-        return (
-        <main className="flex min-h-screen items-center justify-center bg-[#080d16]">
-            <p className="text-sm text-slate-400">
-            {t('checkingSignIn')}
-            </p>
-        </main>
-        )
-    }
+    void loadTerms(selected)
+    return () => { cancelled = true }
+  }, [selected])
+
+  function openOffer(reward: ShopReward) {
+    setTerms(null)
+    setRedemptionError(null)
+    setRedeemedVoucherCode(null)
+    setSelected(reward)
+  }
+
+  function actionLabel(reward: ShopReward) {
+    if (redeemingRewardId === reward.id) return t('redeeming')
+    if (reward.reward_type === 'product') return t('unavailable')
+    if (!reward.is_available) return t('soldOut')
+    if (balance === null) return t('balanceUnavailable')
+    if (balance < reward.points_cost) return t('insufficient')
+    return t('claim')
+  }
+
+  function canRedeem(reward: ShopReward) {
+    return reward.reward_type !== 'product' && reward.is_available && balance !== null && balance >= reward.points_cost
+  }
+
+  const tickets = rewards.filter(reward => reward.reward_type === 'voucher')
+  const discounts = rewards.filter(reward => reward.reward_type === 'discount')
+  const visibleRewards = filter === 'freeTickets' ? tickets : filter === 'discounts' ? discounts : rewards
+  const pageCount = Math.ceil(visibleRewards.length / offersPerPage)
+  const currentPage = Math.min(offerPage, Math.max(0, pageCount - 1))
+  const pageRewards = visibleRewards.slice(currentPage * offersPerPage, (currentPage + 1) * offersPerPage)
+  const counts = { allOffers: rewards.length, freeTickets: tickets.length, discounts: discounts.length, freeBenefits: benefits.length }
+  const selectedReward = rewards.find(reward => reward.id === selected?.id) ?? selected
+  const termsUrl = terms && terms !== 'error' ? externalOfferUrl(terms.redemption_url) : null
+  const number = new Intl.NumberFormat(locale)
 
   return (
-    <main className="group/shop min-h-screen overflow-hidden bg-[#080d16] text-white">
-
-      {/* Hintergrundakzente */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-64 top-24 h-[600px] w-[600px] rounded-full bg-cyan-500/[0.06] blur-[120px]" />
-        <div className="absolute -right-64 top-[500px] h-[600px] w-[600px] rounded-full bg-teal-500/[0.05] blur-[120px]" />
-      </div>
-
-      <div className="relative z-10">
-
-        {/* HEADER */}
-        <header className="border-b border-white/10 bg-black/20">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-10">
-
-            <Link href="/" className="flex items-center gap-4">
-              <img
-                src="/ultimate-logo-transparent-weiss.png"
-                alt="ULTIMATE"
-                className="h-14 w-14 object-contain md:h-16 md:w-16"
-              />
-
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-                  Ultimate Hiking League
-                </p>
-
-                <p className="text-lg font-bold tracking-wide">
-                  MILESTONE SHOP
-                </p>
-              </div>
-            </Link>
-
-            <Link
-              href="/"
-              className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-slate-300 transition hover:border-cyan-400/40 hover:text-white"
-            >
-              {t('back')}
-            </Link>
-          </div>
-        </header>
-
-        {/* HERO */}
-        <section className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-20 pt-16 md:grid-cols-2 md:px-10 md:pb-28 md:pt-24">
-
-          <div className="relative z-10">
-
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.06] px-4 py-2">
-              <span className="h-2 w-2 rounded-full bg-cyan-400" />
-
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
-                {t('rewarded')}
-              </span>
-            </div>
-
-            <h1 className="max-w-2xl text-5xl font-black leading-[1.05] tracking-tight md:text-7xl">
-              {t('every')}
-              <br />
-              {t('kilometre')}
-              <br />
-              <span
-                style={{
-                  background:
-                    'linear-gradient(90deg, #67DCE8 0%, #21B8C9 55%, #49D5A5 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                {t('counts')}
-              </span>
-            </h1>
-
-            <p className="mt-8 max-w-xl text-lg leading-relaxed text-slate-400">
-              {t('intro')}
-            </p>
-
-            <div className="mt-9 flex flex-wrap items-center gap-4">
-              <a
-                href="#belohnungen"
-                className="rounded-xl bg-[#67DCE8] px-7 py-3.5 text-sm font-bold text-[#07111a] transition hover:bg-[#8CEAF2]"
-              >
-                {t('discover')}
-              </a>
-
-              <a
-                href="#partnervorteile"
-                className="hidden rounded-xl border border-cyan-300/40 px-7 py-3.5 text-sm font-semibold text-cyan-200 hover:border-cyan-200 group-has-[#partnervorteile]/shop:inline-flex"
-              >
-                {t('benefits')}
-              </a>
-
-              <a
-                href="#so-funktionierts"
-                className="rounded-xl border border-white/15 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white/40"
-              >
-                {t('how')}
-              </a>
-            </div>
-          </div>
-
-          {/* HERO-KRISTALL */}
-          <div className="relative flex min-h-[340px] items-center justify-center md:min-h-[520px]">
-
-            <div className="absolute h-[300px] w-[300px] rounded-full bg-cyan-400/10 blur-[100px] md:h-[440px] md:w-[440px]" />
-
-            <div className="absolute h-[260px] w-[260px] rounded-full border border-cyan-400/10 md:h-[420px] md:w-[420px]" />
-
-            <div className="absolute h-[330px] w-[330px] rounded-full border border-white/[0.04] md:h-[520px] md:w-[520px]" />
-
-            <img
-              src="/images/milestone.png"
-              alt={t('crystal')}
-              className="relative z-10 h-[300px] w-[300px] object-contain drop-shadow-[0_0_55px_rgba(47,207,217,0.22)] md:h-[480px] md:w-[480px]"
-            />
-
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300">
-                The Milestone
-              </p>
-              <p className="mt-2 text-xs text-slate-500">
-                {t('currency')}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* GUTHABEN */}
-        <section className="mx-auto max-w-7xl px-5 md:px-10">
-          <div className="relative overflow-hidden rounded-3xl border border-cyan-400/20 bg-gradient-to-r from-[#15232e] via-[#121d28] to-[#111820] p-7 md:p-10">
-
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-400/[0.06] blur-[70px]" />
-
-            <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
-
-              <div className="flex items-center gap-5">
-                <img
-                  src="/images/milestone.png"
-                  alt=""
-                  className="h-20 w-20 object-contain md:h-24 md:w-24"
-                />
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    {t('balance')}
-                  </p>
-
-                  <div className="mt-2 flex items-baseline gap-3">
-                    <span
-                      className="text-4xl font-black tracking-tight md:text-5xl"
-                      style={{ color: '#67DCE8' }}
-                    >
-                      {loading
-                        ? '...'
-                        : balance === null
-                          ? '–'
-                          : balance.toLocaleString('de-DE')}
-                    </span>
-
-                    <span className="text-sm font-medium text-slate-300">
-                      Milestones
-                    </span>
-                  </div>
-
-                  <p className="mt-3 text-sm text-slate-400">
-                    {isLoggedIn
-                      ? t('verification')
-                      : t('signInBalance')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {isLoggedIn ? (
-                  <Link
-                    href="/account"
-                    className="rounded-xl border border-white/20 bg-white/[0.05] px-6 py-3 text-sm font-semibold transition hover:bg-white/10"
-                  >
-                    {t('hikerProfile')}
-                  </Link>
-                ) : (
-                  <Link
-                    href="/login"
-                    className="rounded-xl bg-[#67DCE8] px-6 py-3 text-sm font-bold text-[#07111a] transition hover:bg-[#8CEAF2]"
-                  >
-                    {t('signIn')}
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {isLoggedIn && <PartnerBenefits />}
-
-        {/* BELOHNUNGEN */}
-        <section
-          id="belohnungen"
-          className="mx-auto max-w-7xl px-5 pb-24 pt-12 md:px-10"
-        >
-          <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
-                {ui('milestoneRewardsLabel')}
-              </p>
-
-              <h2 className="text-3xl font-extrabold tracking-tight md:text-5xl">
-                {t('yourRewards')}
-              </h2>
-
-              <p className="mt-4 max-w-xl text-slate-400">
-                {t('rewardsIntro')}
-              </p>
-            </div>
-
-            <div className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 text-xs font-medium text-slate-400">
-              {t('exclusive')}
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-8 py-20 text-center text-slate-400">
-              {t('loading')}
-            </div>
-          ) : error ? (
-            <div className="rounded-3xl border border-red-400/20 bg-red-400/5 px-8 py-12 text-center text-red-300">
-              {error}
-            </div>
-          ) : rewards.length === 0 ? (
-
-            /* LEERER KATALOG – NUR WÄHREND DER ENTWICKLUNG */
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#121a25] px-8 py-16 text-center">
-
-            <img
-                src="/images/milestone.png"
-                alt=""
-                className="mx-auto mb-6 h-20 w-20 object-contain"
-            />
-
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
-                MILESTONE SHOP
-            </p>
-
-            <h3 className="text-2xl font-bold md:text-3xl">
-                {ui('rewardsBanner')}
-            </h3>
-
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-400">
-                {t('availableRewards')}
-            </p>
-
-            </div>
-
-          ) : (
-
-            /* PRODUKTKARTEN */
-            <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-3">
-
-              {rewards.map((reward) => (
-                <article
-                  key={reward.id}
-                  className="group overflow-hidden rounded-3xl border border-white/10 bg-[#141d28] transition duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)]"
-                >
-
-                  {/* PRODUKTBILD */}
-                  <div className="relative flex h-64 items-center justify-center overflow-hidden bg-[#1b2733]">
-
-                    {reward.image_url ? (
-                      <img
-                        src={reward.image_url}
-                        alt={reward.title}
-                        className="h-full w-full object-contain p-12 transition duration-500 group-hover:scale-105"
-                        />
-                    ) : (
-                      <img
-                        src="/images/milestone.png"
-                        alt=""
-                        className="h-32 w-32 object-contain opacity-50"
-                      />
-                    )}
-
-                    <div className="absolute left-5 top-5 rounded-full border border-white/10 bg-black/50 px-4 py-2 text-xs font-semibold backdrop-blur-md">
-                      {reward.reward_type === 'product'
-                        ? t('product')
-                        : reward.reward_type === 'discount'
-                          ? t('discount')
-                          : t('voucher')}
-                    </div>
-                  </div>
-
-                  {/* PRODUKTINFO */}
-                  <div className="p-7">
-
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
-                      {reward.partner_name || 'ULTIMATE PARTNER'}
-                    </p>
-
-                    <h3 className="mt-3 text-2xl font-bold">
-                      {reward.title}
-                    </h3>
-
-                    <p className="mt-4 min-h-[72px] text-sm leading-relaxed text-slate-400">
-                      {reward.description}
-                    </p>
-
-                    <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-6">
-
-                      <img
-                        src="/images/milestone.png"
-                        alt=""
-                        className="h-10 w-10 object-contain"
-                      />
-
-                      <div>
-                        <p
-                          className="text-2xl font-extrabold"
-                          style={{ color: '#67DCE8' }}
-                        >
-                          {reward.points_cost.toLocaleString('de-DE')}
-                        </p>
-
-                        <p className="text-xs text-slate-400">
-                          Milestones
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => void handleRedeemReward(reward)}
-                        disabled={
-                            !reward.is_available ||
-                            reward.reward_type === 'product' ||
-                            redeemingRewardId !== null ||
-                            balance === null ||
-                            balance < reward.points_cost
-                        }
-                        className={`mt-7 w-full rounded-xl px-6 py-4 text-sm font-bold transition ${
-                            !reward.is_available ||
-                            reward.reward_type === 'product' ||
-                            redeemingRewardId !== null ||
-                            balance === null ||
-                            balance < reward.points_cost
-                            ? 'cursor-not-allowed bg-slate-600 text-slate-300'
-                            : 'bg-[#67DCE8] text-[#07111a] shadow-[0_0_25px_rgba(103,220,232,0.15)] hover:bg-[#8CEAF2]'
-                        }`}
-                        >
-                        {redeemingRewardId === reward.id
-                            ? t('redeeming')
-                            : reward.reward_type === 'product'
-                            ? t('unavailable')
-                            : !reward.is_available
-                            ? t('soldOut')
-                            : balance === null
-                            ? t('balanceUnavailable')
-                            : balance < reward.points_cost
-                                ? t('insufficient')
-                                : t('claim')}
-                        </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-                {/* EINLÖSEERGEBNIS */}
-                {(redeemedVoucherCode || redemptionError) && (
-                <section className="mx-auto max-w-7xl px-5 pb-16 md:px-10">
-                    {redeemedVoucherCode && (
-                    <div className="rounded-3xl border border-cyan-400/30 bg-[#122831] p-8 text-center">
-                        <h3 className="text-2xl font-bold text-cyan-300">
-                        {t('redeemed')}
-                        </h3>
-
-                        <p className="mt-4 text-sm text-slate-300">
-                        {t('yourCode')}
-                        </p>
-
-                        <div className="mx-auto mt-5 max-w-md rounded-xl border border-cyan-400/30 bg-[#080d16] px-6 py-5">
-                        <p className="break-all text-xl font-bold tracking-wider text-white">
-                            {redeemedVoucherCode}
-                        </p>
-                        </div>
-
-                        <p className="mt-4 text-sm text-slate-400">
-                        {t('debited')}
-                        </p>
-                    </div>
-                    )}
-
-                    {redemptionError && (
-                    <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-6 text-center">
-                        <p className="font-semibold text-red-300">
-                        {t('failed')}
-                        </p>
-
-                        <p className="mt-2 text-sm text-red-200">
-                        {redemptionError}
-                        </p>
-                    </div>
-                    )}
-                </section>
-                )}
-
-        <div className="mx-auto max-w-7xl px-5 pb-12 md:px-10">
-          <Link href="/milestone-shop/regeln" className="text-sm font-semibold text-cyan-300 underline underline-offset-4">{t('readRules')}</Link>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{t('partnerResponsibility')}</p>
+    <main className={styles.shop}>
+      <header className={styles.hero}>
+        <div className={styles.heroArt} aria-hidden="true">
+          <picture>
+            <source media="(max-width: 680px)" srcSet="/images/milestone-shop/schorschy-small.webp" />
+            <Image src="/images/milestone-shop/schorschy.webp" fill sizes="100vw" alt="" unoptimized loading="eager" fetchPriority="high" />
+          </picture>
+          <Image src="/ultimate-logo-transparent-weiss.png" width={800} height={705} alt="" unoptimized className={styles.capLogo} />
         </div>
-
-        {/* SO FUNKTIONIERT'S */}
-        <section
-          id="so-funktionierts"
-          className="border-t border-white/10 bg-white/[0.02] py-24"
-        >
-          <div className="mx-auto max-w-7xl px-5 md:px-10">
-
-            <div className="mb-14 text-center">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
-                {t('system')}
-              </p>
-
-              <h2 className="text-3xl font-extrabold md:text-5xl">
-                {t('hikingPays')}
-              </h2>
-
-              <p className="mx-auto mt-5 max-w-2xl text-slate-400">
-                {t('threeSteps')}
-              </p>
+        <div className={styles.heroContent}>
+          <Image className={styles.brand} src="/ultimate-logo-transparent-weiss.png" alt="ULTIMATE" width={800} height={705} unoptimized />
+          <Link href="/" className={`${styles.back} milestone-button`}><span aria-hidden="true">←</span> {t('backHome')}</Link>
+          <div className={styles.heading}>
+            <div className={styles.headingTitle}>
+              <Image src="/images/milestone.png" width={86} height={86} alt="" className={styles.crystal} />
+              <h1>Milestone <em>Shop</em></h1>
             </div>
-
-            <div className="grid gap-6 md:grid-cols-3">
-
-              {[
-                {
-                  number: '01',
-                  title: t('hike'),
-                  description:
-                    t('hikeExplanation'),
-                },
-                {
-                  number: '02',
-                  title: t('earn'),
-                  description:
-                    t('earnExplanation'),
-                },
-                {
-                  number: '03',
-                  title: t('claim'),
-                  description:
-                    t('redeemExplanation'),
-                },
-              ].map((step) => (
-                <div
-                  key={step.number}
-                  className="rounded-2xl border border-white/10 bg-[#141d28] p-8"
-                >
-                  <span
-                    className="text-4xl font-black"
-                    style={{ color: '#67DCE8' }}
-                  >
-                    {step.number}
-                  </span>
-
-                  <h3 className="mt-7 text-xl font-bold">
-                    {step.title}
-                  </h3>
-
-                  <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                    {step.description}
-                  </p>
-                </div>
-              ))}
+            <p>{t('shopIntro')}</p>
+          </div>
+          <div className={styles.balance}>
+            <p>{t('balance')}</p>
+            <div className="flex items-center gap-2">
+              <Image src="/images/milestone.png" width={64} height={64} alt="" className={styles.crystal} />
+              <p><strong>{balance === null ? '–' : number.format(balance)}</strong><span>Milestones</span></p>
             </div>
           </div>
-        </section>
+        </div>
+      </header>
 
+      <div className={styles.content}>
+        <nav className={styles.filters} aria-label={t('allOffers')}>
+          {filters.map(option => (
+            <button key={option} type="button" aria-pressed={filter === option} onClick={() => {
+              setFilter(option)
+              setOfferPage(0)
+            }}>
+              {t(option)} {' '}
+              {(option === 'freeBenefits' ? benefitStatus === 'ready' : !loading && !error) && <span>({number.format(counts[option])})</span>}
+            </button>
+          ))}
+        </nav>
 
+        {filter !== 'freeBenefits' && (
+          <section aria-label={t(filter)} className="mb-8">
+            {loading && <p role="status" className={styles.message}>{t('loading')}</p>}
+            {error && <p role="alert" className={styles.message}>{t(error === 'availabilityError' ? 'availabilityError' : 'catalogError')}</p>}
+            {!loading && !error && (visibleRewards.length === 0 ? <p className={styles.message}>{t('noOffers')}</p> : (
+              <>
+                <div className="milestone-grid">
+                  {pageRewards.map(reward => {
+                    const variant = reward.reward_type === 'voucher' ? 'ticket' : reward.reward_type === 'discount' ? 'discount' : 'product'
+                    return (
+                      <article key={reward.id} className="milestone-card">
+                        <OfferArtwork id={reward.id} image={reward.image_url} variant={variant} label={t(variant)} />
+                        <div className="milestone-card-body">
+                          {reward.partner_name && <p className="milestone-partner">{reward.partner_name}</p>}
+                          <h2>{reward.title}</h2>
+                          {reward.description && <p className="milestone-summary"><OfferText text={reward.description} linkify={false} /></p>}
+                          {!canRedeem(reward) && <p className="mb-2 text-xs text-slate-300">{actionLabel(reward)}</p>}
+                          <div className="milestone-card-footer">
+                            <p className="milestone-price">
+                              <Image src="/images/milestone.png" width={34} height={34} alt="" className={styles.crystal} />
+                              <strong>{number.format(reward.points_cost)}</strong> Milestones
+                            </p>
+                            <button type="button" className="milestone-button w-full" onClick={() => openOffer(reward)} aria-haspopup="dialog" aria-label={`${canRedeem(reward) ? t('claim') : t('offerDetails')} · ${reward.title}`}>
+                              {canRedeem(reward) ? <>{t('claim')} <span aria-hidden="true">→</span></> : t('offerDetails')}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+                {pageCount > 1 && (
+                  <div className={styles.pagination}>
+                    <button type="button" className="milestone-button" aria-label={t('previousOffers')} disabled={currentPage === 0} onClick={() => setOfferPage(currentPage - 1)}>‹</button>
+                    <p role="status" className="px-2 text-sm">{t('offerPage', { page: currentPage + 1, total: pageCount })}</p>
+                    <button type="button" className="milestone-button" aria-label={t('nextOffers')} disabled={currentPage + 1 >= pageCount} onClick={() => setOfferPage(currentPage + 1)}>›</button>
+                  </div>
+                )}
+              </>
+            ))}
+          </section>
+        )}
+
+        {(filter === 'allOffers' || filter === 'freeBenefits') && (
+          <>
+            {benefitStatus === 'error' && <p role="alert" className={styles.message}>{partner('loadError')}</p>}
+            {filter === 'freeBenefits' && benefitStatus === 'loading' && <p role="status" className={styles.message}>{t('loading')}</p>}
+            {filter === 'freeBenefits' && benefitStatus === 'ready' && !benefits.length && <p className={styles.message}>{t('noOffers')}</p>}
+            {benefits.length > 0 && <PartnerBenefitCards benefits={benefits} />}
+          </>
+        )}
+
+        <footer className="mt-8 pb-10 text-sm text-slate-300">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link href="/milestone-shop/regeln" className="font-semibold text-cyan-200 underline underline-offset-4">{t('readRules')}</Link>
+            <LanguageSwitcher compact />
+          </div>
+          <p className="mt-2 max-w-3xl">{t('partnerResponsibility')}</p>
+        </footer>
       </div>
+
+      <dialog
+        ref={dialog}
+        className={styles.dialog}
+        aria-labelledby="milestone-offer-title"
+        onCancel={event => { if (redeemingRewardId !== null) event.preventDefault() }}
+        onClose={() => setSelected(null)}
+      >
+        {selectedReward && (
+          <>
+            <h2 id="milestone-offer-title" className="text-2xl font-bold">{selectedReward.title}</h2>
+            {selectedReward.description && <p className="mt-4 whitespace-pre-line"><OfferText text={selectedReward.description} /></p>}
+            <h3 className="mt-5 font-bold text-cyan-100">{t('offerDetails')}</h3>
+            {terms === null && <p role="status">{t('loadingDetails')}</p>}
+            {terms === 'error' && <p role="alert">{t('detailsError')}</p>}
+            {terms && terms !== 'error' && (
+              <>
+                {terms.redemption_instructions && <p className="mt-2 whitespace-pre-line"><OfferText text={terms.redemption_instructions} /></p>}
+                {termsUrl && <a className="mt-2 inline-block text-cyan-200 underline" href={termsUrl} target="_blank" rel="noopener noreferrer">{partner('view')}</a>}
+                {!terms.redemption_instructions && !termsUrl && <p>{t('noDetails')}</p>}
+              </>
+            )}
+            {redeemedVoucherCode && (
+              <div role="status" className="mt-5 rounded-xl border border-cyan-300/40 bg-cyan-950 p-4">
+                <h3 className="font-bold text-cyan-200">{t('redeemed')}</h3>
+                <p>{t('yourCode')}</p>
+                <p className="my-2 break-all font-mono text-lg font-bold">{redeemedVoucherCode}</p>
+                <p>{t('debited')}</p>
+              </div>
+            )}
+            {redemptionError && <p role="alert" className="mt-4 text-red-200">{t('failed')} {redemptionError}</p>}
+            {!redeemedVoucherCode && (
+              <>
+                <p className="mt-5 font-semibold text-cyan-100">{number.format(selectedReward.points_cost)} Milestones</p>
+                <button type="button" className="milestone-button mt-3 w-full" disabled={!canRedeem(selectedReward) || redeemingRewardId !== null || terms === null || terms === 'error'} onClick={() => void handleRedeemReward(selectedReward)}>
+                  {canRedeem(selectedReward) && redeemingRewardId === null ? t('confirmClaim') : actionLabel(selectedReward)}
+                </button>
+              </>
+            )}
+            <form method="dialog" className="mt-3">
+              <button className="milestone-button w-full" type="submit" disabled={redeemingRewardId !== null}>{t('closeDetails')}</button>
+            </form>
+          </>
+        )}
+      </dialog>
     </main>
   )
 }
