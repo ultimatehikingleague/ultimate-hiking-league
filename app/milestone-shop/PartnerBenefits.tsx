@@ -12,26 +12,33 @@ export function isPartnerBenefit(type: string) {
   return type === 'benefit' || type === 'affiliate'
 }
 
-export default function PartnerBenefits({ preview = false }: { preview?: boolean }) {
-  const t = useTranslations('partnerBenefits')
+export function usePartnerBenefits(enabled: boolean, preview = false) {
   const [benefits, setBenefits] = useState<PartnerBenefit[]>([])
-  const [error, setError] = useState(false)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
   useEffect(() => {
+    if (!enabled) return
     let cancelled = false
     async function load() {
       const query = supabase.from('milestone_partner_benefits').select(partnerBenefitColumns).order('id')
       const { data, error } = await (preview ? query : query.eq('is_active', true))
       if (!cancelled) {
-        setError(!!error)
+        setStatus(error ? 'error' : 'ready')
         setBenefits((data ?? []) as PartnerBenefit[])
       }
     }
     void load()
     return () => { cancelled = true }
-  }, [preview])
+  }, [enabled, preview])
 
-  if (error) return <p role="alert" className="mx-auto my-8 max-w-7xl px-5 text-slate-300">{t('loadError')}</p>
+  return { benefits, status }
+}
+
+export default function PartnerBenefits({ preview = false }: { preview?: boolean }) {
+  const t = useTranslations('partnerBenefits')
+  const { benefits, status } = usePartnerBenefits(true, preview)
+
+  if (status === 'error') return <p role="alert" className="my-8 text-slate-300">{t('loadError')}</p>
   if (!benefits.length) return null
 
   return <PartnerBenefitCards benefits={benefits} preview={preview} />
