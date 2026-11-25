@@ -52,7 +52,7 @@ export default function SiteFooter() {
   const locale = useLocale()
   const currentPath = usePathname()
   const pathname = splitLanguagePath(currentPath)?.pathname ?? currentPath
-  const milestone = pathname === '/milestone-shop' || pathname.startsWith('/milestone-shop/') || pathname === '/account/rewards'
+  const milestone = pathname === '/milestone-shop' || pathname.startsWith('/milestone-shop/') || pathname === '/account/rewards' || pathname === '/admin/milestone-shop/vorschau'
   const leaguePage = pathname !== '/shop' && !pathname.startsWith('/shop/') && !pathname.startsWith('/admin')
   if (!milestone) return <>
           <PartnershipFooter />

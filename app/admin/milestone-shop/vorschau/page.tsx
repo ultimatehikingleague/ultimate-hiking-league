@@ -2,12 +2,10 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import PartnerBenefits from '../../../milestone-shop/PartnerBenefits'
-import OfferArtwork from '../../../milestone-shop/OfferArtwork'
-import OfferText, { externalOfferUrl } from '../../../milestone-shop/OfferText'
-type Reward={id:number;title:string;description:string|null;partner_name:string;points_cost:number;image_url:string|null;is_active:boolean;reward_type:string;redemption_url:string|null;redemption_instructions:string|null}
-export default function Preview(){
- const [rewards,setRewards]=useState<Reward[]>([])
+import MilestoneShop, { type ShopReward } from '../../../milestone-shop/MilestoneShop'
+
+export default function Preview() {
+ const [rewards, setRewards] = useState<ShopReward[]>([])
  const [state,setState]=useState('Prüfe Admin-Zugriff …')
  useEffect(()=>{let cancelled=false;async function load(){
   const {data:{user}}=await supabase.auth.getUser()
@@ -15,18 +13,13 @@ export default function Preview(){
   const {data:admin,error:authError}=await supabase.from('admin_users').select('user_id').eq('user_id',user.id).maybeSingle()
   if(authError||!admin){if(!cancelled)setState('Kein Zugriff – nur für Administratoren.');return}
   const {data,error}=await supabase.from('reward_catalog').select('id,title,description,partner_name,points_cost,image_url,is_active,reward_type,redemption_url,redemption_instructions').order('display_position', { nullsFirst: false }).order('points_cost').order('id')
-  if(!cancelled){setRewards(data??[]);setState(error?'Vorschau konnte nicht geladen werden.':'')}
+  if(!cancelled){setRewards((data ?? []).map(reward => ({ ...reward, is_available: false })));setState(error?'Vorschau konnte nicht geladen werden.':'')}
  }void load();return()=>{cancelled=true}},[])
- return <main className="min-h-screen bg-[#080d16] px-6 py-12 text-white"><div className="mx-auto max-w-6xl">
- <Link href="/admin/milestone-shop" className="text-cyan-300">← Zur Prämienverwaltung</Link>
- <p className="mt-8 rounded-xl border border-amber-300/30 bg-amber-300/10 p-4 text-amber-100">Geschützte Vorschau · Auch inaktive Entwürfe · Keine Einlösung und kein Codeverbrauch</p>
- {!state && <div className="mt-8"><PartnerBenefits preview /></div>}
- <p className="mt-10 text-xs font-semibold tracking-[0.24em] text-cyan-300">MILESTONE REWARDS</p><h1 className="mt-3 text-4xl font-bold">Deine Belohnungen.</h1>
- {state?<p role="status" className="mt-8">{state}</p>:<><p className="mt-4 text-slate-400">Entdecke exklusive Prämien unserer Partner. Deine gesammelten Milestones öffnen dir die Tür zu besonderen Belohnungen.</p>
- {!rewards.length&&<p className="mt-8">Noch keine Prämien angelegt.</p>}
- <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">{rewards.map(r=><article key={r.id} className="overflow-hidden rounded-3xl border border-white/15 bg-[#151f2a]">
- <OfferArtwork id={r.id} image={r.image_url} variant={r.reward_type==='product'?'product':r.reward_type==='discount'?'discount':'ticket'} label={r.reward_type==='product'?'Produkt':r.reward_type==='discount'?'Rabatt':'Freeticket'} />
- <div className="p-6"><p className="text-xs uppercase tracking-widest text-cyan-300">{r.partner_name}</p><h2 className="mt-3 text-2xl font-bold">{r.title}</h2><p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-400">{r.description && <OfferText text={r.description} />}</p><p className="mt-6 text-2xl font-bold text-cyan-300">{r.points_cost.toLocaleString('de-DE')} <span className="text-sm">Milestones</span></p><button disabled className="mt-5 w-full rounded-xl bg-cyan-300 px-4 py-4 font-bold text-slate-950 opacity-60">Belohnung abholen · Vorschau</button><p className="mt-3 text-xs text-amber-200">{r.is_active?'Aktiv – erscheint bei öffentlicher Freigabe':'Inaktiver Entwurf'}</p>
- {(r.redemption_instructions || externalOfferUrl(r.redemption_url))&&<details className="mt-5 text-sm"><summary>Einlösehinweise prüfen</summary><p className="mt-3 whitespace-pre-line">{r.redemption_instructions && <OfferText text={r.redemption_instructions} />}</p>{externalOfferUrl(r.redemption_url)&&<a href={r.redemption_url ?? undefined} target="_blank" rel="noreferrer" className="mt-3 block break-all text-cyan-300">Zum Partnerangebot</a>}</details>}</div></article>)}</div></>}
- </div></main>
+ if (!state) return <MilestoneShop previewRewards={rewards} />
+ return (
+   <main className="min-h-screen bg-[#080d16] px-6 py-12 text-white">
+     <Link href="/admin/milestone-shop" className="text-cyan-300">← Zur Prämienverwaltung</Link>
+     <p role="status" className="mt-8">{state}</p>
+   </main>
+ )
 }
