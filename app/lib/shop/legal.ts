@@ -1,4 +1,4 @@
-export const SHOP_LEGAL_VERSION='2026-11-04'
+export const SHOP_LEGAL_VERSION='2026-11-25'
 export const WITHDRAWAL_TEXT=`Widerrufsbelehrung für Waren
 
 Sie haben das Recht, binnen vierzehn Tagen ohne Angabe von Gründen diesen Vertrag zu widerrufen. Die Widerrufsfrist beträgt vierzehn Tage ab dem Tag, an dem Sie oder ein von Ihnen benannter Dritter, der nicht der Beförderer ist, die letzte Ware in Besitz genommen haben bzw. hat.
@@ -31,7 +31,7 @@ Datum: ...
 Gesetzliche Mängelrechte bleiben unberührt. Bei mangelhafter Ware wenden Sie sich bitte an uns; die zur gesetzlichen Nacherfüllung erforderlichen Kosten trägt der Verkäufer.`
 export const PURCHASE_TEXT=`Verkäufer: Philipp Dobrinski / ULTIMATE, Einzelunternehmen, Ansbacher Straße 4a, 91452 Wilhermsdorf, Deutschland. Kontakt: ultimatehikingleague@gmail.com.
 
-Vertragssprache ist Deutsch. Die Produktdarstellung ist eine Einladung zur Bestellung. Vor der Zahlung können Sie Ihre Eingaben und den Gesamtbetrag prüfen und korrigieren. Mit dem abschließenden zahlungspflichtigen Bestellschritt beim Zahlungsanbieter geben Sie Ihre Bestellung ab. Wir nehmen diese mit der Bestätigung der erfolgreichen Zahlung an. Sie erhalten die Vertragsbestätigung mit Bestelldaten und Widerrufsinformationen per E-Mail. Die Rechnung steht nach bestätigter Zahlung zusätzlich als PDF auf der Bestellbestätigungsseite bereit. Bitte speichern Sie Ihre Unterlagen; der lokale Bestellzugriff ist zeitlich begrenzt.
+Vertragssprache ist Deutsch. Die Produktdarstellung ist eine Einladung zur Bestellung. Vor der Zahlung können Sie Ihre Eingaben und den Gesamtbetrag prüfen und korrigieren. Mit dem abschließenden zahlungspflichtigen Bestellschritt beim Zahlungsanbieter geben Sie Ihre Bestellung ab. Wir nehmen diese mit der Bestätigung der erfolgreichen Zahlung an. Bei einem Gesamtbetrag von 0 € geben Sie die Bestellung über die Schaltfläche „Kostenlos bestellen“ ab. Wir nehmen diese mit der Bestellbestätigung an. Sie erhalten die Vertragsbestätigung mit Bestelldaten und Widerrufsinformationen per E-Mail. Die Rechnung steht nach bestätigtem Bestellabschluss zusätzlich als PDF auf der Bestellbestätigungsseite bereit. Bitte speichern Sie Ihre Unterlagen; der lokale Bestellzugriff ist zeitlich begrenzt.
 
 Alle Preise in EUR. Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen. Zum Warenpreis kommen die vor der Zahlung ausgewiesenen Versandkosten hinzu. Produktions-, Zahlungsdienst- und weitere interne Abwicklungskosten berechnen wir Ihnen nicht zusätzlich. Zahlung per PayPal oder Kredit-/Debitkarte erfolgt bei Bestellung. Lieferung an die bestätigte Lieferadresse in Deutschland, Österreich oder der Schweiz. Die zur ausgewählten Versandart angezeigte voraussichtliche Produktions- und Lieferzeit gilt ab bestätigter Zahlung. Es gelten die gesetzlichen Mängelrechte.
 

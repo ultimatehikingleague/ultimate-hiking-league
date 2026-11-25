@@ -18,7 +18,7 @@ export function orderFilters(params: URLSearchParams) {
  if(!Number.isSafeInteger(page)||page<1||page>100000)throw new OrderFilterError('Ungültige Seite.')
  return {status,mode,start,end,page}
 }
-export const orderColumns='id,created_at,paid_at,provider,mode,status,quantity,unit_price_cents,shipping_cents,total_cents,currency,address,sku,product_name,provider_order_id'
+export const orderColumns='id,created_at,paid_at,provider,mode,status,quantity,unit_price_cents,shipping_cents,total_cents,currency,address,sku,product_name,provider_order_id,voucher_code,discount_cents'
 export async function listAdminOrders(params: URLSearchParams) {
  const f=orderFilters(params)
  let q=orderDB().from('shop_orders').select(f.status==='paid'?orderColumns+',shop_payments!inner(payment_id)':orderColumns,{count:'exact'}).order('created_at',{ascending:false}).order('id',{ascending:false})

@@ -7,7 +7,7 @@ const money = (cents: number) => currency.format(cents / 100)
 const countries: Record<string, string> = { DE: 'Deutschland', AT: 'Österreich', CH: 'Schweiz' }
 
 export function confirmationText(invoice: Invoice) {
-  const { buyer, lines, shippingCents, totalCents } = invoice.snapshot
+  const { buyer, lines, shippingCents, discountCents, totalCents } = invoice.snapshot
   const address = [
     buyer.firstName + ' ' + buyer.lastName, buyer.addressLine1, buyer.addressLine2,
     buyer.postCode + ' ' + buyer.city, countries[buyer.country] ?? buyer.country,
@@ -16,12 +16,12 @@ export function confirmationText(invoice: Invoice) {
 
   return `Hallo ${buyer.firstName},
 
-vielen Dank für deine Bestellung beim ULTIMATE Outdoor Store! Deine Zahlung ist bestätigt und wir haben deine Bestellung angenommen.
+vielen Dank für deine Bestellung beim ULTIMATE Outdoor Store! ${totalCents === 0 ? 'Wir haben deine Bestellung angenommen. Es ist keine Zahlung erforderlich.' : 'Deine Zahlung ist bestätigt und wir haben deine Bestellung angenommen.'}
 
 Bestellnummer: ${invoice.order_id}
 
 ${items}
-Versand: ${money(shippingCents)}
+${discountCents ? `Gutscheinrabatt: ${money(-discountCents)}\n` : ''}Versand: ${money(shippingCents)}
 Gesamtbetrag: ${money(totalCents)}
 
 Lieferadresse

@@ -8,15 +8,18 @@ export default function CheckoutForm() {
   const t = useTranslations('checkoutForm')
   const locale = useLocale()
   const euro = (cents: number) => new Intl.NumberFormat(locale === 'de' ? 'de-DE' : locale === 'en' ? 'en-GB' : locale, { style: 'currency', currency: 'EUR' }).format(cents / 100)
-  const [quote, setQuote] = useState<{ token: string; methods: Method[]; quantity: number; unitPriceCents: number } | null>(null)
+  const [quote, setQuote] = useState<{ token: string; methods: Method[]; quantity: number; unitPriceCents: number; discountCents: number } | null>(null)
   const [methodUid, setMethodUid] = useState(''), [provider, setProvider] = useState('paypal'), [busy, setBusy] = useState(false), [error, setError] = useState(''), [accepted, setAccepted] = useState(false)
   const method = quote?.methods.find(m => m.uid === methodUid)
+  const total = quote && method ? quote.quantity * quote.unitPriceCents + method.shippingCents - quote.discountCents : null
+  const paypalOnly = total !== null && total > 0 && total < 50 && (quote?.discountCents ?? 0) > 0
+  const paymentProvider = paypalOnly ? 'paypal' : provider
   async function shipping(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(''); setQuote(null)
     const data = new FormData(event.currentTarget), quantity = Number(data.get('quantity'))
     const address = Object.fromEntries([...fields.map(([key]) => [key, data.get(key)]), ['country', data.get('country')]])
     try {
-      const response = await fetch('/api/shop/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address, quantity }) })
+      const response = await fetch('/api/shop/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address, quantity, voucherCode: String(data.get('voucherCode') ?? '').trim() }) })
       const result = await response.json(); if (!response.ok) throw new Error(result.error)
       setQuote({ ...result, quantity }); setMethodUid(result.methods[0].uid)
     } catch (e) { setError(locale === 'de' && e instanceof Error ? e.message : t('quoteError')) } finally { setBusy(false) }
@@ -25,7 +28,7 @@ export default function CheckoutForm() {
     if (!quote || !method || !accepted || busy) return
     setBusy(true); setError('')
     try {
-      const response = await fetch('/api/shop/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: quote.token, shippingMethodUid: method.uid, provider, acceptedTerms: accepted }) })
+      const response = await fetch('/api/shop/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: quote.token, shippingMethodUid: method.uid, provider: paymentProvider, acceptedTerms: accepted }) })
       const result = await response.json(); if (!response.ok) throw new Error(result.error)
       window.location.assign(result.url)
     } catch (e) { setError(locale === 'de' && e instanceof Error ? e.message : t('paymentError')); setBusy(false) }
@@ -38,6 +41,7 @@ export default function CheckoutForm() {
         {fields.map(([key, autoComplete, maxLength]) => <label key={key} className="text-sm">{t(key)}<input className={input} name={key} autoComplete={autoComplete} maxLength={maxLength} type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} required={!['addressLine2', 'phone'].includes(key)} /></label>)}
         <label className="text-sm">{t('country')}<select className={input} name="country"><option value="DE">{t('germany')}</option><option value="AT">{t('austria')}</option><option value="CH">{t('switzerland')}</option></select></label>
         <label className="text-sm">{t('quantity')}<input className={input} type="number" name="quantity" min={1} max={10} step={1} defaultValue={1} required /></label>
+          <label className="text-sm">{t('voucherCode')}<input className={input} name="voucherCode" maxLength={40} autoComplete="off" spellCheck={false} /></label>
       </fieldset>
       <p className="mt-5 text-sm text-stone-600">{t('fulfilment')} <Link className="underline" href="/datenschutz">{t('privacy')}</Link></p>
       <button disabled={busy} className="mt-5 rounded-lg bg-[#527052] text-white px-5 py-3 font-semibold disabled:opacity-50">{busy ? t('wait') : t('quote')}</button>
@@ -45,12 +49,12 @@ export default function CheckoutForm() {
     {quote && method && <section className="mt-6 rounded-2xl border border-stone-300 bg-white p-5 md:p-8">
       <h2 className="text-xl font-semibold">{t('shippingPayment')}</h2>
       <fieldset disabled={busy} className="mt-4 space-y-3"><legend className="sr-only">{t('shippingMethod')}</legend>{quote.methods.map(m => <label key={m.uid} className="flex items-center gap-3 rounded-lg border border-stone-300 p-3"><input type="radio" name="shipping" checked={methodUid === m.uid} onChange={() => { setMethodUid(m.uid); setAccepted(false) }} /> <span className="flex-1">{m.name}<small className="block text-stone-600">{t('deliveryEstimate', { min: m.minDays, max: m.maxDays })}</small></span><strong>{euro(m.shippingCents)}</strong></label>)}</fieldset>
-      <dl className="my-6 space-y-2"><div className="flex justify-between"><dt>{t('cartCount', { count: quote.quantity })}</dt><dd>{euro(quote.quantity * quote.unitPriceCents)}</dd></div><div className="flex justify-between"><dt>{t('shipping')}</dt><dd>{euro(method.shippingCents)}</dd></div><div className="flex justify-between border-t border-stone-300 pt-3 text-xl font-bold"><dt>{t('total')}</dt><dd>{euro(quote.quantity * quote.unitPriceCents + method.shippingCents)}</dd></div></dl>
+      <dl className="my-6 space-y-2"><div className="flex justify-between"><dt>{t('cartCount', { count: quote.quantity })}</dt><dd>{euro(quote.quantity * quote.unitPriceCents)}</dd></div><div className="flex justify-between"><dt>{t('shipping')}</dt><dd>{euro(method.shippingCents)}</dd></div>{quote.discountCents > 0 && <div className="flex justify-between"><dt>{t('voucherDiscount')}</dt><dd>{euro(-quote.discountCents)}</dd></div>}<div className="flex justify-between border-t border-stone-300 pt-3 text-xl font-bold"><dt>{t('total')}</dt><dd>{euro(total ?? 0)}</dd></div></dl>
       <p className="text-sm text-stone-600">{t('vat')}</p>
-      <fieldset disabled={busy} className="mt-6 flex flex-wrap gap-5"><legend className="mb-3 font-semibold">{t('paymentMethod')}</legend>{[['paypal', 'PayPal'], ['stripe', t('card')]].map(([value, label]) => <label key={value} className="flex items-center gap-2"><input type="radio" name="provider" checked={provider === value} onChange={() => setProvider(value)} />{label}</label>)}</fieldset>
+      {total !== 0 && <fieldset disabled={busy} className="mt-6 flex flex-wrap gap-5"><legend className="mb-3 font-semibold">{t('paymentMethod')}</legend>{[['paypal', 'PayPal'], ['stripe', t('card')]].filter(([value]) => !paypalOnly || value === 'paypal').map(([value, label]) => <label key={value} className="flex items-center gap-2"><input type="radio" name="provider" checked={paymentProvider === value} onChange={() => setProvider(value)} />{label}</label>)}</fieldset>}
       <label className="mt-6 flex items-start gap-3 text-sm"><input className="mt-1" type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)} /><span>{t('acceptStart')} <Link href="/shop/bestellinformationen" target="_blank" className="underline">{t('orderInfo')}</Link> {t('and')} <Link href="/shop/widerruf" target="_blank" className="underline">{t('withdrawal')}</Link> {t('acceptEnd')}</span></label>
-      <button type="button" onClick={pay} disabled={busy || !accepted} className="mt-6 w-full rounded-lg bg-[#527052] text-white px-5 py-4 font-bold disabled:opacity-50">{busy ? t('preparing') : provider === 'paypal' ? t('payPal') : t('cardPayment')}</button>
-      <p className="mt-3 text-sm text-stone-600">{t('providerPage')}</p>
+      <button type="button" onClick={pay} disabled={busy || !accepted} className="mt-6 w-full rounded-lg bg-[#527052] text-white px-5 py-4 font-bold disabled:opacity-50">{busy ? t('preparing') : total === 0 ? t('placeFreeOrder') : paymentProvider === 'paypal' ? t('payPal') : t('cardPayment')}</button>
+      {total !== 0 && <p className="mt-3 text-sm text-stone-600">{t('providerPage')}</p>}
     </section>}
     {error && <p role="alert" className="mt-5 rounded-lg border border-red-400/40 bg-red-50 text-red-900 p-4">{error}</p>}
   </div>

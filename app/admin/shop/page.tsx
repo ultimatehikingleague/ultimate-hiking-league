@@ -14,6 +14,7 @@ import {
   Package,
   Settings,
   Truck,
+  Ticket,
   Users,
 } from 'lucide-react'
 
@@ -24,6 +25,13 @@ const adminSections = [
     href: '/admin/shop/products',
     action: 'Produkte öffnen',
     icon: Package,
+  },
+  {
+    title: 'Gutscheine',
+    description: 'Rabattcodes erstellen und Einlösungen einsehen.',
+    href: '/admin/shop/vouchers',
+    action: 'Gutscheine öffnen',
+    icon: Ticket,
   },
   {
     title: 'Bestellungen',

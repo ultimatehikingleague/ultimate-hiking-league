@@ -685,6 +685,9 @@
     "salesSoon": "Sprzedaż rozpocznie się wkrótce. Zajrzyj ponownie za jakiś czas."
   },
   "checkoutForm": {
+    "voucherCode": "Kod rabatowy (opcjonalnie)",
+    "voucherDiscount": "Rabat z kodu",
+    "placeFreeOrder": "Złóż bezpłatne zamówienie",
     "address": "1. Adres dostawy",
     "summary": "Schorschy's Wanderkalender 2027 · A3 · 29,90 € za kalendarz, plus wysyłka",
     "country": "Kraj",
@@ -729,6 +732,7 @@
     "deliveryEstimate": "Przewidywany czas produkcji i dostawy: {min}–{max} dni"
   },
   "orderStatus": {
+    "freeConfirmedMessage": "Twoje zamówienie zostało potwierdzone.",
     "invalid": "Link do zamówienia jest nieprawidłowy.",
     "checkingConfirmation": "Sprawdzamy potwierdzenie płatności. Nie płać ponownie.",
     "confirmedMessage": "Płatność została potwierdzona. Dziękujemy za zamówienie!",
@@ -975,7 +979,7 @@
     "back": "← Wróć do sklepu",
     "title": "Zamówienie, płatność i dostawa",
     "withdrawal": "Pouczenie o prawie odstąpienia od umowy i wzór formularza",
-    "body": "Sprzedawca: Philipp Dobrinski / ULTIMATE, jednoosobowa działalność gospodarcza, Ansbacher Straße 4a, 91452 Wilhermsdorf, Niemcy. Kontakt: ultimatehikingleague@gmail.com.\n\nJęzykiem umowy jest niemiecki. Prezentacja produktu stanowi zaproszenie do złożenia zamówienia. Przed płatnością można sprawdzić i poprawić wprowadzone dane oraz zweryfikować kwotę łączną. Zamówienie składają Państwo, wykonując u dostawcy płatności ostatni krok zamówienia z obowiązkiem zapłaty. Przyjmujemy zamówienie w chwili potwierdzenia udanej płatności. Potwierdzenie umowy z danymi zamówienia i informacją o odstąpieniu otrzymają Państwo e-mailem. Po potwierdzeniu płatności fakturę można dodatkowo pobrać w formacie PDF na stronie potwierdzenia zamówienia. Prosimy zachować dokumenty, ponieważ dostęp do zamówienia w przeglądarce jest ograniczony czasowo.\n\nWszystkie ceny podano w EUR. Zgodnie z § 19 UStG nie wykazujemy podatku VAT. Do ceny towaru doliczamy koszty wysyłki podane przed płatnością. Nie naliczamy dodatkowych opłat za produkcję, obsługę płatności ani inne wewnętrzne czynności związane z realizacją. Płatność przez PayPal lub kartą kredytową albo debetową następuje przy składaniu zamówienia. Dostawa następuje na potwierdzony adres w Niemczech, Austrii lub Szwajcarii. Przewidywany czas produkcji i dostawy podany dla wybranej metody wysyłki liczy się od potwierdzenia płatności. Obowiązują ustawowe uprawnienia z tytułu wad.\n\nStandardowy kalendarz wędrówek drukujemy po zamówieniu, bez indywidualnej personalizacji. Prawo do odstąpienia od umowy pozostaje w mocy. Zwroty należy kierować na podany powyżej adres sprzedawcy, nie na adres zakładu produkcyjnego."
+    "body": "Sprzedawca: Philipp Dobrinski / ULTIMATE, jednoosobowa działalność gospodarcza, Ansbacher Straße 4a, 91452 Wilhermsdorf, Niemcy. Kontakt: ultimatehikingleague@gmail.com.\n\nJęzykiem umowy jest niemiecki. Prezentacja produktu stanowi zaproszenie do złożenia zamówienia. Przed płatnością można sprawdzić i poprawić wprowadzone dane oraz zweryfikować kwotę łączną. Zamówienie składają Państwo, wykonując u dostawcy płatności ostatni krok zamówienia z obowiązkiem zapłaty. Przyjmujemy zamówienie w chwili potwierdzenia udanej płatności. Jeśli kwota łączna wynosi 0 €, zamówienie składają Państwo przyciskiem „Złóż bezpłatne zamówienie”. Przyjmujemy je z chwilą potwierdzenia zamówienia. Potwierdzenie umowy z danymi zamówienia i informacją o odstąpieniu otrzymają Państwo e-mailem. Po potwierdzeniu zamówienia fakturę można dodatkowo pobrać w formacie PDF na stronie potwierdzenia zamówienia. Prosimy zachować dokumenty, ponieważ dostęp do zamówienia w przeglądarce jest ograniczony czasowo.\n\nWszystkie ceny podano w EUR. Zgodnie z § 19 UStG nie wykazujemy podatku VAT. Do ceny towaru doliczamy koszty wysyłki podane przed płatnością. Nie naliczamy dodatkowych opłat za produkcję, obsługę płatności ani inne wewnętrzne czynności związane z realizacją. Płatność przez PayPal lub kartą kredytową albo debetową następuje przy składaniu zamówienia. Dostawa następuje na potwierdzony adres w Niemczech, Austrii lub Szwajcarii. Przewidywany czas produkcji i dostawy podany dla wybranej metody wysyłki liczy się od potwierdzenia płatności. Obowiązują ustawowe uprawnienia z tytułu wad.\n\nStandardowy kalendarz wędrówek drukujemy po zamówieniu, bez indywidualnej personalizacji. Prawo do odstąpienia od umowy pozostaje w mocy. Zwroty należy kierować na podany powyżej adres sprzedawcy, nie na adres zakładu produkcyjnego."
   },
   "withdrawal": {
     "back": "← Wróć do sklepu",

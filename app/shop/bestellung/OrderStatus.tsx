@@ -25,7 +25,7 @@ export default function OrderStatus() {
         }
         if (stopped) return
         setStatus(result.status)
-        if (result.status === 'paid') { setMessage('confirmedMessage'); return }
+        if (result.status === 'paid') { setMessage(result.totalCents === 0 ? 'freeConfirmedMessage' : 'confirmedMessage'); return }
         if (result.status !== 'pending') { setMessage('contactSupport'); return }
         setMessage('waiting')
         if (++polls < 20) timer = setTimeout(check, 3000)

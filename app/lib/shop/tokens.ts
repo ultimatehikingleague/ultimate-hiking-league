@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual, createHash } from 'node:crypto'
 import { required } from './config'
 import { Address, CheckoutError } from './validation'
-export type QuoteToken = { id: string; expires: number; quantity: number; sku?: string; unitPriceCents?: number; address: Address; methods: { uid: string; name: string; shippingCents: number }[] }
+export type QuoteToken = { id: string; expires: number; quantity: number; sku?: string; unitPriceCents?: number; voucherCode?: string; discountCents?: number; address: Address; methods: { uid: string; name: string; shippingCents: number }[] }
 function secret() { const s = required('SHOP_TOKEN_SECRET'); if (s.length < 32) throw new CheckoutError('Shop noch nicht konfiguriert.', 503); return s }
 export function signQuote(data: QuoteToken) { const payload = Buffer.from(JSON.stringify(data)).toString('base64url'); return payload + '.' + createHmac('sha256', secret()).update(payload).digest('base64url') }
 export function readQuote(token: unknown): QuoteToken {

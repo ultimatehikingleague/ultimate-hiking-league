@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { required } from './config'
 import type { Address } from './validation'
-export type ShopOrder = { id: string; sku?: string; product_name?: string; access_token_hash: string; provider: 'stripe' | 'paypal'; mode: 'test' | 'live'; quantity: number; unit_price_cents: number; shipping_cents: number; total_cents: number; currency: string; address: Address; shipping_method_uid: string; provider_order_id: string | null; status: string; paid_at?: string; file_url: string; file_sha256: string; product_uid: string; page_count: number; created_at?: string }
+export type ShopOrder = { id: string; sku?: string; product_name?: string; access_token_hash: string; provider: 'stripe' | 'paypal' | 'free'; voucher_code?: string | null; discount_cents?: number; voucher_expires_at?: string | null; voucher_capture_started?: boolean; checkout_url?: string | null; mode: 'test' | 'live'; quantity: number; unit_price_cents: number; shipping_cents: number; total_cents: number; currency: string; address: Address; shipping_method_uid: string; provider_order_id: string | null; status: string; paid_at?: string; file_url: string; file_sha256: string; product_uid: string; page_count: number; created_at?: string }
 export function orderDB() { return createClient(required('NEXT_PUBLIC_SUPABASE_URL'), required('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } }) }
 export async function getOrder(id: string) {
   const { data, error } = await orderDB().from('shop_orders').select('*').eq('id', id).maybeSingle()

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   } catch { return new Response('Webhook signature verification failed', { status: 400 }) }
   if (event.livemode !== (paymentMode() === 'live')) return new Response('Payment mode mismatch', { status: 400 })
   try {
-    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') await reconcileStripe(event.data.object.id)
+    if (event.type === 'checkout.session.expired' || event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') await reconcileStripe(event.data.object.id)
     return NextResponse.json({ received: true })
   } catch { return new Response('Payment processing failed; retry required', { status: 500 }) }
 }

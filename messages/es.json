@@ -685,6 +685,9 @@
     "salesSoon": "La venta empezará en breve. Vuelve a visitarnos pronto."
   },
   "checkoutForm": {
+    "voucherCode": "Código de descuento (opcional)",
+    "voucherDiscount": "Descuento del cupón",
+    "placeFreeOrder": "Realizar pedido gratuito",
     "address": "1. Dirección de entrega",
     "summary": "Schorschy's Wanderkalender 2027 · A3 · 29,90 € por calendario, gastos de envío aparte",
     "country": "País",
@@ -729,6 +732,7 @@
     "deliveryEstimate": "Plazo estimado de producción y entrega: {min}–{max} días"
   },
   "orderStatus": {
+    "freeConfirmedMessage": "Tu pedido ha sido confirmado.",
     "invalid": "El enlace de pedido no es válido.",
     "checkingConfirmation": "Estamos comprobando la confirmación de tu pago. No vuelvas a pagar.",
     "confirmedMessage": "Tu pago está confirmado. ¡Gracias por tu pedido!",
@@ -975,7 +979,7 @@
     "back": "← Volver a la tienda",
     "title": "Pedido, pago y entrega",
     "withdrawal": "Información sobre el desistimiento y formulario modelo",
-    "body": "Vendedor: Philipp Dobrinski / ULTIMATE, empresa unipersonal, Ansbacher Straße 4a, 91452 Wilhermsdorf, Alemania. Contacto: ultimatehikingleague@gmail.com.\n\nEl idioma del contrato es el alemán. La presentación del producto es una invitación a realizar un pedido. Antes de pagar puede revisar y corregir sus datos y comprobar el importe total. Al completar el paso final del proceso de pedido con obligación de pago ante el proveedor de pagos, formaliza su pedido. Aceptamos el pedido al confirmarse el pago. Recibirá por correo electrónico la confirmación del contrato, los datos del pedido y la información sobre el desistimiento. Una vez confirmado el pago, también puede descargar la factura en PDF desde la página de confirmación del pedido. Guarde sus documentos, ya que el acceso local al pedido tiene una duración limitada.\n\nTodos los precios se indican en EUR. Con arreglo al artículo 19 de la ley alemana del IVA (UStG), no se desglosa el IVA. Al precio de los productos se añaden los gastos de envío indicados antes del pago. No se le cobrarán aparte los costes de producción, del servicio de pago ni otros gastos internos de tramitación. El pago por PayPal o tarjeta de crédito o débito se realiza al hacer el pedido. El pedido se entrega en la dirección confirmada en Alemania, Austria o Suiza. El plazo estimado de producción y entrega indicado para el método de envío elegido se cuenta desde la confirmación del pago. Se aplican los derechos legales en caso de defectos.\n\nEl calendario estándar de senderismo se imprime después de realizar el pedido y no se personaliza. Se mantiene el derecho de desistimiento. Envíe las devoluciones a la dirección del vendedor indicada arriba, no al centro de producción."
+    "body": "Vendedor: Philipp Dobrinski / ULTIMATE, empresa unipersonal, Ansbacher Straße 4a, 91452 Wilhermsdorf, Alemania. Contacto: ultimatehikingleague@gmail.com.\n\nEl idioma del contrato es el alemán. La presentación del producto es una invitación a realizar un pedido. Antes de pagar puede revisar y corregir sus datos y comprobar el importe total. Al completar el paso final del proceso de pedido con obligación de pago ante el proveedor de pagos, formaliza su pedido. Aceptamos el pedido al confirmarse el pago. Si el importe total es de 0 €, envíe el pedido con el botón «Realizar pedido gratuito». Lo aceptaremos al confirmar el pedido. Recibirá por correo electrónico la confirmación del contrato, los datos del pedido y la información sobre el desistimiento. Una vez confirmado el pedido, también puede descargar la factura en PDF desde la página de confirmación del pedido. Guarde sus documentos, ya que el acceso local al pedido tiene una duración limitada.\n\nTodos los precios se indican en EUR. Con arreglo al artículo 19 de la ley alemana del IVA (UStG), no se desglosa el IVA. Al precio de los productos se añaden los gastos de envío indicados antes del pago. No se le cobrarán aparte los costes de producción, del servicio de pago ni otros gastos internos de tramitación. El pago por PayPal o tarjeta de crédito o débito se realiza al hacer el pedido. El pedido se entrega en la dirección confirmada en Alemania, Austria o Suiza. El plazo estimado de producción y entrega indicado para el método de envío elegido se cuenta desde la confirmación del pago. Se aplican los derechos legales en caso de defectos.\n\nEl calendario estándar de senderismo se imprime después de realizar el pedido y no se personaliza. Se mantiene el derecho de desistimiento. Envíe las devoluciones a la dirección del vendedor indicada arriba, no al centro de producción."
   },
   "withdrawal": {
     "back": "← Volver a la tienda",

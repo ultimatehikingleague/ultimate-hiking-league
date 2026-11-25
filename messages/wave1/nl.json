@@ -685,6 +685,9 @@
     "salesSoon": "De verkoop begint binnenkort. Kom binnenkort nog eens kijken."
   },
   "checkoutForm": {
+    "voucherCode": "Kortingscode (optioneel)",
+    "voucherDiscount": "Korting met voucher",
+    "placeFreeOrder": "Gratis bestellen",
     "address": "1. Afleveradres",
     "summary": "Schorschy''s Wanderkalender 2027 · A3 · € 29,90 per kalender, plus verzending",
     "country": "Land",
@@ -729,6 +732,7 @@
     "deliveryEstimate": "Naar verwachting {min}–{max} dagen voor productie en bezorging."
   },
   "orderStatus": {
+    "freeConfirmedMessage": "Je bestelling is bevestigd.",
     "invalid": "De bestellink is ongeldig.",
     "checkingConfirmation": "We controleren de bevestiging van je betaling. Betaal niet opnieuw.",
     "confirmedMessage": "Uw betaling is bevestigd. Bedankt voor uw bestelling!",
@@ -975,7 +979,7 @@
     "back": "← Terug naar de winkel",
     "title": "Bestellingen, betalingen en levering",
     "withdrawal": "Informatie over herroeping en modelformulier",
-    "body": "Verkoper: Philipp Dobrinski / ULTIMATE, eenmanszaak, Ansbacher Straße 4a, 91452 Wilhermsdorf, Duitsland. Contact: ultimatehikingleague@gmail.com.\n\nDe contracttaal is Duits. De productpresentatie is een uitnodiging om een bestelling te plaatsen. Vóór betaling kunt u uw gegevens controleren en corrigeren en het totaalbedrag controleren. U plaatst uw bestelling bij de laatste stap met betalingsverplichting bij de betaaldienst. Wij aanvaarden de bestelling met de bevestiging dat de betaling is gelukt. U ontvangt per e-mail de contractbevestiging met de bestelgegevens en informatie over herroeping. Na bevestiging van de betaling is de factuur ook als pdf beschikbaar op de bestelbevestigingspagina. Sla uw documenten op: de lokale toegang tot de bestelling is beperkt in de tijd.\n\nAlle prijzen zijn in EUR. Overeenkomstig § 19 UStG wordt geen btw afzonderlijk vermeld. De vóór betaling getoonde verzendkosten komen boven op de prijs van het product. Wij brengen productie-, betaaldienst- en andere interne verwerkingskosten niet afzonderlijk in rekening. U betaalt bij de bestelling via PayPal of met een creditcard of betaalkaart. Wij leveren op het bevestigde afleveradres in Duitsland, Oostenrijk of Zwitserland. De geschatte productie- en levertijd voor de gekozen verzendmethode gaat in zodra de betaling is bevestigd. De wettelijke rechten bij gebreken zijn van toepassing.\n\nDe standaardwandelkalender wordt na bestelling gedrukt, maar wordt niet op maat van de klant gepersonaliseerd. Het herroepingsrecht blijft van toepassing. Stuur retourzendingen naar het hierboven vermelde adres van de verkoper en niet naar de productielocatie."
+    "body": "Verkoper: Philipp Dobrinski / ULTIMATE, eenmanszaak, Ansbacher Straße 4a, 91452 Wilhermsdorf, Duitsland. Contact: ultimatehikingleague@gmail.com.\n\nDe contracttaal is Duits. De productpresentatie is een uitnodiging om een bestelling te plaatsen. Vóór betaling kunt u uw gegevens controleren en corrigeren en het totaalbedrag controleren. U plaatst uw bestelling bij de laatste stap met betalingsverplichting bij de betaaldienst. Wij aanvaarden de bestelling met de bevestiging dat de betaling is gelukt. Als het totaal € 0 is, plaatst u de bestelling met de knop ‘Gratis bestellen’. Wij aanvaarden deze met de bestelbevestiging. U ontvangt per e-mail de contractbevestiging met de bestelgegevens en informatie over herroeping. Na bevestiging van de bestelling is de factuur ook als pdf beschikbaar op de bestelbevestigingspagina. Sla uw documenten op: de lokale toegang tot de bestelling is beperkt in de tijd.\n\nAlle prijzen zijn in EUR. Overeenkomstig § 19 UStG wordt geen btw afzonderlijk vermeld. De vóór betaling getoonde verzendkosten komen boven op de prijs van het product. Wij brengen productie-, betaaldienst- en andere interne verwerkingskosten niet afzonderlijk in rekening. U betaalt bij de bestelling via PayPal of met een creditcard of betaalkaart. Wij leveren op het bevestigde afleveradres in Duitsland, Oostenrijk of Zwitserland. De geschatte productie- en levertijd voor de gekozen verzendmethode gaat in zodra de betaling is bevestigd. De wettelijke rechten bij gebreken zijn van toepassing.\n\nDe standaardwandelkalender wordt na bestelling gedrukt, maar wordt niet op maat van de klant gepersonaliseerd. Het herroepingsrecht blijft van toepassing. Stuur retourzendingen naar het hierboven vermelde adres van de verkoper en niet naar de productielocatie."
   },
   "withdrawal": {
     "back": "← Terug naar de winkel",
