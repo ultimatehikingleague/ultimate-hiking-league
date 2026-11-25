@@ -294,6 +294,30 @@ export default function MilestoneShopAdminPage() {
     }
   }
 
+  async function remove(reward: Reward) {
+    if (mutationLock.current || reward.is_active) return
+    if (!window.confirm(`„${reward.title}“ endgültig löschen?\n\nDas Angebot und seine unvergebenen Gutscheincodes werden entfernt. Angebote mit Einlösungen oder bereits zugewiesenen Codes sind gesperrt. Diese Aktion kann in der Oberfläche nicht rückgängig gemacht werden.`)) return
+    mutationLock.current = true
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const { error: deleteError } = await supabase.rpc('delete_inactive_milestone_offer', {
+        p_offer_table: offerTable(reward.reward_type), p_id: reward.id, p_confirm: true,
+      })
+      if (deleteError) throw deleteError
+      if (editing && offerKey(editing) === offerKey(reward)) reset()
+      if (newCodeRewardId === reward.id && !isPartnerBenefit(reward.reward_type)) setNewCodeRewardId(null)
+      setRewards(previous => previous.filter(item => offerKey(item) !== offerKey(reward)))
+      setMessage(`„${reward.title}“ wurde endgültig gelöscht.`)
+    } catch (err) {
+      setError(`Löschen fehlgeschlagen: ${errorMessage(err)}`)
+    } finally {
+      mutationLock.current = false
+      setBusy(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-white md:px-10">
       <div className="mx-auto max-w-7xl">
@@ -376,6 +400,7 @@ export default function MilestoneShopAdminPage() {
                     <p className="mt-3 text-sm text-stone-300">{reward.display_position != null && `Position ${reward.display_position} · `}{labels[reward.reward_type]} · {isPartnerBenefit(reward.reward_type) ? 'Ohne Milestones' : reward.points_cost.toLocaleString('de-DE') + ' Milestones'}</p>
                     {reward.description && <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-stone-400">{reward.description}</p>}
                     <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={busy} onClick={() => edit(reward)} className={buttonClass}>Bearbeiten</button><button type="button" disabled={busy || (editing !== null && offerKey(editing) === offerKey(reward))} onClick={() => void toggle(reward)} className={buttonClass}>{reward.is_active ? 'Deaktivieren' : 'Aktivieren'}</button></div>
+                    <button type="button" disabled={busy || reward.is_active} onClick={() => void remove(reward)} className={`${buttonClass} mt-3 text-red-300`} title={reward.is_active ? 'Vor dem Löschen zuerst deaktivieren.' : undefined}>Endgültig löschen</button>
                     {!isPartnerBenefit(reward.reward_type) && reward.reward_type !== 'product' && <VoucherCodes rewardId={reward.id} title={reward.title} initiallyOpen={reward.id === newCodeRewardId} />}
                   </article>)}</div>}
               </section>
