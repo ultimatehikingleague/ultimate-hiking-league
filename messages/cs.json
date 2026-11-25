@@ -685,6 +685,9 @@
     "salesSoon": "Prodej začne co nevidět. Zkuste se sem brzy vrátit."
   },
   "checkoutForm": {
+    "voucherCode": "Slevový kód (volitelný)",
+    "voucherDiscount": "Sleva z poukazu",
+    "placeFreeOrder": "Objednat zdarma",
     "address": "1. Doručovací adresa",
     "summary": "Schorschy's Wanderkalender 2027 · A3 · 29,90 € za kalendář, plus doprava",
     "country": "Země",
@@ -729,6 +732,7 @@
     "deliveryEstimate": "Předpokládaná doba výroby a doručení: {min}–{max} dní"
   },
   "orderStatus": {
+    "freeConfirmedMessage": "Vaše objednávka byla potvrzena.",
     "invalid": "Odkaz na objednávku je neplatný.",
     "checkingConfirmation": "Ověřujeme potvrzení platby. Neplaťte prosím znovu.",
     "confirmedMessage": "Platba je potvrzena. Děkujeme za objednávku!",
@@ -975,7 +979,7 @@
     "back": "← Do obchodu",
     "title": "Objednávka, platba a doručení",
     "withdrawal": "Poučení o odstoupení od smlouvy a vzorový formulář",
-    "body": "Prodávající: Philipp Dobrinski / ULTIMATE, podnikající fyzická osoba, Ansbacher Straße 4a, 91452 Wilhermsdorf, Německo. Kontakt: ultimatehikingleague@gmail.com.\n\nSmluvním jazykem je němčina. Zobrazení výrobku je výzvou k podání objednávky. Před zaplacením můžete zkontrolovat a opravit zadané údaje i celkovou částku. Objednávku podáte dokončením posledního kroku zavazujícího k platbě u poskytovatele plateb. Objednávku přijmeme potvrzením úspěšné platby. Potvrzení smlouvy s údaji o objednávce a informacemi o odstoupení obdržíte e-mailem. Po potvrzení platby bude na stránce s potvrzením objednávky také faktura v PDF. Doklady si prosím uložte. Přístup k objednávce z tohoto zařízení je časově omezený.\n\nVšechny ceny jsou v EUR. Podle § 19 německého zákona o DPH (UStG) se DPH neuvádí. K ceně zboží připočteme náklady na dopravu zobrazené před platbou. Výrobní náklady, poplatky za platební služby ani další interní náklady vám navíc neúčtujeme. Při objednání zaplatíte přes PayPal nebo kreditní či debetní kartou. Zboží doručujeme na potvrzenou doručovací adresu v Německu, Rakousku nebo Švýcarsku. Odhadovaná doba výroby a doručení uvedená u zvoleného způsobu dopravy běží od potvrzení platby. Platí zákonná práva z vadného plnění.\n\nStandardní turistický kalendář se tiskne po objednání a neupravuje se na míru. Právo na odstoupení od smlouvy zůstává zachováno. Zboží prosím vracejte na výše uvedenou adresu prodávajícího. Výrobní závod vrácené zboží nepřijímá."
+    "body": "Prodávající: Philipp Dobrinski / ULTIMATE, podnikající fyzická osoba, Ansbacher Straße 4a, 91452 Wilhermsdorf, Německo. Kontakt: ultimatehikingleague@gmail.com.\n\nSmluvním jazykem je němčina. Zobrazení výrobku je výzvou k podání objednávky. Před zaplacením můžete zkontrolovat a opravit zadané údaje i celkovou částku. Objednávku podáte dokončením posledního kroku zavazujícího k platbě u poskytovatele plateb. Objednávku přijmeme potvrzením úspěšné platby. Pokud je celková částka 0 €, podejte objednávku tlačítkem „Objednat zdarma“. Přijmeme ji potvrzením objednávky. Potvrzení smlouvy s údaji o objednávce a informacemi o odstoupení obdržíte e-mailem. Po potvrzení objednávky bude na stránce s potvrzením objednávky také faktura v PDF. Doklady si prosím uložte. Přístup k objednávce z tohoto zařízení je časově omezený.\n\nVšechny ceny jsou v EUR. Podle § 19 německého zákona o DPH (UStG) se DPH neuvádí. K ceně zboží připočteme náklady na dopravu zobrazené před platbou. Výrobní náklady, poplatky za platební služby ani další interní náklady vám navíc neúčtujeme. Při objednání zaplatíte přes PayPal nebo kreditní či debetní kartou. Zboží doručujeme na potvrzenou doručovací adresu v Německu, Rakousku nebo Švýcarsku. Odhadovaná doba výroby a doručení uvedená u zvoleného způsobu dopravy běží od potvrzení platby. Platí zákonná práva z vadného plnění.\n\nStandardní turistický kalendář se tiskne po objednání a neupravuje se na míru. Právo na odstoupení od smlouvy zůstává zachováno. Zboží prosím vracejte na výše uvedenou adresu prodávajícího. Výrobní závod vrácené zboží nepřijímá."
   },
   "withdrawal": {
     "back": "← Do obchodu",

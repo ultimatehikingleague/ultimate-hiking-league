@@ -685,6 +685,9 @@
     "salesSoon": "Sales will start shortly. Please check back soon."
   },
   "checkoutForm": {
+    "voucherCode": "Voucher code (optional)",
+    "voucherDiscount": "Voucher discount",
+    "placeFreeOrder": "Place free order",
     "address": "1. Delivery address",
     "summary": "Schorschy's Wanderkalender 2027 · A3 · €29.90 per calendar, plus shipping",
     "country": "Country",
@@ -729,6 +732,7 @@
     "deliveryEstimate": "Estimated production and delivery: {min}–{max} days"
   },
   "orderStatus": {
+    "freeConfirmedMessage": "Your order has been confirmed.",
     "invalid": "The order link is invalid.",
     "checkingConfirmation": "We are checking your payment confirmation. Please do not pay again.",
     "confirmedMessage": "Your payment is confirmed. Thank you for your order!",
@@ -975,7 +979,7 @@
     "back": "← Back to the shop",
     "title": "Orders, payment and delivery",
     "withdrawal": "Withdrawal notice and model form",
-    "body": "Seller: Philipp Dobrinski / ULTIMATE, sole proprietor, Ansbacher Straße 4a, 91452 Wilhermsdorf, Germany. Contact: ultimatehikingleague@gmail.com.\n\nThe contract language is German. The product listing is an invitation to place an order. Before paying, you can review and correct your entries and check the total amount. You place your order when you complete the final step that obliges you to pay at the payment provider. We accept the order when successful payment is confirmed. You receive the contract confirmation, order details and withdrawal information by email. After payment is confirmed, a PDF invoice is also available on the order confirmation page. Please save your documents, as local access to the order is time-limited.\n\nAll prices are in EUR. VAT is not shown pursuant to Section 19 UStG. The shipping charges displayed before payment are added to the product price. We do not charge you separately for production, payment services or other internal processing. Payment by PayPal or credit or debit card is due when you order. We deliver to the confirmed delivery address in Germany, Austria or Switzerland. The estimated production and delivery time displayed for the selected shipping option runs from confirmation of payment. Statutory rights concerning defects apply.\n\nThe standard hiking calendar is printed to order and is not personalized for the customer. The right of withdrawal still applies. Please return goods to the seller’s address listed above, not to the production facility."
+    "body": "Seller: Philipp Dobrinski / ULTIMATE, sole proprietor, Ansbacher Straße 4a, 91452 Wilhermsdorf, Germany. Contact: ultimatehikingleague@gmail.com.\n\nThe contract language is German. The product listing is an invitation to place an order. Before paying, you can review and correct your entries and check the total amount. You place your order when you complete the final step that obliges you to pay at the payment provider. We accept the order when successful payment is confirmed. If the total is €0, select “Place free order” to submit it. We accept it when the order is confirmed. You receive the contract confirmation, order details and withdrawal information by email. After the order is confirmed, a PDF invoice is also available on the order confirmation page. Please save your documents, as local access to the order is time-limited.\n\nAll prices are in EUR. VAT is not shown pursuant to Section 19 UStG. The shipping charges displayed before payment are added to the product price. We do not charge you separately for production, payment services or other internal processing. Payment by PayPal or credit or debit card is due when you order. We deliver to the confirmed delivery address in Germany, Austria or Switzerland. The estimated production and delivery time displayed for the selected shipping option runs from confirmation of payment. Statutory rights concerning defects apply.\n\nThe standard hiking calendar is printed to order and is not personalized for the customer. The right of withdrawal still applies. Please return goods to the seller’s address listed above, not to the production facility."
   },
   "withdrawal": {
     "back": "← Back to the shop",

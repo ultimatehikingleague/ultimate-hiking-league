@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { orderDB, type ShopOrder } from './orders'
 import type { Address } from './validation'
-export type Invoice = { order_id: string; number: string; issued_at: string; mode: 'test'|'live'; pdf_base64: string|null; snapshot: { seller: { name: string; address: string; email: string; taxNumber: string }; buyer: Address; lines: { sku: string; name: string; quantity: number; unit_price_cents: number; total_cents: number }[]; shippingCents: number; totalCents: number; paidAt: string; currency: string; terms?: { purchase?: string; withdrawal?: string } } }
+export type Invoice = { order_id: string; number: string; issued_at: string; mode: 'test'|'live'; pdf_base64: string|null; snapshot: { seller: { name: string; address: string; email: string; taxNumber: string }; buyer: Address; lines: { sku: string; name: string; quantity: number; unit_price_cents: number; total_cents: number }[]; shippingCents: number; discountCents?: number; totalCents: number; paidAt: string; currency: string; terms?: { purchase?: string; withdrawal?: string } } }
 const money=(n:number)=>new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(n/100)
 export async function renderInvoice(invoice: Invoice) {
  const doc=await PDFDocument.create(), regular=await doc.embedFont(StandardFonts.Helvetica), bold=await doc.embedFont(StandardFonts.HelveticaBold)
@@ -31,11 +31,13 @@ export async function renderInvoice(invoice: Invoice) {
  for(const line of invoice.snapshot.lines){const names=wrap(line.name,260);const height=names.length*14+31;if(y-height<160){footer();page=doc.addPage([595.28,841.89]);header()}
  names.forEach((s,i)=>text(s,47,y-i*14));text(String(line.quantity),337,y);text(money(line.unit_price_cents),385,y);text(money(line.total_cents),490,y);y-=names.length*14+3;text(line.sku,47,y,8);y-=28}
  if(y<220){footer();page=doc.addPage([595.28,841.89]);header()}
+ if(invoice.snapshot.discountCents){text('Gutscheinrabatt',47,y);text(money(-invoice.snapshot.discountCents),490,y);y-=18}
  text('Versandkosten',47,y);text(money(invoice.snapshot.shippingCents),490,y);y-=25
  page.drawLine({start:{x:47,y},end:{x:548,y},thickness:.7,color:muted});y-=26
  text('Gesamtbetrag',47,y,13,true);text(money(invoice.snapshot.totalCents),478,y,13,true);y-=30
  text('Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.',47,y,10);y-=22
- text(`Bezahlt am ${new Date(invoice.snapshot.paidAt).toLocaleDateString('de-DE',{timeZone:'Europe/Berlin'})}. Kein weiterer Betrag offen.`,47,y,10)
+ if(invoice.snapshot.totalCents===0)text('Kein Zahlungsbetrag offen.',47,y,10)
+ else text(`Bezahlt am ${new Date(invoice.snapshot.paidAt).toLocaleDateString('de-DE',{timeZone:'Europe/Berlin'})}. Kein weiterer Betrag offen.`,47,y,10)
  footer();return Buffer.from(await doc.save())
 }
 export async function invoiceForOrder(order:ShopOrder) {

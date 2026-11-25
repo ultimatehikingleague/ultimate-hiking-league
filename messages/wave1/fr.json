@@ -685,6 +685,9 @@
     "salesSoon": "La vente débutera bientôt. Revenez nous voir prochainement."
   },
   "checkoutForm": {
+    "voucherCode": "Code de réduction (facultatif)",
+    "voucherDiscount": "Réduction du bon",
+    "placeFreeOrder": "Commander gratuitement",
     "address": "1. Adresse de livraison",
     "summary": "Schorschy''s Wanderkalender 2027 · A3 · 29,90 € par calendrier, plus expédition",
     "country": "Pays",
@@ -729,6 +732,7 @@
     "deliveryEstimate": "Comptez environ {min} à {max} jours pour la production et la livraison."
   },
   "orderStatus": {
+    "freeConfirmedMessage": "Votre commande est confirmée.",
     "invalid": "Le lien de commande est invalide.",
     "checkingConfirmation": "Nous vérifions la confirmation de votre paiement. Ne payez pas une seconde fois.",
     "confirmedMessage": "Votre paiement est confirmé. Merci pour votre commande!",
@@ -975,7 +979,7 @@
     "back": "← Retour à la boutique",
     "title": "Commandes, paiement et livraison",
     "withdrawal": "Informations sur la rétractation et formulaire type",
-    "body": "Vendeur : Philipp Dobrinski / ULTIMATE, entreprise individuelle, Ansbacher Straße 4a, 91452 Wilhermsdorf, Allemagne. Contact : ultimatehikingleague@gmail.com.\n\nLa langue du contrat est l’allemand. La présentation du produit vous invite à passer commande. Avant le paiement, vous pouvez vérifier et corriger vos informations ainsi que vérifier le montant total. Vous passez commande à l’étape finale entraînant l’obligation de payer chez le prestataire de paiement. Nous acceptons la commande en confirmant la réussite du paiement. Vous recevez la confirmation du contrat par e-mail, avec les données de la commande et les informations sur la rétractation. Une fois le paiement confirmé, la facture est également disponible au format PDF sur la page de confirmation de commande. Enregistrez vos documents : l’accès local à la commande est limité dans le temps.\n\nTous les prix sont en EUR. La TVA n’est pas indiquée séparément conformément au § 19 UStG. Les frais de livraison indiqués avant le paiement s’ajoutent au prix du produit. Nous ne vous facturons pas séparément les coûts de production, de service de paiement ou de traitement interne. Le paiement s’effectue à la commande par PayPal ou par carte de crédit ou de débit. Nous livrons à l’adresse confirmée en Allemagne, en Autriche ou en Suisse. Le délai estimé de production et de livraison indiqué pour le mode d’expédition choisi court à compter de la confirmation du paiement. Les droits légaux en cas de défaut s’appliquent.\n\nLe calendrier de randonnée standard est imprimé après la commande, mais il n’est pas personnalisé selon les indications du client. Le droit de rétractation reste applicable. Adressez les retours à l’adresse du vendeur indiquée ci-dessus et non au site de production."
+    "body": "Vendeur : Philipp Dobrinski / ULTIMATE, entreprise individuelle, Ansbacher Straße 4a, 91452 Wilhermsdorf, Allemagne. Contact : ultimatehikingleague@gmail.com.\n\nLa langue du contrat est l’allemand. La présentation du produit vous invite à passer commande. Avant le paiement, vous pouvez vérifier et corriger vos informations ainsi que vérifier le montant total. Vous passez commande à l’étape finale entraînant l’obligation de payer chez le prestataire de paiement. Nous acceptons la commande en confirmant la réussite du paiement. Si le total est de 0 €, utilisez le bouton « Commander gratuitement » pour passer commande. Nous l’acceptons à la confirmation de la commande. Vous recevez la confirmation du contrat par e-mail, avec les données de la commande et les informations sur la rétractation. Une fois le paiement confirmé, la facture est également disponible au format PDF sur la page de confirmation de commande. Enregistrez vos documents : l’accès local à la commande est limité dans le temps.\n\nTous les prix sont en EUR. La TVA n’est pas indiquée séparément conformément au § 19 UStG. Les frais de livraison indiqués avant le paiement s’ajoutent au prix du produit. Nous ne vous facturons pas séparément les coûts de production, de service de paiement ou de traitement interne. Le paiement s’effectue à la commande par PayPal ou par carte de crédit ou de débit. Nous livrons à l’adresse confirmée en Allemagne, en Autriche ou en Suisse. Le délai estimé de production et de livraison indiqué pour le mode d’expédition choisi court à compter de la confirmation du paiement. Les droits légaux en cas de défaut s’appliquent.\n\nLe calendrier de randonnée standard est imprimé après la commande, mais il n’est pas personnalisé selon les indications du client. Le droit de rétractation reste applicable. Adressez les retours à l’adresse du vendeur indiquée ci-dessus et non au site de production."
   },
   "withdrawal": {
     "back": "← Retour à la boutique",
