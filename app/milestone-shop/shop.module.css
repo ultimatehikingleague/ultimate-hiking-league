@@ -154,3 +154,20 @@
   .filters { border-radius: 18px; }
   .filters button { flex: 1 1 calc(50% - 3px); font-size: .86rem; padding-inline: 4px; }
 }
+
+.previewNote {
+  width: min(100% - 48px, 1280px);
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding-block: 8px;
+  font-size: .8rem;
+  color: #f4d795;
+}
+.previewNote a { text-decoration: underline; }
+.regular { margin-bottom: 22px; }
+
+@media (max-width: 680px) {
+  .previewNote { width: calc(100% - 28px); }
+}

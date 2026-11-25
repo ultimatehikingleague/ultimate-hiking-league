@@ -15,18 +15,24 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  height: clamp(135px, 15vw, 203px);
+  height: clamp(125px, 13vw, 186px);
   border-bottom: 1px solid #7098aa;
   background: #162d3d center / cover;
 }
 
 .milestone-artwork img {
   position: absolute;
-  inset: 20px 7.5% 8px;
-  width: 85%;
-  height: calc(100% - 28px);
+  top: calc(50% + 6px);
+  left: 50%;
+  translate: -50% -50%;
+  width: 69.7%;
+  height: calc((100% - 28px) * .82);
   object-fit: contain;
   filter: drop-shadow(0 2px 5px #000a);
+}
+.milestone-artwork img[data-cover] {
+  width: 85%;
+  height: calc(100% - 28px);
 }
 .milestone-label {
   position: absolute;
@@ -44,12 +50,12 @@
 .milestone-label[data-variant='discount'] { background: #9a350b; border-color: #ffbe75; }
 .milestone-label[data-variant='ticket'] { background: #671071; border-color: #f1a1ff; }
 .milestone-label[data-variant='free'] { background: #215912; border-color: #aff38b; }
-.milestone-card-body { display: flex; flex: 1; flex-direction: column; padding: 12px 16px 15px; }
+.milestone-card-body { display: flex; flex: 1; flex-direction: column; padding: 11px 15px 12px; }
 .milestone-card h2, .milestone-card h3 { font-size: clamp(1.05rem, 1.7vw, 1.4rem); font-weight: 800; line-height: 1.18; }
 .milestone-partner { margin-bottom: 4px; color: #79f2ff; font-size: .75rem; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
-.milestone-summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; margin-block: 8px; color: #e0edf5; font-size: .925rem; }
-.milestone-card-footer { margin-top: auto; padding-top: 9px; }
-.milestone-price { display: flex; min-height: 40px; align-items: center; gap: 6px; margin-bottom: 9px; border-top: 1px solid #446271; color: #83f5ff; font-size: .9rem; font-weight: 700; }
+.milestone-summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; margin-block: 7px 4px; color: #e0edf5; font-size: .875rem; line-height: 1.4; }
+.milestone-card-footer { margin-top: auto; padding-top: 7px; }
+.milestone-price { display: flex; min-height: 35px; align-items: center; gap: 6px; margin-bottom: 6px; border-top: 1px solid #446271; color: #83f5ff; font-size: .9rem; font-weight: 700; }
 .milestone-price strong { color: #f4f9ff; font-size: 1.35rem; }
 
 .milestone-button {
@@ -75,14 +81,14 @@
 .milestone-benefits :focus-visible { outline: 3px solid #f8e387; outline-offset: 2px; }
 
 .milestone-benefits {
-  padding: clamp(12px, 2.25vw, 26px);
+  padding: clamp(12px, 1.65vw, 23px);
   border: 1px solid #6397ab;
   border-radius: 22px;
   background: linear-gradient(#0d2637e6, #071a26), url('/images/milestone-shop/landscape-2.webp') center top / cover;
   box-shadow: inset 0 1px 12px #7beaff20;
 }
 
-.milestone-benefits .milestone-artwork { height: clamp(115px, 12vw, 150px); }
+.milestone-benefits .milestone-artwork { height: clamp(99px, 9.8vw, 137px); }
 
 @media (max-width: 940px) {
   .milestone-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -90,5 +96,33 @@
 
 @media (max-width: 520px) {
   .milestone-grid { grid-template-columns: minmax(0, 1fr); }
-  .milestone-artwork { height: 148px; }
+  .milestone-artwork { height: 133px; }
+}
+
+/* Keep the summary and action row compact with the expanded text available separately. */
+.milestone-card .milestone-button {
+  min-height: 36px;
+  background: linear-gradient(#126579, #083746 90%);
+  box-shadow: inset 0 1px 5px #49deef45, 0 0 6px #0dbcd925;
+}
+.milestone-card .milestone-button:hover:not(:disabled) { background: #12677a; }
+.milestone-card .milestone-button:disabled { color: #c8d9e4; background: #173440; border-color: #668f9e; box-shadow: none; }
+.milestone-card-note { margin-top: 5px; font-size: .72rem; color: #cfdee7; }
+.milestone-benefit-details { margin-top: 4px; }
+.milestone-code {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 8px;
+  margin-bottom: 7px;
+  padding: 5px 8px;
+  border: 1px solid #436473;
+  border-radius: 10px;
+  background: #0b1721;
+}
+.milestone-disclosure { margin-bottom: 6px; color: #cbdde8; font-size: .72rem; line-height: 1.35; }
+
+@media (max-width: 520px) {
+  .milestone-card .milestone-button { min-height: 44px; }
 }
