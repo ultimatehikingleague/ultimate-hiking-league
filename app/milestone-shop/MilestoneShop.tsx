@@ -232,6 +232,9 @@ export default function MilestoneShop({ previewRewards, userId }: { previewRewar
           <span>{t('previewNotice')}</span>
         </aside>
       )}
+      <div className={styles.languageBar}>
+        <LanguageSwitcher compact />
+      </div>
       <header className={styles.hero}>
         <div className={styles.heroArt} aria-hidden="true">
           <picture>
@@ -328,10 +331,7 @@ export default function MilestoneShop({ previewRewards, userId }: { previewRewar
         )}
 
         <footer className="mt-8 pb-10 text-sm text-slate-300">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Link href={preview ? '/milestone-shop/regeln?from=preview' : '/milestone-shop/regeln'} className="font-semibold text-cyan-200 underline underline-offset-4">{t('readRules')}</Link>
-            <LanguageSwitcher compact />
-          </div>
+          <Link href={preview ? '/milestone-shop/regeln?from=preview' : '/milestone-shop/regeln'} className="font-semibold text-cyan-200 underline underline-offset-4">{t('readRules')}</Link>
           <p className="mt-2 max-w-3xl">{t('partnerResponsibility')}</p>
         </footer>
       </div>

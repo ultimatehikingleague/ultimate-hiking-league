@@ -46,9 +46,15 @@
   background: linear-gradient(90deg, #04121de0, #04121d5c 38%, transparent 56%, transparent 72%, #04121d55 94%), linear-gradient(0deg, #04121d, transparent 28%);
 }
 
-.heroContent, .content {
+.heroContent, .content, .languageBar {
   width: var(--content-width);
   margin-inline: auto;
+}
+
+.languageBar {
+  display: flex;
+  justify-content: flex-end;
+  padding-block: 4px;
 }
 
 .heroContent {
