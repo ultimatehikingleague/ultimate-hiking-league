@@ -54,5 +54,5 @@ export default function MilestoneShopPage() {
     return <main className="grid min-h-screen place-items-center bg-[#04121d] text-sm text-slate-300"><p role="status">{t('checkingSignIn')}</p></main>
   }
 
-  return <MilestoneShop key={userId} />
+  return <MilestoneShop key={userId} userId={userId} />
 }

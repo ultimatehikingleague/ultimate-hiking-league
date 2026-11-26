@@ -83,7 +83,7 @@ export default function SiteFooter() {
       <p className="text-sm font-bold tracking-wider text-white">ULTIMATE MILESTONE SHOP</p>
       <p className="mt-4 max-w-3xl text-sm leading-6">{t('milestoneFooterNotice')}</p>
       <nav aria-label={t('milestoneFooterNavigation')} className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm">
-        <Link href="/milestone-shop/regeln" className="font-semibold text-cyan-300 hover:text-white">{t('milestoneFooterRules')}</Link>
+        <Link href={pathname === '/admin/milestone-shop/vorschau' ? '/milestone-shop/regeln?from=preview' : '/milestone-shop/regeln'} className="font-semibold text-cyan-300 hover:text-white">{t('milestoneFooterRules')}</Link>
         {legalLinks.map(([href, label]) => <Link key={href} href={href} className="hover:text-white">{label === 'Disclaimer' ? t('disclaimerLabel') : t(label)}</Link>)}
       </nav>
       {pathname !== '/account/rewards' && <div className="mt-4"><FooterSocialLinks /></div>}

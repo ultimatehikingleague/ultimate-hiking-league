@@ -81,8 +81,14 @@ const languages=['de','en','fr','nl','pl','it','es','cs']
         assert.equal((await page.goto(base+'/milestone-shop/regeln')).status(),200)
         const { milestoneRules } = JSON.parse(fs.readFileSync('messages/en.json'))
         await heading(milestoneRules.title).waitFor()
-        const back = page.getByRole('link', {name:milestoneRules.back,exact:true})
-        assert.equal(await back.getAttribute('href'),'/milestone-shop')
+        const openingNotice = milestoneRules.opensOn.replace('{date}', 'December 1, 2026')
+        await page.getByText(openingNotice, {exact:true}).waitFor()
+        assert.equal(await page.locator('header a[href="/milestone-shop"]').count(),0)
+
+        await page.goto(base+'/milestone-shop/regeln?from=preview')
+        const previewBack = page.getByRole('link', {name:milestoneRules.backToPreview,exact:true}).last()
+        await previewBack.waitFor()
+        assert.equal(await previewBack.getAttribute('href'),'/admin/milestone-shop/vorschau')
       }
       await context.close()
       console.log('Browser: '+year+', eight languages, home and public profiles')

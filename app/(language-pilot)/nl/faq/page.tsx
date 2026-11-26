@@ -7,6 +7,7 @@ export const dynamic = 'error'
 
 export const metadata = prototypeMetadata('nl', '/faq')
 export default function LocalizedPage() {
+  requireWave1()
   setRequestLocale('nl')
   return <Page />
 }

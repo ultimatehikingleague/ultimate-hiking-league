@@ -34,7 +34,7 @@ const filters = ['allOffers', 'freeTickets', 'discounts', 'freeBenefits'] as con
 type Filter = typeof filters[number]
 const offersPerPage = 6
 
-export default function MilestoneShop({ previewRewards }: { previewRewards?: ShopReward[] }) {
+export default function MilestoneShop({ previewRewards, userId }: { previewRewards?: ShopReward[]; userId?: string }) {
   const preview = previewRewards !== undefined
   const t = useTranslations('milestones')
   const partner = useTranslations('partnerBenefits')
@@ -56,19 +56,22 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
   const active = useRef(false)
   const balanceVersion = useRef(0)
   const redemptionPending = useRef(false)
+  const redemptionRequests = useRef(new Map<number, string>())
 
   useEffect(() => {
     active.current = true
     let cancelled = false
 
     async function loadCatalogue() {
+      const version = balanceVersion.current
       const { data, error } = await supabase.rpc('get_ordered_milestone_shop_catalog')
-      if (cancelled) return
+      if (cancelled || version !== balanceVersion.current) return
       if (error) {
         console.error('Milestone catalog error:', error)
         setError('catalogError')
       } else {
         setRewards(data ?? [])
+        setError(null)
       }
       setLoading(false)
     }
@@ -82,8 +85,10 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
       setBalance(error ? null : Number(data ?? 0))
     }
 
-    if (!preview) void loadCatalogue()
-    const stopPolling = startVisiblePolling(refreshBalance)
+    const stopPolling = startVisiblePolling(async () => {
+      if (redemptionPending.current) return
+      await Promise.all([refreshBalance(), preview ? undefined : loadCatalogue()])
+    })
     return () => {
       cancelled = true
       active.current = false
@@ -91,8 +96,26 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
     }
   }, [preview])
 
+  function requestStorageKey(rewardId: number) {
+    return 'uhl:milestone-redemption:' + userId + ':' + rewardId
+  }
+
+  function rememberRequest(rewardId: number, requestId: string | null) {
+    if (requestId) redemptionRequests.current.set(rewardId, requestId)
+    else redemptionRequests.current.delete(rewardId)
+    if (!userId) return
+    try {
+      if (requestId) sessionStorage.setItem(requestStorageKey(rewardId), requestId)
+      else sessionStorage.removeItem(requestStorageKey(rewardId))
+    } catch { /* In-memory retries still work if storage is unavailable. */ }
+  }
+
   async function handleRedeemReward(reward: ShopReward) {
-    if (preview || redemptionPending.current || !reward.is_available || reward.reward_type === 'product') return
+    const previousRequest = redemptionRequests.current.get(reward.id)
+    if (preview || redemptionPending.current || (!previousRequest && !canRedeem(reward))) return
+
+    const requestId = previousRequest ?? crypto.randomUUID()
+    rememberRequest(reward.id, requestId)
 
     redemptionPending.current = true
     balanceVersion.current++
@@ -101,27 +124,28 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
     setRedeemedVoucherCode(null)
 
     try {
-      const { data, error } = await supabase.rpc('redeem_reward', { p_reward_id: reward.id })
+      const { data, error } = await supabase.rpc('redeem_reward', { p_reward_id: reward.id, p_request_id: requestId })
       if (!active.current) return
       if (error) throw error
       const result = data?.[0]
-      if (!result) throw new Error('Keine Bestätigung der Einlösung erhalten.')
+      if (!result) throw new Error('Missing redemption confirmation')
 
+      rememberRequest(reward.id, null)
       setRedeemedVoucherCode(result.voucher_code)
-      setBalance(Number(result.remaining_points))
+      if (!previousRequest) setBalance(Number(result.remaining_points))
     } catch (err) {
       if (!active.current) return
       console.error('Milestone redemption error:', err)
-      setRedemptionError(
-        locale === 'de' && err && typeof err === 'object' && 'message' in err
-          ? String(err.message)
-          : t('redemptionError')
-      )
+      setRedemptionError(t('redemptionError'))
     } finally {
       if (active.current) {
         // Recheck availability after success and after stock-related failures.
         try {
-          const { data, error } = await supabase.rpc('get_ordered_milestone_shop_catalog')
+          const [{ data, error }, currentBalance] = await Promise.all([
+            supabase.rpc('get_ordered_milestone_shop_catalog'),
+            supabase.rpc('get_my_milestone_balance'),
+          ])
+          if (active.current && !currentBalance.error) setBalance(Number(currentBalance.data ?? 0))
           if (error) throw error
           if (active.current) {
             setRewards(data ?? [])
@@ -162,8 +186,14 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
   }, [selected])
 
   function openOffer(reward: ShopReward) {
+    if (userId && !redemptionRequests.current.has(reward.id)) {
+      try {
+        const id = sessionStorage.getItem(requestStorageKey(reward.id))
+        if (id) redemptionRequests.current.set(reward.id, id)
+      } catch { /* Storage is optional. */ }
+    }
     setTerms(null)
-    setRedemptionError(null)
+    setRedemptionError(redemptionRequests.current.has(reward.id) ? t('redemptionError') : null)
     setRedeemedVoucherCode(null)
     setSelected(reward)
   }
@@ -190,6 +220,7 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
   const pageRewards = visibleRewards.slice(currentPage * offersPerPage, (currentPage + 1) * offersPerPage)
   const counts = { allOffers: rewards.length, freeTickets: tickets.length, discounts: discounts.length, freeBenefits: benefits.length }
   const selectedReward = rewards.find(reward => reward.id === selected?.id) ?? selected
+  const retrying = selectedReward !== null && !!redemptionError && redemptionRequests.current.has(selectedReward.id)
   const termsUrl = terms && terms !== 'error' ? externalOfferUrl(terms.redemption_url) : null
   const number = new Intl.NumberFormat(locale)
 
@@ -197,8 +228,8 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
     <main className={styles.shop}>
       {preview && (
         <aside className={styles.previewNote}>
-          <Link href="/admin/milestone-shop">← Zur Prämienverwaltung</Link>
-          <span>Geschützte Vorschau · Auch inaktive Entwürfe · Einlösung deaktiviert</span>
+          <Link href="/admin/milestone-shop">← {t('manageRewards')}</Link>
+          <span>{t('previewNotice')}</span>
         </aside>
       )}
       <header className={styles.hero}>
@@ -215,7 +246,7 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
           <div className={styles.heading}>
             <div className={styles.headingTitle}>
               <Image src="/images/milestone.png" width={86} height={86} alt="" className={styles.crystal} />
-              <h1>Milestone <em>Shop</em></h1>
+              <h1>{t.rich('shopName', { accent: chunks => <em>{chunks}</em> })}</h1>
             </div>
             <p>{t('shopIntro')}</p>
           </div>
@@ -223,7 +254,7 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
             <p>{t('balance')}</p>
             <div className="flex items-center gap-2">
               <Image src="/images/milestone.png" width={64} height={64} alt="" className={styles.crystal} />
-              <p><strong>{balance === null ? '–' : number.format(balance)}</strong><span>Milestones</span></p>
+              <p><strong>{balance === null ? '–' : number.format(balance)}</strong><span>{t('pointsUnit')}</span></p>
             </div>
           </div>
         </div>
@@ -264,7 +295,7 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
                           <div className="milestone-card-footer">
                             <p className="milestone-price">
                               <Image src="/images/milestone.png" width={34} height={34} alt="" className={styles.crystal} />
-                              <strong>{number.format(reward.points_cost)}</strong> Milestones
+                              <strong>{number.format(reward.points_cost)}</strong> {t('pointsUnit')}
                             </p>
                             <button type="button" className="milestone-button w-full" onClick={() => openOffer(reward)} aria-haspopup="dialog" aria-label={`${canRedeem(reward) ? t('claim') : t('offerDetails')} · ${reward.title}`}>
                               {canRedeem(reward) ? <>{t('claim')} <span aria-hidden="true">→</span></> : t('offerDetails')}
@@ -298,8 +329,8 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
 
         <footer className="mt-8 pb-10 text-sm text-slate-300">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Link href="/milestone-shop/regeln" className="font-semibold text-cyan-200 underline underline-offset-4">{t('readRules')}</Link>
-            {!preview && <LanguageSwitcher compact />}
+            <Link href={preview ? '/milestone-shop/regeln?from=preview' : '/milestone-shop/regeln'} className="font-semibold text-cyan-200 underline underline-offset-4">{t('readRules')}</Link>
+            <LanguageSwitcher compact />
           </div>
           <p className="mt-2 max-w-3xl">{t('partnerResponsibility')}</p>
         </footer>
@@ -334,12 +365,12 @@ export default function MilestoneShop({ previewRewards }: { previewRewards?: Sho
                 <p>{t('debited')}</p>
               </div>
             )}
-            {redemptionError && <p role="alert" className="mt-4 text-red-200">{t('failed')} {redemptionError}</p>}
+            {redemptionError && <p role="alert" className="mt-4 text-red-200">{redemptionError}</p>}
             {!redeemedVoucherCode && (
               <>
-                <p className="mt-5 font-semibold text-cyan-100">{number.format(selectedReward.points_cost)} Milestones</p>
-                <button type="button" className="milestone-button mt-3 w-full" disabled={!canRedeem(selectedReward) || redeemingRewardId !== null || terms === null || terms === 'error'} onClick={() => void handleRedeemReward(selectedReward)}>
-                  {preview || (canRedeem(selectedReward) && redeemingRewardId === null) ? t('confirmClaim') : actionLabel(selectedReward)}
+                <p className="mt-5 font-semibold text-cyan-100">{number.format(selectedReward.points_cost)} {t('pointsUnit')}</p>
+                <button type="button" className="milestone-button mt-3 w-full" disabled={redeemingRewardId !== null || (!retrying && (!canRedeem(selectedReward) || terms === null || terms === 'error'))} onClick={() => void handleRedeemReward(selectedReward)}>
+                  {retrying ? t('retryRedemption') : preview || (canRedeem(selectedReward) && redeemingRewardId === null) ? t('confirmClaim') : actionLabel(selectedReward)}
                 </button>
               </>
             )}
