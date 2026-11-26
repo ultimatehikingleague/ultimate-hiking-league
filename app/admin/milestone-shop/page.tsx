@@ -21,6 +21,7 @@ type Reward = {
   is_active: boolean
   redemption_url: string | null
   redemption_instructions: string | null
+  redeem_until?: string | null
   shared_code?: string | null
 }
 type Draft = {
@@ -34,14 +35,15 @@ type Draft = {
   is_active: boolean
   redemption_url: string
   redemption_instructions: string
+  redeem_until: string
   shared_code: string
 }
 
-const columns = 'id,title,description,partner_name,reward_type,points_cost,image_url,is_active,redemption_url,redemption_instructions,display_position'
+const columns = 'id,title,description,partner_name,reward_type,points_cost,image_url,is_active,redemption_url,redemption_instructions,display_position,redeem_until'
 const labels: Record<RewardType, string> = { voucher: 'Gutschein', discount: 'Rabatt', product: 'Produkt', benefit: 'Kostenloser Partnervorteil', affiliate: 'Affiliate-Angebot' }
 const emptyDraft: Draft = {
   title: '', description: '', partner_name: '', reward_type: 'voucher', points_cost: '', display_position: '',
-  image_url: '', is_active: false, redemption_url: '', redemption_instructions: '', shared_code: '',
+  image_url: '', is_active: false, redemption_url: '', redemption_instructions: '', shared_code: '', redeem_until: '',
 }
 const inputClass = 'mt-2 w-full rounded-xl border border-white/15 bg-[#141312] px-4 py-3 text-white outline-none focus:border-cyan-400'
 const buttonClass = 'rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50'
@@ -63,6 +65,12 @@ function errorMessage(error: unknown) {
 function validateUrl(value: string) {
   if (!value.trim()) return true
   try { return new URL(value.trim()).protocol === 'https:' } catch { return false }
+}
+
+function deadlineInput(value?: string | null) {
+  if (!value) return ''
+  const date = new Date(value)
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
 }
 
 function loadRewards() {
@@ -167,7 +175,7 @@ export default function MilestoneShopAdminPage() {
       title: reward.title, description: reward.description ?? '', partner_name: reward.partner_name,
       reward_type: reward.reward_type, points_cost: String(reward.points_cost), image_url: reward.image_url ?? '',
       is_active: reward.is_active, redemption_url: reward.redemption_url ?? '', redemption_instructions: reward.redemption_instructions ?? '',
-      shared_code: reward.shared_code ?? '',
+      shared_code: reward.shared_code ?? '', redeem_until: deadlineInput(reward.redeem_until),
     })
     setError('')
     setMessage('')
@@ -206,6 +214,13 @@ export default function MilestoneShopAdminPage() {
       setError('Bitte den Ziellink zum Partnerangebot angeben.')
       return
     }
+    const deadline = !isFree && draft.redeem_until ? new Date(draft.redeem_until) : null
+    if (deadline && (!Number.isFinite(deadline.getTime()) || deadlineInput(deadline.toISOString()) !== draft.redeem_until)) {
+      setError('Die Einlösefrist ist in der Gerätezeitzone ungültig.')
+      return
+    }
+    const redeemUntil = draft.redeem_until === deadlineInput(editing?.redeem_until)
+      ? editing?.redeem_until ?? null : deadline?.toISOString() ?? null
     mutationLock.current = true
     setBusy(true)
     try {
@@ -245,7 +260,7 @@ export default function MilestoneShopAdminPage() {
         const { data, error: saveError } = await supabase.rpc('save_positioned_milestone_reward', {
           p_id: editingId,
           p_position: position,
-          p_reward: { ...payload, points_cost: cost },
+          p_reward: { ...payload, points_cost: cost, redeem_until: redeemUntil },
         })
         if (saveError) throw saveError
         savedId = Number(data)
@@ -379,6 +394,10 @@ export default function MilestoneShopAdminPage() {
                     <label className="block text-sm text-stone-300">{isFree ? 'Ziellink (HTTPS) *' : 'Einlöse-URL (HTTPS)'}<input required={isFree} type="url" placeholder="https://…" value={draft.redemption_url} onChange={event => update('redemption_url', event.target.value)} className={inputClass} /></label>
                     {isFree && <label className="block text-sm text-stone-300">Gemeinsamer Rabattcode (optional)<input value={draft.shared_code} onChange={event => update('shared_code', event.target.value)} className={inputClass} /></label>}
                     <label className="block text-sm text-stone-300">Hinweise zur Einlösung<textarea rows={4} value={draft.redemption_instructions} onChange={event => update('redemption_instructions', event.target.value)} className={inputClass} /></label>
+                    {!isFree && <label className="block text-sm text-stone-300">Einlösefrist (optional, Gerätezeit)
+                      <input type="datetime-local" value={draft.redeem_until} onChange={event => update('redeem_until', event.target.value)} className={inputClass} />
+                      <span className="mt-1 block text-xs text-stone-400">Ab diesem Zeitpunkt wird das Angebot ausgeblendet. Bereits zugeteilte Gutscheine behalten ihre Gültigkeit.</span>
+                    </label>}
                     <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={draft.is_active} onChange={event => update('is_active', event.target.checked)} className="h-4 w-4 accent-cyan-400" />Angebot aktivieren</label>
                     {!isFree && draft.reward_type !== 'product' && <p className="text-xs leading-5 text-stone-400">Speichere zuerst das Angebot. Danach kannst du unter „Gutscheincodes &amp; Bestand“ einen Code pro Zeile einfügen oder eine Datei importieren.</p>}
                     {offerLoadError && <p role="status" className="text-sm text-amber-200">{offerLoadError}</p>}

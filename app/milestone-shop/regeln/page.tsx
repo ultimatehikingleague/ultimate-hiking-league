@@ -1,13 +1,20 @@
-import Image from 'next/image'
-import { useLocale, useTranslations } from 'next-intl'
+import Image from "next/image"
+
+import { getLocale, getTranslations } from 'next-intl/server'
 import Link from '@/i18n/prototype/LocalizedLink'
+import RulesReturn from './RulesReturn'
 import MilestoneCalculator from './MilestoneCalculator'
 import '../offer-cards.css'
 import styles from './rules.module.css'
 
-export default function MilestoneRulesPage() {
-  const t = useTranslations('milestoneRules')
-  const locale = useLocale()
+export default async function MilestoneRulesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string | string[] }>
+}) {
+  const [t, locale, { from }] = await Promise.all([
+    getTranslations('milestoneRules'), getLocale(), searchParams,
+  ])
   const format = new Intl.NumberFormat(locale)
   const tiers = [
     { threshold: 'below30', factor: 1, example: 'example29' },
@@ -32,10 +39,7 @@ export default function MilestoneRulesPage() {
       <header className={styles.hero}>
         <div className={styles.heroContent}>
           <div className={styles.heroTop}>
-            <Link href="/milestone-shop" aria-label="Ultimate Milestone Shop">
-              <Image src="/ultimate-logo-transparent-weiss.png" alt="ULTIMATE" width={72} height={64} />
-            </Link>
-            <Link href="/milestone-shop" className="milestone-button">{t('back')}</Link>
+            <RulesReturn fromPreview={from === 'preview'} />
           </div>
           <div className={styles.heroText}>
             <h1>{t('title')}</h1>

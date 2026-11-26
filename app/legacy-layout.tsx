@@ -69,12 +69,14 @@ export default async function RootLayout({
       >
         <NextIntlClientProvider locale={locale} messages={clientMessages}>
           {admin ? (
-            <div className="flex min-h-screen flex-col">
-              <main className="flex-1">{children}</main>
-              <CookieConsentBanner />
-              <GoogleAnalyticsLoader />
-              <SiteFooter />
-            </div>
+            <LanguagePreference manual={manual} contextual={contextual} browser={browser}>
+              <div className="flex min-h-screen flex-col">
+                <main className="flex-1">{children}</main>
+                <CookieConsentBanner />
+                <GoogleAnalyticsLoader />
+                <SiteFooter />
+              </div>
+            </LanguagePreference>
           ) : (
             <LanguagePreference manual={manual} contextual={contextual} browser={browser}>
               <div className="flex min-h-screen flex-col">
