@@ -77,6 +77,12 @@ const languages=['de','en','fr','nl','pl','it','es','cs']
         assert.equal((await page.request.get(base+'/api/admin/partners/documents?id=00000000-0000-4000-8000-000000000001')).status(),403)
         assert.equal((await page.request.get(base+'/shop')).status(),200)
         assert.equal((await page.request.get(base+'/milestone-shop')).status(),404)
+        assert.equal((await page.request.get(base+'/account/rewards')).status(),404)
+        assert.equal((await page.goto(base+'/milestone-shop/regeln')).status(),200)
+        const { milestoneRules } = JSON.parse(fs.readFileSync('messages/en.json'))
+        await heading(milestoneRules.title).waitFor()
+        const back = page.getByRole('link', {name:milestoneRules.back,exact:true})
+        assert.equal(await back.getAttribute('href'),'/milestone-shop')
       }
       await context.close()
       console.log('Browser: '+year+', eight languages, home and public profiles')

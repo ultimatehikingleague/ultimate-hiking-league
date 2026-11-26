@@ -30,6 +30,9 @@ export async function middleware(request: NextRequest) {
     return new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
   }
 
+  // The rules and calculator are informational, including before the shop launch.
+  if (request.nextUrl.pathname === '/milestone-shop/regeln') return NextResponse.next()
+
   // Admin pages do their own identity + admin_users check; RLS protects data.
   if (request.nextUrl.pathname.startsWith('/admin/milestone-shop')) return NextResponse.next()
   try {
