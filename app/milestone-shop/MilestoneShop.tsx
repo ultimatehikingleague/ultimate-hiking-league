@@ -32,7 +32,7 @@ export type ShopReward = Partial<OfferTerms> & {
 
 const filters = ['allOffers', 'freeTickets', 'discounts', 'freeBenefits'] as const
 type Filter = typeof filters[number]
-const offersPerPage = 3
+const offersPerPage = 6
 
 export default function MilestoneShop({ previewRewards }: { previewRewards?: ShopReward[] }) {
   const preview = previewRewards !== undefined

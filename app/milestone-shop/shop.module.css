@@ -1,4 +1,5 @@
 .shop {
+  --content-width: min(100% - 48px, 1280px);
   min-height: 100vh;
   color: #f4f9ff;
   background: radial-gradient(ellipse at 50% 30%, #08253a 0%, #04121d 60%, #030e18 100%);
@@ -8,6 +9,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  background: radial-gradient(ellipse at 58% 0%, #142b3c, #04121d 72%);
 }
 
 .heroArt {
@@ -15,9 +17,10 @@
   z-index: -2;
   top: 0;
   left: 50%;
-  width: max(100%, 940px);
+  width: var(--content-width);
   aspect-ratio: 3;
   transform: translateX(-50%);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 92%, transparent);
 }
 
 .heroArt > picture > img { object-fit: fill; }
@@ -35,17 +38,21 @@
 .hero::after {
   position: absolute;
   z-index: -1;
-  inset: 0;
+  inset: 0 auto 0 50%;
+  width: var(--content-width);
+  transform: translateX(-50%);
   content: '';
-  background: linear-gradient(90deg, #03111de8, #03111d82 39%, transparent 57%, transparent 69%, #03111d64 88%), linear-gradient(0deg, #04121d 0%, transparent 28%);
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  background: linear-gradient(90deg, #04121de0, #04121d5c 38%, transparent 56%, transparent 72%, #04121d55 94%), linear-gradient(0deg, #04121d, transparent 28%);
 }
 
 .heroContent, .content {
-  width: min(100% - 48px, 1280px);
+  width: var(--content-width);
   margin-inline: auto;
 }
 
 .heroContent {
+  container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: 'brand back' 'heading balance';
@@ -55,13 +62,14 @@
   padding: 16px 8px 36px;
 }
 
-.brand { grid-area: brand; width: clamp(58px, 7vw, 98px); height: auto; }
+.brand { grid-area: brand; width: clamp(58px, 7.65cqw, 98px); height: auto; }
 .back { grid-area: back; justify-self: end; align-self: start; }
-.heading { grid-area: heading; min-width: 0; max-width: min(51vw, 585px); }
-.headingTitle { display: flex; align-items: center; gap: clamp(4px, 1vw, 15px); }
-.headingTitle img { width: clamp(43px, 6.5vw, 86px); height: auto; flex: none; }
+.heading { grid-area: heading; min-width: 0; max-width: min(52cqw, 585px); }
+.headingTitle { display: flex; align-items: center; gap: clamp(4px, 1.16cqw, 15px); }
+.headingTitle img { width: clamp(43px, 6.72cqw, 86px); height: auto; flex: none; }
 .heading h1 {
-  font-size: clamp(2.2rem, 5vw, 4.65rem);
+  font-size: clamp(2rem, 5.6cqw, 4.65rem);
+  white-space: nowrap;
   font-weight: 900;
   font-style: italic;
   line-height: 0.98;
@@ -70,23 +78,24 @@
 }
 
 .heading h1 em { color: #48f4ff; }
-.heading > p { max-width: 48ch; margin: 10px 0 0 clamp(0px, 5vw, 64px); font-size: clamp(.95rem, 1.45vw, 1.15rem); text-shadow: 0 1px 5px #000; }
+.heading > p { max-width: 48ch; margin: 10px 0 0 clamp(0px, 5cqw, 64px); font-size: clamp(.95rem, 1.5cqw, 1.15rem); text-shadow: 0 1px 5px #000; }
 .crystal { object-fit: contain; filter: drop-shadow(0 0 9px #22dcfd70); }
 
 .balance {
   grid-area: balance;
   align-self: end;
-  min-width: 200px;
-  max-width: 300px;
+  width: clamp(182px, 20cqw, 256px);
+  min-width: 0;
   border: 1px solid #74f0ff;
   border-radius: 24px;
-  padding: 14px 20px;
+  padding: 14px 16px;
   background: #041927ee;
   box-shadow: inset 0 0 18px #1bd9ed32, 0 0 22px #1bd9ed35;
 }
 
 .balance > p { font-weight: 650; }
-.balance strong { display: block; font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.balance img { width: clamp(38px, 4cqw, 54px); height: auto; flex: none; }
+.balance strong { display: block; font-size: clamp(1.8rem, 3.8cqw, 3.25rem); line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .balance span { display: block; color: #70f5ff; font-weight: 700; }
 
 .filters {
@@ -140,23 +149,43 @@
 
 .shop :focus-visible { outline: 3px solid #f8e387; outline-offset: 2px; }
 
-@media (max-width: 680px) {
-  .heroContent, .content { width: calc(100% - 28px); }
-  .heroContent { grid-template-areas: 'brand back' 'heading heading' 'balance balance'; min-height: 0; padding: 12px 0 18px; gap: 14px; }
-  .heroArt { top: 55px; width: 580px; left: calc(50% - 82px); }
-  .hero::after { background: linear-gradient(0deg, #04121d 30%, #04121da6 58%, transparent 83%), linear-gradient(90deg, #04121dbc, transparent 60%); }
-  .heading { max-width: 100%; margin-top: 126px; }
+@media (max-width: 940px) {
+  .shop { --content-width: calc(100% - 28px); }
+  .hero {
+    --art-width: clamp(580px, 104vw, 810px);
+    background: #04121d;
+  }
+  .heroContent {
+    grid-template-areas: 'brand back' 'heading heading' 'balance balance';
+    min-height: 0;
+    padding: 12px 0 18px;
+    gap: 14px;
+  }
+  .heroArt {
+    top: 49px;
+    width: var(--art-width);
+    left: calc(50% - var(--art-width) * .17);
+    mask-image: linear-gradient(90deg, transparent, #000 24%, #000 87%, transparent),
+      linear-gradient(180deg, transparent, #000 17%, #000 58%, transparent 100%);
+    mask-composite: intersect;
+  }
+  .hero::after { display: none; }
+  .heading { max-width: 100%; margin-top: calc(var(--art-width) * .27 - 11px); }
+  .heading h1 { font-size: clamp(2rem, 7.4cqw, 3.65rem); white-space: normal; }
   .heading > p { margin-left: 0; }
-  .balance { max-width: none; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; }
+  .balance { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; }
   .balance img { width: 36px; height: auto; }
   .balance strong { font-size: 1.55rem; }
   .balance span { font-size: .82rem; }
+}
+
+@media (max-width: 940px) {
   .filters { border-radius: 18px; }
   .filters button { flex: 1 1 calc(50% - 3px); font-size: .86rem; padding-inline: 4px; }
 }
 
 .previewNote {
-  width: min(100% - 48px, 1280px);
+  width: var(--content-width);
   margin-inline: auto;
   display: flex;
   flex-wrap: wrap;
@@ -168,6 +197,3 @@
 .previewNote a { text-decoration: underline; }
 .regular { margin-bottom: 22px; }
 
-@media (max-width: 680px) {
-  .previewNote { width: calc(100% - 28px); }
-}
