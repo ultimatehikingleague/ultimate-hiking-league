@@ -1,5 +1,5 @@
 import { eventReviewSummaries, type ReviewSummary } from '../lib/event-reviews'
-import { ReviewRankingLinks } from '../components/reviews/ReviewDisplay'
+import ReviewRankingCards from '../components/reviews/ReviewRankingCards'
 import { useTranslations } from 'next-intl'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getPartnerAds } from '../lib/partnerBookings'
@@ -240,7 +240,7 @@ export default async function EventsPage() {
       </section>
 
       <div className="mx-auto max-w-7xl px-6 pb-10 md:px-10">
-        <div className="mb-5"><ReviewRankingLinks locale={locale} /></div>
+        <ReviewRankingCards locale={locale} placement="calendar" />
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
