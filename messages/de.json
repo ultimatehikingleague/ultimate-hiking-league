@@ -1,4 +1,13 @@
 {
+  "homeMilestoneShop": {
+    "brand": "MILESTONE SHOP",
+    "link": "Zum Milestone Shop",
+    "title": "Bald geht’s los!",
+    "opening": "Der Milestone Shop öffnet am 01. Dezember 2026 um 00:01 Uhr.",
+    "description": "Ab dann kannst du deine gesammelten Milestones gegen exklusive Prämien, Freetickets und Rabatte unserer Partner einlösen.",
+    "confirm": "Verstanden",
+    "close": "Schließen"
+  },
   "ui": {
     "allTimeRanking": "All Time Ranking",
     "topSeason": "Top 10 {year}",

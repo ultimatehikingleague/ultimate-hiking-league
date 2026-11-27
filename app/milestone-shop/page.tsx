@@ -1,14 +1,15 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import MilestoneShop from './MilestoneShop'
+import { authLanguageHint } from '@/i18n/auth-language'
 
 export default function MilestoneShopPage() {
   const t = useTranslations('milestones')
-  const router = useRouter()
+  const locale = useLocale()
+  const loginUrl = '/login?' + new URLSearchParams({ next: '/milestone-shop', [authLanguageHint]: locale })
   const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function MilestoneShopPage() {
       if (!active || version !== sessionVersion) return
       if (error || !user || (expectedUser !== undefined && user.id !== expectedUser)) {
         setUserId(null)
-        router.replace('/login')
+        window.location.replace(loginUrl)
         return
       }
       expectedUser = user.id
@@ -39,7 +40,7 @@ export default function MilestoneShopPage() {
       clearTimeout(verification)
       setUserId(null)
       if (nextUser) verification = setTimeout(() => void verifyUser(), 0)
-      else router.replace('/login')
+      else window.location.replace(loginUrl)
     })
     void verifyUser()
 
@@ -48,7 +49,7 @@ export default function MilestoneShopPage() {
       clearTimeout(verification)
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [loginUrl])
 
   if (!userId) {
     return <main className="grid min-h-screen place-items-center bg-[#04121d] text-sm text-slate-300"><p role="status">{t('checkingSignIn')}</p></main>

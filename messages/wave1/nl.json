@@ -1,4 +1,13 @@
 {
+  "homeMilestoneShop": {
+    "brand": "MILESTONE SHOP",
+    "link": "Naar de Milestone Shop",
+    "title": "Binnenkort gaat het van start!",
+    "opening": "De Milestone Shop opent op 1 december 2026 om 00.01 uur (Berlijnse tijd).",
+    "description": "Vanaf dan kun je je verzamelde Milestones inwisselen voor exclusieve beloningen, gratis tickets en kortingen bij onze partners.",
+    "confirm": "Begrepen",
+    "close": "Sluiten"
+  },
   "ui": {
     "allTimeRanking": "Aller tijden-klassement",
     "topSeason": "Top 10 {year}",

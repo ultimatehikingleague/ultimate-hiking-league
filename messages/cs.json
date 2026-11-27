@@ -1,4 +1,13 @@
 {
+  "homeMilestoneShop": {
+    "brand": "MILESTONE SHOP",
+    "link": "Přejít do Milestone Shopu",
+    "title": "Brzy otevíráme!",
+    "opening": "Milestone Shop se otevře 1. prosince 2026 v 00:01 (berlínského času).",
+    "description": "Poté budeš moci vyměnit nasbírané Milestones za exkluzivní odměny, vstupenky zdarma a slevy u našich partnerů.",
+    "confirm": "Rozumím",
+    "close": "Zavřít"
+  },
   "ui": {
     "allTimeRanking": "Historický žebříček",
     "topSeason": "Top 10 {year}",

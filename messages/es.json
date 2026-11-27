@@ -1,4 +1,13 @@
 {
+  "homeMilestoneShop": {
+    "brand": "MILESTONE SHOP",
+    "link": "Ir a Milestone Shop",
+    "title": "¡Abrimos pronto!",
+    "opening": "Milestone Shop abre el 1 de diciembre de 2026 a las 00:01 (hora de Berlín).",
+    "description": "A partir de entonces podrás canjear los Milestones que hayas acumulado por recompensas exclusivas, entradas gratuitas y descuentos de nuestros socios.",
+    "confirm": "Entendido",
+    "close": "Cerrar"
+  },
   "ui": {
     "allTimeRanking": "Clasificación histórica",
     "topSeason": "Top 10 {year}",
