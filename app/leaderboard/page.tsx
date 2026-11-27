@@ -1,9 +1,11 @@
+import { ReviewRankingLinks } from '../components/reviews/ReviewDisplay'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { LiveBrandPlacement } from '../components/PartnerPlacements'
 import Link from '@/i18n/prototype/LocalizedLink'
 import { formatRankingDistance } from '../../i18n/display'
 import BrandHeader from '../components/BrandHeader'
 import { supabase } from '../lib/supabase'
+import { eventReviewSummaries, type ReviewSummary } from '../lib/event-reviews'
 import PastEventLeaderboardFilters from '../components/PastEventLeaderboardFilters'
 
 export const dynamic = 'force-dynamic'
@@ -38,6 +40,7 @@ type PastEventCard = {
   distances: string
   monthKey: string
   monthLabel: string
+  review?: ReviewSummary
 }
 
 const rankingCards = [
@@ -112,13 +115,14 @@ async function getPastEvents(locale: string, unknownLabel: string) {
     throw new Error(error.message)
   }
 
-  const rows = ((data as EventRow[]) ?? [])
-    .filter((event) => isPastEvent(event.event_date))
-    .map((event) => {
+  const past = ((data as EventRow[]) ?? []).filter(event => isPastEvent(event.event_date))
+  const reviews = await eventReviewSummaries(past.map(event => event.id))
+  const rows: PastEventCard[] = past.map((event) => {
       const eventDate = event.event_date ? new Date(event.event_date) : null
 
       return {
         id: event.id,
+        review: reviews.get(event.id),
         slug: event.slug,
         title: event.title ?? event.city ?? 'Event',
         city: event.city ?? '—',
@@ -159,6 +163,7 @@ export default async function LeaderboardHubPage() {
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
+      <div className="mx-auto max-w-7xl px-6 pt-5 md:px-10"><ReviewRankingLinks locale={locale} /></div>
       <section
         className="relative overflow-hidden border-b border-white/10"
         style={{

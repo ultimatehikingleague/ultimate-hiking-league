@@ -1,3 +1,7 @@
+import { eventReviewSummaries, reviewCursor, type PublicReview, type ReviewQuery } from '../../lib/event-reviews'
+import ReviewPanel, { ReviewOverviewLink } from '../../components/reviews/ReviewPanel'
+import { ReviewBadge } from '../../components/reviews/ReviewDisplay'
+import { reviewCopy } from '../../lib/review-copy'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { EventSponsors } from '../../components/PartnerPlacements'
 import { eventAdIndex, getPartnerAds } from '../../lib/partnerBookings'
@@ -122,12 +126,14 @@ async function getHikersMap(hikerIds: number[]): Promise<Map<number, HikerRow>> 
 }
 
 export default async function EventDetailPage({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams?: Promise<ReviewQuery>
 }) {
   const [t, locale, ui] = await Promise.all([getTranslations('eventDetail'), getLocale(), getTranslations('ui')])
-  const { slug } = await params
+  const [{ slug }, query] = await Promise.all([params, searchParams])
+  const cursor = reviewCursor(query?.before)
   const event = await getEventBySlug(slug)
 
   if (!event) {
@@ -175,6 +181,11 @@ export default async function EventDetailPage({
     .filter((id): id is number => typeof id === 'number')
 
   const hikersMap = await getHikersMap(hikerIds)
+
+  const reviewSummary = (await eventReviewSummaries([event.id])).get(event.id)
+  const reviewRows = reviewSummary ? await supabase.rpc('uhl_public_reviews', {
+    p_event: event.id, p_organizer: null, p_before: cursor,
+  }) : null
 
   const groupedByDistance = (event.event_distances ?? [])
     .slice()
@@ -266,9 +277,12 @@ export default async function EventDetailPage({
               </span>
             </div>
 
-            <h1 className="text-4xl font-bold tracking-tight text-white md:text-6xl">
-              {event.title}
-            </h1>
+            <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
+              <h1 className="min-w-0 text-4xl font-bold tracking-tight text-white md:text-6xl">{event.title}</h1>
+              {reviewSummary && <ReviewOverviewLink>
+                {reviewSummary.review_count ? <ReviewBadge {...reviewSummary} locale={locale} stacked /> : reviewCopy(locale).reviews}
+              </ReviewOverviewLink>}
+            </div>
 
             
           </div>
@@ -496,6 +510,8 @@ export default async function EventDetailPage({
             ))}
           </div>
         </section>
+        {reviewSummary && <ReviewPanel key={event.id} event={event.id} locale={locale} summary={reviewSummary}
+          pagePath={`/events/${encodeURIComponent(slug)}`} paginated={Boolean(cursor)} initialRows={reviewRows?.data as PublicReview[] | null ?? []} loadError={Boolean(reviewRows?.error)} />}
       </div>
     </main>
   )

@@ -8,6 +8,8 @@
   "/leaderboard",
   "/leaderboard/country",
   "/leaderboard/overall",
+  "/leaderboard/event-reviews",
+  "/leaderboard/organizer-reviews",
   "/division",
   "/division/silver",
   "/division/gold",

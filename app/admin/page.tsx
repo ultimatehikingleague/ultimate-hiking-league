@@ -1996,6 +1996,9 @@ export default function AdminPage() {
 
             {/* SHOP-ADMINISTRATION */}
             <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/admin/event-reviews" className="inline-flex items-center rounded-2xl border border-white/15 bg-white/5 px-6 py-4 text-sm font-semibold text-stone-100 hover:bg-white/10">
+                Veranstaltungsbewertungen
+              </Link>
               <Link
                 href="/admin/partners"
                 className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-6 py-4 text-sm font-semibold text-stone-100 transition hover:bg-white/10"

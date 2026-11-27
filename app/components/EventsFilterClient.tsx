@@ -7,6 +7,8 @@ import { CalendarDays } from 'lucide-react'
 import { EventSponsors } from './PartnerPlacements'
 import { eventAdIndex, type PartnerAd } from '../lib/partnerBookings'
 import { supabase } from '../lib/supabase'
+import type { ReviewSummary } from '../lib/event-reviews'
+import { ReviewBadge } from './reviews/ReviewDisplay'
 
 type EventItem = {
   id: number
@@ -18,6 +20,7 @@ type EventItem = {
   distances: string
   brand: string
   special?: string
+  review?: ReviewSummary
 }
 
 type CountryOption = {
@@ -123,6 +126,7 @@ function EventCard({
         )}
       </div>
 
+      {event.review?.review_count ? <div className="mb-3"><ReviewBadge {...event.review} locale={locale} /></div> : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
           <div className="text-xs uppercase tracking-[0.18em] text-stone-500">

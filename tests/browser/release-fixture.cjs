@@ -13,6 +13,30 @@ const seasons = [2026, 2027].flatMap(y => hikers.map((h, i) => ({
 function response(url, headers = new Headers()) {
   const name = url.pathname.split('/').at(-1)
   if (url.pathname === '/auth/v1/user') return { body: user }
+  if (process.env.UHL_REVIEW_FIXTURE === '1') {
+    const review = { id: 9, stars: [1,2,3,4,5,3], comments: ['Fixture route comment',null,null,null,null,null], author_name: null }
+    const ratings = { score: 3, review_count: 5, category_scores: [1,2,3,4,5,3] }
+    const edition = id => ({ id, event_id: id, score: 3, review_count: 5, organizer_slug: 'fixture-organizer', organizer_name: 'Fixture Organizer' })
+    const fixture = {
+      uhl_event_review_summaries: [edition(700),edition(701)],
+      uhl_public_reviews: [review],
+      uhl_organizer_review_summary: [{ ...ratings, name: 'Fixture Organizer' }],
+      uhl_review_rankings: [{ ...ratings, rank_number: 1, slug: 'fixture-organizer', name: 'Fixture Organizer', event_slug: null }],
+      uhl_review_options: [{ record_id: 770, distance_km: 50, existing_status: '' }],
+      uhl_submit_review: null,
+      uhl_moderation_queue: [],
+      events_master: [
+        { id: 700, title: 'Fixture Trail', slug: 'fixture-trail', city: 'Fixture City', country: 'Germany', country_code: 'DE', event_date: '2026-06-01', brand: 'Fixture Organizer', event_distances: [] },
+        { id: 701, title: 'Fixture Trail 2027', slug: 'fixture-trail-2027', city: 'Fixture City', country: 'Germany', country_code: 'DE', event_date: '2027-07-01', brand: 'Fixture Organizer', event_distances: [] },
+      ],
+    }
+    if (Object.hasOwn(fixture,name)) {
+      const data = fixture[name]
+      const slug = url.searchParams.get('slug')?.replace(/^eq\./,'')
+      return {body: slug ? data.filter(row => row.slug === slug) : data}
+    }
+  }
+
   if (name === 'milestone_shop_is_live') return { body: false }
   if (name === 'garmin_admin_monitoring') return { body: {
     active:9,registered:9,retained_deregistered:0,private_published:1,event_published:0,

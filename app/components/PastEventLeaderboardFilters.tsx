@@ -1,8 +1,10 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 import Link from '@/i18n/prototype/LocalizedLink'
+import type { ReviewSummary } from '../lib/event-reviews'
+import { ReviewBadge } from './reviews/ReviewDisplay'
 
 type PastEventCard = {
   id: number
@@ -16,6 +18,7 @@ type PastEventCard = {
   distances: string
   monthKey: string
   monthLabel: string
+  review?: ReviewSummary
 }
 
 function countryToFlag(countryCode?: string | null) {
@@ -29,6 +32,7 @@ function countryToFlag(countryCode?: string | null) {
 
 function PastEventLeaderboardCard({ event }: { event: PastEventCard }) {
   const t = useTranslations('ui')
+  const locale = useLocale()
   return (
     <Link
       href={`/events/${event.slug}`}
@@ -53,6 +57,8 @@ function PastEventLeaderboardCard({ event }: { event: PastEventCard }) {
             {event.brand}
           </span>
         </div>
+
+        {event.review && <ReviewBadge {...event.review} locale={locale} />}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-3">
