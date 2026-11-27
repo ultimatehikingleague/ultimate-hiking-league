@@ -2,16 +2,20 @@ import { useLocale, useTranslations } from 'next-intl'
 import { getLocale, getTranslations } from 'next-intl/server'
 import Link from '@/i18n/prototype/LocalizedLink'
 import { formatRankingDistance } from '../i18n/display'
+import { clientScope } from '../i18n/client-scope'
 import Image from 'next/image'
 import { supabase } from './lib/supabase'
 import Nav from './components/Nav'
 import SeasonRefresh from './components/SeasonRefresh'
+import HomeMilestoneShop from './components/HomeMilestoneShop'
 import { getSeasonYear, SEASON_RANKINGS_START } from './lib/season'
 import { fetchActiveHikers, fetchSeasonRows, fetchSkyscraperRanking, rankDistance, rankingResult } from './lib/rankings'
 import { getPartnerAds } from './lib/partnerBookings'
 import { BrandPlacement, HomePartnerPlacements } from './components/PartnerPlacements'
 import ChristmasChallengeJoinButton from './components/ChristmasChallengeJoinButton'
 import { CalendarDays, Trophy, CircleCheck } from 'lucide-react'
+
+const HomeMilestoneMessages = clientScope('homeMilestoneShop')
 
 type HomeEventItem = {
   id: number
@@ -275,7 +279,7 @@ export default async function Home() {
               <HomePartnerPlacements ads={topAds} />
             </div>
 
-            <div className="mt-7 flex justify-center">
+            <div className="mx-auto mt-7 grid w-fit max-w-full grid-cols-2 items-start justify-items-stretch gap-0 text-center sm:gap-5">
               <Link
                 href="/shop"
                 aria-label={t("openStore")}
@@ -287,10 +291,13 @@ export default async function Home() {
                   width={1287}
                   height={1222}
                   sizes="(min-width: 768px) 210px, 170px"
-                  className="h-auto w-[170px] drop-shadow-[0_8px_24px_rgba(0,229,213,0.16)] transition-[filter] duration-300 group-hover:drop-shadow-[0_8px_32px_rgba(0,229,213,0.32)] md:w-[210px]"
+                  className="h-auto w-[170px] max-w-full drop-shadow-[0_8px_24px_rgba(0,229,213,0.16)] transition-[filter] duration-300 group-hover:drop-shadow-[0_8px_32px_rgba(0,229,213,0.32)] md:w-[210px]"
                 />
                 <span className="mt-2 text-sm font-semibold tracking-wide text-cyan-200 transition-colors group-hover:text-white">{t("toStore")}{' '}<span aria-hidden="true">→</span></span>
               </Link>
+              <HomeMilestoneMessages>
+                <HomeMilestoneShop />
+              </HomeMilestoneMessages>
             </div>
           </header>
         </div>

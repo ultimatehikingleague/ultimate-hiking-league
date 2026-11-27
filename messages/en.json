@@ -1,4 +1,13 @@
 {
+  "homeMilestoneShop": {
+    "brand": "MILESTONE SHOP",
+    "link": "Go to the Milestone Shop",
+    "title": "Opening soon!",
+    "opening": "The Milestone Shop opens on 1 December 2026 at 00:01 (Berlin time).",
+    "description": "From then on, you can redeem the Milestones you’ve earned for exclusive rewards, free tickets and discounts from our partners.",
+    "confirm": "Got it",
+    "close": "Close"
+  },
   "ui": {
     "allTimeRanking": "All-Time Ranking",
     "topSeason": "Top 10 {year}",

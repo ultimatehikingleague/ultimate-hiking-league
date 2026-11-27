@@ -22,6 +22,7 @@ for (const year of [2026, 2027]) test('home rankings and no recent-activity quer
   const clients = {
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'next-intl/server': { getTranslations: async () => Object.assign(key => key, { rich: key => key }), getLocale: async () => 'de' },
+    '../i18n/client-scope': { clientScope: () => ({ children }) => children },
     './lib/supabase': {supabase: {from: table => { tables.push(table); return q }}},
     './lib/season': { getSeasonYear: () => year, SEASON_RANKINGS_START: 2027 },
     './lib/rankings': {

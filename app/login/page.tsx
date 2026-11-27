@@ -6,6 +6,19 @@ import Link from '@/i18n/prototype/LocalizedLink'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+const milestoneShopPath = '/milestone-shop'
+const authCallback = 'https://www.ultimatehikingleague.com/login'
+
+function milestoneReturnPath() {
+  const destinations = new URLSearchParams(window.location.search).getAll('next')
+  return destinations.length === 1 && destinations[0] === milestoneShopPath ? milestoneShopPath : null
+}
+
+function milestoneAuthCallback() {
+  // Supabase accepts callbacks on its configured Site URL origin.
+  return 'https://ultimatehikingleague.com/login?' + new URLSearchParams({ next: milestoneShopPath })
+}
+
 type Mode = 'login' | 'register' | 'forgot_password'
 
 export default function LoginPage() {
@@ -52,7 +65,11 @@ export default function LoginPage() {
           await supabase.auth.signOut()
 
           setMessage('blockedLogin')
+          return
         }
+
+        const destination = milestoneReturnPath()
+        if (destination) window.location.replace(destination)
       } catch (error) {
         console.error('OAuth ban enforcement failed:', error)
       }
@@ -89,9 +106,11 @@ export default function LoginPage() {
         return
       }
 
-      const { error } = await supabase.auth.signUp({
+      const destination = milestoneReturnPath()
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        ...(destination && { options: { emailRedirectTo: milestoneAuthCallback() } }),
       })
 
       if (error) {
@@ -107,6 +126,11 @@ export default function LoginPage() {
             type: 'welcome',
           }),
         })
+
+        if (destination && data.session) {
+          window.location.assign(destination)
+          return
+        }
 
         setMessage('registered')
         setMode('login')
@@ -158,7 +182,7 @@ export default function LoginPage() {
         setMessage({ providerError: error.message, code: error.code })
       } else {
         setMessage('signedIn')
-        window.location.href = '/'
+        window.location.href = milestoneReturnPath() ?? '/'
       }
     }
 
@@ -172,7 +196,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://www.ultimatehikingleague.com/login',
+        redirectTo: milestoneReturnPath() ? milestoneAuthCallback() : authCallback,
       },
     })
 
