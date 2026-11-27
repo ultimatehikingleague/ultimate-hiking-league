@@ -1,4 +1,3 @@
-import Link from '@/i18n/prototype/LocalizedLink'
 import { reviewCategories, reviewCopy } from '@/app/lib/review-copy'
 import type { PublicReview, ReviewSummary } from '@/app/lib/event-reviews'
 
@@ -12,14 +11,6 @@ export function ReviewBadge({ score, review_count, locale, stacked = false }: Re
       <span>{Intl.NumberFormat(locale).format(review_count)} {copy.count}</span>
     </span>
   )
-}
-
-export function ReviewRankingLinks({ locale }: { locale: string }) {
-  const copy = reviewCopy(locale)
-  return <nav aria-label={copy.rankings} className="flex flex-wrap gap-4 text-sm text-amber-200">
-    <Link className="underline underline-offset-4" href="/leaderboard/event-reviews">{copy.events}</Link>
-    <Link className="underline underline-offset-4" href="/leaderboard/organizer-reviews">{copy.organizers}</Link>
-  </nav>
 }
 
 export function ReviewEntries({ rows, locale, organizer = false }: { rows: PublicReview[]; locale: string; organizer?: boolean }) {

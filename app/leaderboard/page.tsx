@@ -1,4 +1,4 @@
-import { ReviewRankingLinks } from '../components/reviews/ReviewDisplay'
+import ReviewRankingCards from '../components/reviews/ReviewRankingCards'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { LiveBrandPlacement } from '../components/PartnerPlacements'
 import Link from '@/i18n/prototype/LocalizedLink'
@@ -163,7 +163,6 @@ export default async function LeaderboardHubPage() {
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
-      <div className="mx-auto max-w-7xl px-6 pt-5 md:px-10"><ReviewRankingLinks locale={locale} /></div>
       <section
         className="relative overflow-hidden border-b border-white/10"
         style={{
@@ -228,6 +227,7 @@ export default async function LeaderboardHubPage() {
               </Link>
             ))}
           </div>
+          <ReviewRankingCards locale={locale} placement="hub" />
         </div>
       </section>
 
