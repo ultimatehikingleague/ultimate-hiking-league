@@ -5,7 +5,7 @@ import paths from './public-paths.json'
 const publicPaths = new Set(paths)
 
 export function isPublicLanguagePath(path: string) {
-  return publicPaths.has(path) || /^\/(events|challenges)\/[^/]+$/.test(path) || /^\/[1-9]\d*$/.test(path)
+  return publicPaths.has(path) || /^\/(events|challenges|organizers)\/[^/]+$/.test(path) || /^\/[1-9]\d*$/.test(path)
 }
 
 export function splitLanguagePath(path: string) {

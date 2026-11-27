@@ -1,3 +1,5 @@
+import { eventReviewSummaries, type ReviewSummary } from '../lib/event-reviews'
+import { ReviewRankingLinks } from '../components/reviews/ReviewDisplay'
 import { useTranslations } from 'next-intl'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getPartnerAds } from '../lib/partnerBookings'
@@ -36,6 +38,7 @@ type EventItem = {
   distances: string
   brand: string
   special?: string
+  review?: ReviewSummary
 }
 
 function getTodayStart() {
@@ -176,9 +179,12 @@ export default async function EventsPage() {
   const [t, locale] = await Promise.all([getTranslations('eventList'), getLocale()])
   const [events, partnerAds] = await Promise.all([getEvents(), getPartnerAds('events')])
 
-  const upcomingEvents = events
-    .filter((event) => isUpcomingOrToday(event.event_date))
-    .map(event => mapEventToCard(event, locale === 'it' ? 'it-IT' : locale === 'es' ? 'es-ES' : locale === 'cs' ? 'cs-CZ' : 'de-DE'))
+  const upcoming = events.filter(event => isUpcomingOrToday(event.event_date))
+  const ratings = await eventReviewSummaries(upcoming.map(event => event.id))
+  const upcomingEvents = upcoming.map(event => ({
+    ...mapEventToCard(event, locale === 'it' ? 'it-IT' : locale === 'es' ? 'es-ES' : locale === 'cs' ? 'cs-CZ' : 'de-DE'),
+    review: ratings.get(event.id),
+  }))
 
   return (
     <main className="min-h-screen bg-[#141312] text-stone-100">
@@ -234,6 +240,7 @@ export default async function EventsPage() {
       </section>
 
       <div className="mx-auto max-w-7xl px-6 pb-10 md:px-10">
+        <div className="mb-5"><ReviewRankingLinks locale={locale} /></div>
         <section className="mb-12 rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.03] p-6 shadow-2xl shadow-black/20 backdrop-blur-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>

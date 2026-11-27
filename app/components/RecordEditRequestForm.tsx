@@ -1,5 +1,6 @@
 'use client'
 
+import ActivityReviewEditor from './reviews/ActivityReviewEditor'
 import { useLocale, useTranslations } from 'next-intl'
 import type { UiFeedback } from '../../i18n/feedback'
 import { useState } from 'react'
@@ -369,6 +370,8 @@ export default function RecordEditRequestForm({
           />
         </div>
       </div>
+
+      {isOfficialEvent && <ActivityReviewEditor recordId={recordId} locale={locale} />}
 
       {message ? (
         <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-stone-200">

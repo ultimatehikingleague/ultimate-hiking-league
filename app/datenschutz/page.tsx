@@ -1,8 +1,11 @@
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { reviewCopy } from '@/app/lib/review-copy'
+import { reviewPolicyCopy } from '@/app/lib/review-policy-copy'
 import Link from '@/i18n/prototype/LocalizedLink'
 
 export default function DatenschutzPage() {
   const t = useTranslations('privacy')
+  const locale = useLocale()
   return (
     <main className="min-h-screen bg-[#141312] px-6 py-12 text-stone-100 md:px-10">
       <div className="mx-auto max-w-3xl">
@@ -74,6 +77,10 @@ export default function DatenschutzPage() {
           <p>
             {t('evidenceRetention')}
           </p>
+
+          <h2 id="event-reviews" className="scroll-mt-8 text-lg font-semibold text-white">{reviewCopy(locale).reviews}</h2>
+          <p>{reviewPolicyCopy(locale).privacy}</p>
+          <p>{reviewPolicyCopy(locale).submissionPrivacy}</p>
 
           {process.env.NODE_ENV !== 'production' && (<>
           <h2 id="milestone-shop" className="scroll-mt-8 text-lg font-semibold text-white">

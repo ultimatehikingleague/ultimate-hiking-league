@@ -57,7 +57,10 @@ export default function LoginPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      if (!session?.access_token) return
+      if (!session?.access_token) {
+        if (new URLSearchParams(window.location.search).get('mode') === 'register') setMode('register')
+        return
+      }
 
       try {
         const response = await fetch('/api/enforce-user-ban', {

@@ -2,6 +2,7 @@
 
 import Link from '@/i18n/prototype/LocalizedLink'
 import { usePathname } from 'next/navigation'
+import { splitLanguagePath } from '@/i18n/public-paths'
 
 const items = [
   {
@@ -18,12 +19,16 @@ const items = [
   },
 ]
 
-export default function LeaderboardSubnav() {
-  const pathname = usePathname()
+export default function LeaderboardSubnav({ links = items, label }: {
+  links?: { href: string; label: string }[]
+  label?: string
+} = {}) {
+  const route = usePathname()
+  const pathname = splitLanguagePath(route)?.pathname ?? route
 
   return (
-    <div className="mt-6 flex flex-wrap gap-3">
-      {items.map((item) => {
+    <nav aria-label={label} className="mt-6 flex flex-wrap gap-3">
+      {links.map((item) => {
         const active = pathname === item.href
 
         return (
@@ -40,6 +45,6 @@ export default function LeaderboardSubnav() {
           </Link>
         )
       })}
-    </div>
+    </nav>
   )
 }

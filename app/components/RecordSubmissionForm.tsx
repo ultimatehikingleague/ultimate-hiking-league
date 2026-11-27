@@ -1,5 +1,6 @@
 'use client'
 
+import ReviewFields, { emptyReviewDraft, reviewOptIn } from './reviews/ReviewFields'
 import { useLocale, useTranslations } from 'next-intl'
 import type { UiFeedback } from '../../i18n/feedback'
 import { garminIssueKeys } from '../../i18n/activity-display-messages'
@@ -79,6 +80,8 @@ export default function RecordSubmissionForm({
   const [organizer, setOrganizer] = useState('')
   const [isPublic, setIsPublic] = useState(!garminActivity)
   
+  const [reviewEnabled, setReviewEnabled] = useState(false)
+  const [reviewDraft, setReviewDraft] = useState(emptyReviewDraft)
   const [notes, setNotes] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
 
@@ -417,6 +420,7 @@ if (isOfficialEvent) {
           proof_image_url: proofImageUrl,
           notes: notes.trim() || null,
           status: 'pending',
+          ...(isOfficialEvent && reviewEnabled && { uhl_review_draft: reviewDraft }),
         })
 
       // A lost response can leave the first write committed. Verify by this attempt's
@@ -443,6 +447,8 @@ if (isOfficialEvent) {
       setCountry('')
       setLocation('')
       setNotes('')
+      setReviewEnabled(false)
+      setReviewDraft(emptyReviewDraft())
       setProofFile(null)
       setImported(undefined)
       setSuccessMessage('yourHikeWasSubmittedSuccessfully')
@@ -835,6 +841,14 @@ if (isOfficialEvent) {
             rows={4}
             className="w-full rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-white/20 focus:bg-black/20"
           />
+        </div>}
+
+        {!garminActivity && isOfficialEvent && <div className="space-y-4 rounded-2xl border border-white/15 p-4">
+          <label className="flex items-center gap-3 font-medium">
+            <input type="checkbox" className="accent-amber-300" checked={reviewEnabled} onChange={event => setReviewEnabled(event.target.checked)} />
+            {reviewOptIn(locale)}
+          </label>
+          {reviewEnabled && <ReviewFields locale={locale} value={reviewDraft} onChange={setReviewDraft} />}
         </div>}
 
         {errorMessage ? (
