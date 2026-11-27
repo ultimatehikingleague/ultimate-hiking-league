@@ -41,6 +41,8 @@ test('Milestone activation and idempotent voucher retrieval respect the global s
     const safety = await readMigration('20261207_milestone_redemption_safety.sql')
     await db.exec(safety.slice(safety.indexOf('create function public.redeem_reward'),safety.indexOf('-- Apply the same deadline')))
     await db.exec(await readMigration('20261208_milestone_redemption_retry_gate.sql'))
+    const launchStatus = await readMigration('20261209_milestone_shop_launch_status.sql')
+    await db.exec(launchStatus)
     // Record the writes the existing private transaction would make. The public wrapper decides whether to invoke it.
     await db.exec(`
      create function milestone_private.redeem_reward(bigint)
@@ -78,18 +80,30 @@ test('Milestone activation and idempotent voucher retrieval respect the global s
     assert.equal((await query('select id from milestone_partner_benefits')).length,1)
     assert.equal((await query('select get_ordered_milestone_shop_catalog() as offers'))[0].offers.length,1)
     await db.exec("reset role; update milestone_shop_settings set emergency_closed=false")
-    const scheduledSql = await readMigration('20261206_milestone_scheduled_launch.sql')
-    const predicate = scheduledSql.slice(scheduledSql.indexOf('create or replace'),scheduledSql.indexOf('-- Keep the existing'))
-    for (const [time, expected] of [['2026-11-30 23:00:59 UTC',false],['2026-11-30 23:01:00 UTC',true]]) {
-     await db.exec(predicate.replace('pg_catalog.statement_timestamp()',`timestamptz '${time}'`))
-     await db.exec(`set role authenticated; set app.uid='${member}'`)
-     assert.deepEqual(await query('select milestone_shop_is_live() as live'),[{live:expected}])
-     assert.equal((await query('select id from reward_catalog')).length,Number(expected))
-     assert.equal((await query('select id from milestone_partner_benefits')).length,Number(expected))
-     await db.exec('reset role')
+    const launchStates = [
+      ['2026-11-30 23:00:59 UTC', 'scheduled'],
+      ['2026-11-30 23:01:00 UTC', 'open'],
+    ]
+    const statusDefinition = launchStatus.slice(
+      launchStatus.indexOf('create function public.milestone_shop_launch_status()'),
+      launchStatus.indexOf('revoke all on function'),
+    ).replace('create function', 'create or replace function')
+    for (const [instant, status] of launchStates) {
+      await db.exec(statusDefinition.replace('pg_catalog.statement_timestamp()', `timestamptz '${instant}'`))
+      await db.exec(`set role authenticated; set app.uid='${member}'`)
+      const open = status === 'open'
+      assert.deepEqual(await query('select milestone_shop_launch_status() as status'), [{ status }])
+      assert.deepEqual(await query('select milestone_shop_is_live() as live'), [{ live: open }])
+      assert.equal((await query('select id from reward_catalog')).length, Number(open))
+      assert.equal((await query('select id from milestone_partner_benefits')).length, Number(open))
+      await db.exec('reset role')
     }
-    await db.exec("update milestone_shop_settings set emergency_closed=true")
-    assert.deepEqual(await query('select milestone_shop_is_live() as live'),[{live:false}])
+    await db.exec("set role anon; reset app.uid")
+    await assert.rejects(query('select milestone_shop_launch_status()'), { code: '42501' })
+    assert.deepEqual(await query('select milestone_shop_is_live() as live'), [{ live: true }])
+    await db.exec('reset role; update milestone_shop_settings set emergency_closed=true')
+    assert.deepEqual(await query('select milestone_shop_launch_status() as status'), [{ status: 'closed' }])
+    assert.deepEqual(await query('select milestone_shop_is_live() as live'), [{ live: false }])
     async function redeem(request) {
       return query(`select * from redeem_reward(1,'${request}')`)
     }

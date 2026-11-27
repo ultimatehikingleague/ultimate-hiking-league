@@ -21,11 +21,21 @@ export default function HomeMilestoneShop() {
     checking.current = true
     setPending(true)
     try {
-      const { data, error } = await supabase.rpc('milestone_shop_is_live')
-        .abortSignal(AbortSignal.timeout(5000))
-      if (!error && data === true) {
-        window.location.assign('/milestone-shop?' + new URLSearchParams({ [authLanguageHint]: locale }))
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        window.location.assign('/login?' + new URLSearchParams({
+          next: '/milestone-shop', [authLanguageHint]: locale,
+        }))
         return
+      }
+
+      const { data, error } = await supabase.rpc('milestone_shop_launch_status')
+        .abortSignal(AbortSignal.timeout(5000))
+      if (error) return
+      if (data === 'scheduled') {
+        dialog.current?.showModal()
+      } else if (data === 'open' || data === 'closed') {
+        window.location.assign('/milestone-shop?' + new URLSearchParams({ [authLanguageHint]: locale }))
       }
     } catch {
       // The shop stays closed when its global status is unavailable.
@@ -33,7 +43,6 @@ export default function HomeMilestoneShop() {
       checking.current = false
       setPending(false)
     }
-    dialog.current?.showModal()
   }
 
   return (

@@ -19,6 +19,19 @@ function milestoneAuthCallback() {
   return 'https://ultimatehikingleague.com/login?' + new URLSearchParams({ next: milestoneShopPath })
 }
 
+async function postLoginDestination() {
+  const destination = milestoneReturnPath()
+  if (!destination) return '/'
+  try {
+    const { data, error } = await supabase.rpc('milestone_shop_is_live')
+      .abortSignal(AbortSignal.timeout(5000))
+    if (!error && data === true) return destination
+  } catch {
+    // Return to the homepage when the shop's global status cannot be confirmed.
+  }
+  return '/'
+}
+
 type Mode = 'login' | 'register' | 'forgot_password'
 
 export default function LoginPage() {
@@ -68,8 +81,7 @@ export default function LoginPage() {
           return
         }
 
-        const destination = milestoneReturnPath()
-        if (destination) window.location.replace(destination)
+        if (milestoneReturnPath()) window.location.replace(await postLoginDestination())
       } catch (error) {
         console.error('OAuth ban enforcement failed:', error)
       }
@@ -128,7 +140,7 @@ export default function LoginPage() {
         })
 
         if (destination && data.session) {
-          window.location.assign(destination)
+          window.location.assign(await postLoginDestination())
           return
         }
 
@@ -182,7 +194,7 @@ export default function LoginPage() {
         setMessage({ providerError: error.message, code: error.code })
       } else {
         setMessage('signedIn')
-        window.location.href = milestoneReturnPath() ?? '/'
+        window.location.assign(await postLoginDestination())
       }
     }
 
