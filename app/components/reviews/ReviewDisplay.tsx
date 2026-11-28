@@ -1,4 +1,4 @@
-import { reviewCategories, reviewCopy } from '@/app/lib/review-copy'
+import { formatReviewCount, reviewCategories, reviewCopy } from '@/app/lib/review-copy'
 import type { PublicReview, ReviewSummary } from '@/app/lib/event-reviews'
 
 export function ReviewBadge({ score, review_count, locale, stacked = false }: ReviewSummary & { locale: string; stacked?: boolean }) {
@@ -8,7 +8,7 @@ export function ReviewBadge({ score, review_count, locale, stacked = false }: Re
   return (
     <span className={`inline-flex items-center text-sm text-stone-300 ${stacked ? "flex-col gap-y-1 text-center" : "flex-wrap gap-x-2"}`}>
       <span className="font-semibold text-amber-300"><span aria-hidden="true">★</span> {rating}/5 <span className="sr-only">{copy.score}</span></span>
-      <span>{Intl.NumberFormat(locale).format(review_count)} {copy.count}</span>
+      <span>{formatReviewCount(review_count, locale)}</span>
     </span>
   )
 }
