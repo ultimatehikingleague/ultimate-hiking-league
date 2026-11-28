@@ -2,12 +2,19 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useLocale } from 'next-intl'
+import { reviewUiCopy } from '../lib/review-copy'
 import { supabase } from '../lib/supabase'
 
 const queuePageSize = 30
 
 export default function EventReviewsTile() {
-  const [pending, setPending] = useState(0)
+  const locale = useLocale()
+  const copy = reviewUiCopy(locale)
+  const [pending, setPending] = useState<number | null>(null)
+  const [failed, setFailed] = useState(false)
+  const label = pending === null ? (failed ? copy.unavailable : copy.loading) : copy.pending
+  const badge = pending === null ? (failed ? '—' : '…') : new Intl.NumberFormat(locale).format(pending)
 
   useEffect(() => {
     let request: AbortController | undefined
@@ -27,12 +34,14 @@ export default function EventReviewsTile() {
           .abortSignal(controller.signal)
         if (controller.signal.aborted) return
         if (error) {
-          setPending(0)
+          setFailed(true)
+          setPending(null)
           return
         }
         const rows = data as { id: number }[]
         for (const { id } of rows) ids.add(id)
         if (rows.length < queuePageSize) {
+          setFailed(false)
           setPending(ids.size)
           return
         }
@@ -55,11 +64,10 @@ export default function EventReviewsTile() {
   return (
     <Link href="/admin/event-reviews" className="relative inline-flex items-center rounded-2xl border border-white/15 bg-white/5 px-6 py-4 text-sm font-semibold text-stone-100 hover:bg-white/10">
       Veranstaltungsbewertungen
-      {pending > 0 && (
-        <span className="absolute -right-1.5 -top-1.5 grid h-6 min-w-6 place-items-center rounded-full bg-red-700 px-1.5 text-xs font-bold tabular-nums text-white ring-2 ring-[#141312]">
-          {pending}<span className="sr-only"> ausstehende Bewertungsfreigaben</span>
-        </span>
-      )}
+      <span title={label} role="status" className={`absolute -right-1.5 -top-1.5 grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-xs font-bold tabular-nums text-white ring-2 ring-[#141312] ${pending !== null && pending > 0 ? 'bg-red-700' : 'bg-stone-600'}`}>
+        <span aria-hidden={pending === null ? true : undefined}>{badge}</span>
+        <span className="sr-only"> {label}</span>
+      </span>
     </Link>
   )
 }

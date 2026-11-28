@@ -2,10 +2,11 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import GuestReviewInvite from './GuestReviewInvite'
-import { reviewCategories, reviewCopy } from '@/app/lib/review-copy'
+import { reviewCategories, reviewCopy, reviewUiCopy } from '@/app/lib/review-copy'
 import type { EventReviewSummary, PublicReview } from '@/app/lib/event-reviews'
 import { ReviewBadge, ReviewEntries } from './ReviewDisplay'
 import Link from '@/i18n/prototype/LocalizedLink'
+import { getReviewProfileReturn } from './ProfileEventReviewLink'
 
 export function ReviewOverviewLink({ children }: { children: ReactNode }) {
   return <a href="#reviews" onClick={() => window.dispatchEvent(new Event('uhl-open-event-reviews'))}
@@ -26,12 +27,19 @@ export default function ReviewPanel({ locale, event, organizer, summary, initial
 }) {
   const copy = reviewCopy(locale)
   const [opened, setOpened] = useState(false)
+  const [profileReturn, setProfileReturn] = useState<string | null>(null)
   const rows = initialRows
   const error = Boolean(loadError)
   useEffect(() => {
     if (!event) return
     const openFromHash = () => {
       if (window.location.hash === '#reviews') setOpened(true)
+      if (new URLSearchParams(window.location.search).get('fromProfile') !== '1') return
+      const target = getReviewProfileReturn(window.location.pathname)
+      setProfileReturn(target)
+      if (window.location.hash === '#reviews') {
+        requestAnimationFrame(() => document.getElementById('reviews')?.scrollIntoView({ block: 'start' }))
+      }
     }
     const open = () => setOpened(true)
     openFromHash()
@@ -43,7 +51,18 @@ export default function ReviewPanel({ locale, event, organizer, summary, initial
     }
   }, [event])
 
+  function reviewsHref(cursor?: number) {
+    const query = new URLSearchParams()
+    if (cursor !== undefined) query.set('before', String(cursor))
+    if (profileReturn) query.set('fromProfile', '1')
+    return pagePath + (query.size ? '?' + query.toString() : '') + '#reviews'
+  }
+
   const content = <div className="space-y-5">
+    {profileReturn && <a href={profileReturn}
+      className="inline-flex rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-amber-200 hover:bg-white/10">
+      <span aria-hidden="true" className="me-2">←</span>{reviewUiCopy(locale).back}
+    </a>}
     {summary && <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ReviewBadge {...summary} locale={locale} />
@@ -64,8 +83,8 @@ export default function ReviewPanel({ locale, event, organizer, summary, initial
     {!rows.length && !error && <p className="text-sm text-stone-300">{copy.empty}</p>}
     <ReviewEntries rows={rows} organizer={Boolean(organizer)} locale={locale} />
     <div className="flex flex-wrap items-center gap-4">
-      {paginated && <Link href={pagePath + '#reviews'} className="text-sm text-stone-300 underline">↶ {copy.reviews}</Link>}
-      {rows.length === 20 && <Link href={`${pagePath}?before=${rows.at(-1)?.id}#reviews`}
+      {paginated && <Link href={reviewsHref()} className="text-sm text-stone-300 underline">↶ {copy.reviews}</Link>}
+      {rows.length === 20 && <Link href={reviewsHref(rows.at(-1)?.id)}
         className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2">{copy.more}</Link>}
     </div>
     <GuestReviewInvite locale={locale} />

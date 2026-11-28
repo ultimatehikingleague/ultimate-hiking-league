@@ -1,5 +1,8 @@
 'use client'
 
+import ProfileEventReviewLink from '../components/reviews/ProfileEventReviewLink'
+import { eventReviewSummaries, type ReviewSummary } from '../lib/event-reviews'
+
 import { useLocale, useTranslations } from 'next-intl'
 import type { UiFeedback } from '../../i18n/feedback'
 import { LiveBrandPlacement } from '../components/PartnerPlacements'
@@ -67,6 +70,7 @@ type RawRecord = {
 }
 
 type EventItem = {
+  slug: string
   id: number
   title: string | null
   city: string | null
@@ -80,6 +84,7 @@ type EventDistanceItem = {
 }
 
 type RecordItem = {
+  eventReview?: { slug: string; summary: ReviewSummary }
   id: number
   distance_km: number | null
   time_hours: number | null
@@ -551,11 +556,14 @@ export default function AccountPage() {
         let eventsMap = new Map<number, EventItem>()
         let eventDistancesMap = new Map<number, EventDistanceItem>()
 
+        const [{ data: eventRows }, reviewSummaries] = await Promise.all([
+          eventMasterIds.length > 0
+            ? supabase.from('events_master').select('id, slug, title, city, country, country_code').in('id', eventMasterIds)
+            : { data: [] },
+          eventReviewSummaries(eventMasterIds),
+        ])
+
         if (eventMasterIds.length > 0) {
-          const { data: eventRows } = await supabase
-            .from('events_master')
-            .select('id, title, city, country, country_code')
-            .in('id', eventMasterIds)
 
           if (eventRows) {
             eventsMap = new Map(
@@ -595,8 +603,10 @@ export default function AccountPage() {
               ? eventDistancesMap.get(record.event_distance_id)
               : null
 
+          const review = record.event_master_id == null ? undefined : reviewSummaries.get(record.event_master_id)
           return {
             ...record,
+            eventReview: event?.slug && review ? { slug: event.slug, summary: { score: review.score, review_count: review.review_count } } : undefined,
             event_master_id: record.event_master_id,
             event_name: event?.title ?? record.custom_title ?? 'Privater Eintrag',
             displayEventName: event?.title ?? record.custom_title,
@@ -1557,6 +1567,8 @@ export default function AccountPage() {
                           </>
                         ) : null}
                       </div>
+                      {record.eventReview && <ProfileEventReviewLink
+                        {...record.eventReview} recordId={record.id} locale={locale} />}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">

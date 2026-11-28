@@ -22,3 +22,25 @@ export function reviewCopy(locale: string) {
 }
 
 export const reviewCategories = ['route', 'food', 'signage', 'value', 'service', 'recommend', 'organizer'] as const
+
+const reviewUi = {
+  de: { one: 'Bewertung', other: 'Bewertungen', back: 'Zurück zum Hiker-Profil', pending: 'Ausstehende Bewertungsfreigaben', loading: 'Wird geladen', unavailable: 'Anzahl konnte nicht geladen werden' },
+  en: { one: 'review', other: 'reviews', back: 'Back to hiker profile', pending: 'Reviews awaiting moderation', loading: 'Loading', unavailable: 'Count unavailable' },
+  fr: { one: 'avis', other: 'avis', back: 'Retour au profil du randonneur', pending: 'Avis en attente de modération', loading: 'Chargement', unavailable: 'Nombre indisponible' },
+  nl: { one: 'beoordeling', other: 'beoordelingen', back: 'Terug naar het wandelprofiel', pending: 'Beoordelingen in afwachting van moderatie', loading: 'Bezig met laden', unavailable: 'Aantal niet beschikbaar' },
+  it: { one: 'recensione', other: 'recensioni', back: 'Torna al profilo dell’escursionista', pending: 'Recensioni in attesa di moderazione', loading: 'Caricamento', unavailable: 'Conteggio non disponibile' },
+  es: { one: 'reseña', other: 'reseñas', back: 'Volver al perfil del senderista', pending: 'Reseñas pendientes de moderación', loading: 'Cargando', unavailable: 'Recuento no disponible' },
+  pl: { one: 'opinia', few: 'opinie', other: 'opinii', back: 'Wróć do profilu wędrowca', pending: 'Opinie oczekujące na moderację', loading: 'Wczytywanie', unavailable: 'Liczba niedostępna' },
+  cs: { one: 'hodnocení', other: 'hodnocení', back: 'Zpět na profil turisty', pending: 'Hodnocení čekající na schválení', loading: 'Načítání', unavailable: 'Počet není k dispozici' },
+}
+
+export function reviewUiCopy(locale: string) {
+  return reviewUi[locale as keyof typeof reviewUi] ?? reviewUi.en
+}
+
+export function formatReviewCount(count: number, locale: string) {
+  const copy = reviewUiCopy(locale)
+  const form = new Intl.PluralRules(locale).select(count)
+  const noun = form === 'one' ? copy.one : form === 'few' && 'few' in copy ? copy.few : copy.other
+  return `${new Intl.NumberFormat(locale).format(count)} ${noun}`
+}

@@ -1,3 +1,5 @@
+import ProfileEventReviewLink from '../components/reviews/ProfileEventReviewLink'
+import { eventReviewSummaries } from '../lib/event-reviews'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { BrandPlacement } from '../components/PartnerPlacements'
 import { getPartnerAds } from '../lib/partnerBookings'
@@ -214,17 +216,21 @@ export default async function HikerPage({
     }) ?? []
 
   const eventIds =
-    recordsData?.map((record) => record.event_master_id).filter(Boolean) ?? []
+    [...new Set((recordsData ?? []).map((record) => record.event_master_id).filter((id): id is number => typeof id === 'number'))]
+  const visibleEventIds =
+    [...new Set(visibleRecords.map((record) => record.event_master_id).filter((id): id is number => typeof id === 'number'))]
 
-  const { data: eventsData } =
+  const [{ data: eventsData }, reviewSummaries] = await Promise.all([
     eventIds.length > 0
-      ? await supabase
+      ? supabase
           .from('events_master')
           .select(
-            'id, title, event_date, city, country, brand'
+            'id, slug, title, event_date, city, country, brand'
           )
           .in('id', eventIds)
-      : { data: [] as any[] }
+      : { data: [] },
+    eventReviewSummaries(visibleEventIds),
+  ])
 
   const eventsMap = new Map((eventsData ?? []).map((event) => [event.id, event]))
 
@@ -479,6 +485,7 @@ const elevationPerKm =
             <div className="space-y-3">
               {visibleRecords.map((record) => {
                 const event = eventsMap.get(record.event_master_id)
+                const review = reviewSummaries.get(record.event_master_id)
 
                 return (
                   <div
@@ -527,6 +534,8 @@ const elevationPerKm =
                           )}
                         </div>
 
+                        {event?.slug && review && <ProfileEventReviewLink
+                          summary={{ score: review.score, review_count: review.review_count }} slug={event.slug} recordId={record.id} locale={locale} />}
                         <div className="mt-2 flex flex-wrap gap-2 text-xs">
                           
 
