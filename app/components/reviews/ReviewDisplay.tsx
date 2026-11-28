@@ -13,6 +13,10 @@ export function ReviewBadge({ score, review_count, locale, stacked = false }: Re
   )
 }
 
+export function ReviewScore({ score, locale }: { score: number; locale: string }) {
+  return <span className="font-semibold tabular-nums text-amber-300"><span aria-hidden="true">★</span> {Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(score)}/5</span>
+}
+
 export function ReviewEntries({ rows, locale, organizer = false }: { rows: PublicReview[]; locale: string; organizer?: boolean }) {
   const copy = reviewCopy(locale)
   const categories = organizer ? reviewCategories.slice(6) : reviewCategories.slice(0, 6)
@@ -21,7 +25,7 @@ export function ReviewEntries({ rows, locale, organizer = false }: { rows: Publi
     return <article key={row.id} className="min-w-0 rounded-2xl border border-white/10 bg-black/15 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="break-words text-sm font-semibold">{row.author_name || copy.anonymous} <span className="ms-2 font-normal text-emerald-300">✓ {copy.verified}</span></p>
-        <p className="font-semibold tabular-nums text-amber-300">★ {Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(score)}/5</p>
+        <p><ReviewScore score={score} locale={locale} /></p>
       </div>
       <dl className="mt-3 divide-y divide-white/10">
         {categories.map((category, index) => (

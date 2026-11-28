@@ -13,6 +13,8 @@ import { fetchActiveHikers, fetchSeasonRows, fetchSkyscraperRanking, rankDistanc
 import { getPartnerAds } from './lib/partnerBookings'
 import { BrandPlacement, HomePartnerPlacements } from './components/PartnerPlacements'
 import ChristmasChallengeJoinButton from './components/ChristmasChallengeJoinButton'
+import LatestEventReviews from './components/reviews/LatestEventReviews'
+import { latestEventReviews } from './lib/event-reviews'
 import { CalendarDays, Trophy, CircleCheck } from 'lucide-react'
 
 const HomeMilestoneMessages = clientScope('homeMilestoneShop')
@@ -204,12 +206,13 @@ export default async function Home() {
 
   const activeHikers = fetchActiveHikers()
   const seasonRows = fetchSeasonRows(year)
-  const [hikers, season, skyscraper, homeEvents, partnerAds] = await Promise.all([
+  const [hikers, season, skyscraper, homeEvents, partnerAds, reviews] = await Promise.all([
     rankingResult('Active hikers', activeHikers),
     useSeason ? rankingResult('Season', seasonRows) : undefined,
     rankingResult('Skyscraper', fetchSkyscraperRanking(year, activeHikers, seasonRows)),
     fetchUpcomingHomeEvents(),
     getPartnerAds('home'),
+    latestEventReviews(),
   ])
 
   const distanceRows = (ranking: ReturnType<typeof rankDistance>) =>
@@ -447,55 +450,58 @@ export default async function Home() {
           />
           {useSeason && allTimeCard}
 
-          <div className="rounded-[2rem] border border-white/10 bg-gradient-to-b from-[#26231f] to-[#1c1a17] p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
-            <div className="mb-5">
-              <h3 className="text-xl font-bold text-white">{t("upcomingEvents")}</h3>
-              <p className="mt-1 text-sm text-stone-400">{t("upcomingDescription")}</p>
-            </div>
+          <div className="grid min-w-0 gap-6">
+            <div className="rounded-[2rem] border border-white/10 bg-gradient-to-b from-[#26231f] to-[#1c1a17] p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
+              <div className="mb-5">
+                <h3 className="text-xl font-bold text-white">{t("upcomingEvents")}</h3>
+                <p className="mt-1 text-sm text-stone-400">{t("upcomingDescription")}</p>
+              </div>
 
-            <div className="space-y-3">
-              {homeEvents.length > 0 ? (
-                homeEvents.map((event) => (
-                  <Link
-                    key={event.id}
-                    href={`/events/${event.slug}`}
-                    className={`block rounded-2xl px-4 py-4 transition ${
-                      event.is_featured
-                        ? 'border border-amber-400/25 bg-amber-400/10 hover:border-amber-300/40 hover:bg-amber-400/15'
-                        : 'border border-white/8 bg-black/10 hover:border-white/15 hover:bg-white/[0.05]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-white">
-                        {event.title ?? t('untitledEvent')}
+              <div className="space-y-3">
+                {homeEvents.length > 0 ? (
+                  homeEvents.map((event) => (
+                    <Link
+                      key={event.id}
+                      href={`/events/${event.slug}`}
+                      className={`block rounded-2xl px-4 py-4 transition ${
+                        event.is_featured
+                          ? 'border border-amber-400/25 bg-amber-400/10 hover:border-amber-300/40 hover:bg-amber-400/15'
+                          : 'border border-white/8 bg-black/10 hover:border-white/15 hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-white">
+                          {event.title ?? t('untitledEvent')}
+                        </div>
+
+                        {event.is_featured && (
+                          <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">{t("featured")}</span>
+                        )}
                       </div>
+                      <div className="text-xs text-stone-400">
+                        {event.event_date
+                          ? new Date(event.event_date).toLocaleDateString(locale, {
+                              day: '2-digit',
+                              month: 'long',
+                            })
+                          : t("datePending")}
+                        {event.country ? ` · ${event.country}` : ''}
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">{t("noUpcomingEvents")}</div>
+                )}
+              </div>
 
-                      {event.is_featured && (
-                        <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">{t("featured")}</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-stone-400">
-                      {event.event_date
-                        ? new Date(event.event_date).toLocaleDateString(locale, {
-                            day: '2-digit',
-                            month: 'long',
-                          })
-                        : t("datePending")}
-                      {event.country ? ` · ${event.country}` : ''}
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-white/8 bg-black/10 px-4 py-4 text-sm text-stone-400">{t("noUpcomingEvents")}</div>
-              )}
+              <div className="mt-6">
+                <Link
+                  href="/events"
+                  className="inline-block rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:-translate-y-0.5 hover:bg-white"
+                >{t("allEvents")}</Link>
+              </div>
             </div>
-
-            <div className="mt-6">
-              <Link
-                href="/events"
-                className="inline-block rounded-2xl bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:-translate-y-0.5 hover:bg-white"
-              >{t("allEvents")}</Link>
-            </div>
+            <LatestEventReviews rows={reviews} locale={locale} />
           </div>
         </section>
       </div>
