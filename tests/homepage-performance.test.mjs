@@ -30,6 +30,7 @@ for (const year of [2026, 2027]) test('home rankings and no recent-activity quer
       fetchSkyscraperRanking: async () => [{ ...hikers[1], value: 1900 }], rankingResult: (_, value) => value,
     },
     './lib/partnerBookings': { getPartnerAds: async () => [] },
+    './lib/event-reviews': { latestEventReviews: async () => [] },
   }
   const fallback = new Proxy({__esModule:true,default:'Component'}, {get:(o,k)=>k in o?o[k]:String(k)})
   const exports = {}
