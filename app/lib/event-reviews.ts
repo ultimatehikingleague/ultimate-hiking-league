@@ -35,3 +35,17 @@ export function reviewPagePath(path: string, query: ReviewQuery | undefined) {
   const cursor = reviewCursor(query?.before)
   return cursor ? `${path}?before=${cursor}` : path
 }
+
+export type LatestEventReview = {
+  id: number
+  event_slug: string
+  event_name: string
+  country_code: string | null
+  organizer_name: string
+  score: number
+}
+
+export async function latestEventReviews(): Promise<LatestEventReview[]> {
+  const { data, error } = await supabase.rpc('uhl_latest_event_reviews')
+  return error ? [] : (data as LatestEventReview[] | null) ?? []
+}
